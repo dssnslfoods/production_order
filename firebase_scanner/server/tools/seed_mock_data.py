@@ -94,6 +94,19 @@ RESOURCE_BOM = {
     "DL-305": 0.0052,
 }
 
+# Labour intensity per KG differs by product: hand-assembled sandwiches take
+# far more work per kilogram than plain filled bread.  Without this the hours
+# a day takes would be a fixed multiple of its kilograms, and "which day is
+# busiest" would collapse back into "which day is heaviest".
+RESOURCE_FACTOR = {
+    "7010101004": 1.35,      # หมูหยองน้ำพริกเผา — โรยและทาด้วยมือ
+    "7010101007": 1.20,      # ทูน่าสลัด — ผสมไส้ก่อน
+    "7010401001": 1.45,      # เดนิชคาโบว์นาร่า — ประกอบหลายชั้น
+    "7010201003": 1.10,      # แฮมชีส — วางแผ่นเดียว
+    "7010301002": 0.70,      # ขนมปังไส้ครีม — บีบไส้ด้วยเครื่อง
+    "7010501005": 1.55,      # เบอร์เกอร์เทอริยากิ — ขึ้นรูปและย่าง
+}
+
 # series_no -> (product_name, extra BOM, relative production share)
 PRODUCTS = {
     "7010101004": ("แซนวิชหมูหยองน้ำพริกเผา",
@@ -162,9 +175,10 @@ def _build_lines(rng, series_no, plan_total):
             "unit": unit,
         })
         row += 1
+    labour = RESOURCE_FACTOR.get(series_no, 1.0)
     for item_no, ratio in RESOURCE_BOM.items():
         desc, unit, whse = RESOURCES[item_no]
-        plan = plan_total * ratio
+        plan = plan_total * ratio * labour
         actual = plan * rng.normalvariate(1.005, 0.06)
         lines.append({
             "row_no": row,

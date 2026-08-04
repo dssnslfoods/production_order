@@ -327,6 +327,10 @@
   .kpi3 .k{background:var(--surface2);border-radius:12px;padding:14px 16px}
   .kpi3 .k span{font-size:11.5px;color:var(--muted);font-weight:600}
   .kpi3 .k b{display:block;font-size:21px;margin-top:5px;letter-spacing:-.5px}
+  .kpi3 .k.tap{cursor:pointer;transition:.16s;border:1px solid transparent;position:relative}
+  .kpi3 .k.tap:hover{border-color:var(--indigo);background:rgba(99,102,241,.07);transform:translateY(-1px)}
+  .kpi3 .k.tap.on{border-color:var(--indigo);background:rgba(99,102,241,.1)}
+  .kpi3 .k.tap .hint{display:block;font-size:11px;color:var(--indigo);font-weight:600;margin-top:6px}
   .bar{height:6px;border-radius:999px;background:var(--surface2);overflow:hidden;min-width:60px}
   .bar>i{display:block;height:100%;background:var(--grad);border-radius:999px}
   .spark{display:flex;align-items:flex-end;gap:2px;height:26px}
@@ -337,6 +341,30 @@
   .conf.medium{background:rgba(245,158,11,.17);color:#d97706}
   .conf.low{background:rgba(148,163,184,.22);color:#64748b}
   .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  /* Wide tables scroll inside their own box; squeezing them wraps every cell
+     onto three lines and the numbers stop lining up. */
+  /* ---- column help tooltips ---- */
+  .ttip{display:inline-grid;place-items:center;width:15px;height:15px;border-radius:50%;
+    background:var(--line2);color:var(--muted);font-size:10px;font-weight:700;font-style:normal;
+    margin-left:5px;cursor:help;position:relative;vertical-align:middle;text-transform:none;
+    flex:none;outline:none}
+  .ttip:hover,.ttip:focus{background:var(--indigo);color:#fff}
+  .ttip::after{
+    content:attr(data-tip);
+    position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);
+    width:min(250px,70vw);padding:9px 12px;border-radius:9px;
+    background:#0f172a;color:#fff;font-size:11.5px;font-weight:400;line-height:1.65;
+    text-transform:none;letter-spacing:0;white-space:normal;text-align:left;
+    opacity:0;visibility:hidden;transition:.15s;z-index:60;pointer-events:none;
+    box-shadow:0 8px 24px rgba(15,23,42,.28)}
+  /* Headers near the right edge would push their tooltip off-screen. */
+  .q-table th:last-child .ttip::after,.q-table th:nth-last-child(2) .ttip::after{
+    left:auto;right:0;transform:none}
+  .ttip:hover::after,.ttip:focus::after{opacity:1;visibility:visible}
+
+  .scroll-x{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .scroll-x .q-table{min-width:600px}
+  .scroll-x .method{min-width:0;position:sticky;left:0}
   .method{font-size:12.5px;color:var(--muted);line-height:1.8;background:var(--surface2);
     border-radius:12px;padding:14px 16px;margin-top:18px}
   @media(max-width:820px){
@@ -759,29 +787,29 @@
             <span id="fcNote" class="filter-note"></span>
           </div>
 
-          <div id="fcBody"><span class="muted">กำลังคำนวณ…</span></div>
+          <div id="fcBody" class="scroll-x"><span class="muted">กำลังคำนวณ…</span></div>
         </div>
 
         <div class="card panel">
           <div class="phead"><span class="pico" style="background:rgba(16,185,129,.16);color:var(--emerald)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span><h2>กำลังการผลิตที่ต้องใช้ — เครื่องจักรและแรงงาน</h2></div>
-          <div id="fcResources"><span class="muted">กำลังคำนวณ…</span></div>
+          <div id="fcResources" class="scroll-x"><span class="muted">กำลังคำนวณ…</span></div>
         </div>
 
-        <div class="panels-grid" style="grid-template-columns:1fr 1fr">
+        <div class="panels-grid" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">
           <div class="card panel">
             <div class="phead"><span class="pico" style="background:rgba(6,182,212,.16);color:var(--cyan)"><svg viewBox="0 0 24 24"><path d="M21 8v13H3V8"/><rect x="1" y="3" width="22" height="5" rx="1"/><line x1="10" y1="12" x2="14" y2="12"/></svg></span><h2>ความต้องการแยกตามคลัง</h2></div>
-            <div id="fcWarehouses"><span class="muted">กำลังคำนวณ…</span></div>
+            <div id="fcWarehouses" class="scroll-x"><span class="muted">กำลังคำนวณ…</span></div>
           </div>
 
           <div class="card panel">
             <div class="phead"><span class="pico" style="background:rgba(139,92,246,.16);color:var(--violet)"><svg viewBox="0 0 24 24"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></span><h2>สัดส่วนการผลิตที่คาดการณ์</h2></div>
-            <div id="fcMix"><span class="muted">กำลังคำนวณ…</span></div>
+            <div id="fcMix" class="scroll-x"><span class="muted">กำลังคำนวณ…</span></div>
           </div>
         </div>
 
         <div class="card panel">
           <div class="phead"><span class="pico" style="background:rgba(245,158,11,.16);color:var(--amber)"><svg viewBox="0 0 24 24"><path d="M12 2 2 7l10 5 10-5z"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></span><h2>แผนการผลิตรายผลิตภัณฑ์</h2></div>
-          <div id="fcProducts"><span class="muted">กำลังคำนวณ…</span></div>
+          <div id="fcProducts" class="scroll-x"><span class="muted">กำลังคำนวณ…</span></div>
         </div>
       </section>
 
@@ -792,7 +820,7 @@
             <div class="phead" style="margin:0"><span class="pico" style="background:rgba(244,63,94,.16);color:var(--rose)"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span><h2>ผลผลิตจริงเทียบแผน (Yield)</h2></div>
             <button class="ghost sm" onclick="loadHealth()">คำนวณใหม่</button>
           </div>
-          <div id="hlYield"><span class="muted">กำลังคำนวณ…</span></div>
+          <div id="hlYield" class="scroll-x"><span class="muted">กำลังคำนวณ…</span></div>
         </div>
 
         <div class="card panel">
@@ -800,10 +828,10 @@
             <div class="phead" style="margin:0"><span class="pico" style="background:rgba(245,158,11,.16);color:var(--amber)"><svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span><h2>ส่วนเกินจากแผน — ใช้ตั้ง buffer การสั่งซื้อ</h2></div>
             <input type="search" id="hlSearch" placeholder="ค้นหาวัตถุดิบ" style="max-width:260px;font-size:13px;padding:8px 11px" oninput="renderVariance()">
           </div>
-          <div id="hlVariance"><span class="muted">กำลังคำนวณ…</span></div>
+          <div id="hlVariance" class="scroll-x"><span class="muted">กำลังคำนวณ…</span></div>
         </div>
 
-        <div class="panels-grid" style="grid-template-columns:1fr 1fr">
+        <div class="panels-grid" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">
           <div class="card panel">
             <div class="phead"><span class="pico" style="background:rgba(99,102,241,.16);color:var(--indigo)"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span><h2>ปริมาณงานสแกนและต้นทุน AI</h2></div>
             <div id="hlWorkload"><span class="muted">กำลังคำนวณ…</span></div>
@@ -811,7 +839,7 @@
 
           <div class="card panel">
             <div class="phead"><span class="pico" style="background:rgba(14,165,233,.16);color:var(--sky)"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span><h2>รูปแบบการผลิตรายวันในสัปดาห์</h2></div>
-            <div id="hlWeekday"><span class="muted">กำลังคำนวณ…</span></div>
+            <div id="hlWeekday" class="scroll-x"><span class="muted">กำลังคำนวณ…</span></div>
           </div>
         </div>
       </section>
@@ -1957,6 +1985,12 @@ const esc = s => String(s ?? "").replace(/[&<>"]/g, c =>
 const fmt = n => (typeof n === "number")
   ? n.toLocaleString("th-TH", {maximumFractionDigits: 2}) : esc(n);
 
+// Column header with a hover/tap explanation. Every analytics column gets one:
+// these tables carry derived figures, and a heading alone does not say how a
+// number was arrived at or what to do with it.
+const th = (label, tip, attrs = "") =>
+  `<th ${attrs}>${esc(label)}${tip ? `<i class="ttip" tabindex="0" data-tip="${esc(tip)}">i</i>` : ""}</th>`;
+
 let askBusy = false;
 
 window.loadSuggestions = async () => {
@@ -1988,8 +2022,11 @@ function renderAnswer(j){
   if(j.rows && j.rows.length){
     const max = Math.max(...j.rows.map(r => Math.abs(r.value) || 0)) || 1;
     const showBar = j.rows.length > 1;
-    html += `<table class="q-table"><thead><tr><th>รายการ</th><th class="num">ค่า</th>`
-          + (showBar ? `<th style="width:34%"></th>` : ``) + `</tr></thead><tbody>`;
+    html += `<table class="q-table"><thead><tr>`
+          + th("รายการ", "สิ่งที่ระบบจัดกลุ่มให้ตามคำถาม เช่น รายเดือน รายวัตถุดิบ หรือรายผลิตภัณฑ์")
+          + th("ค่า", "ตัวเลขที่คำนวณจากฐานข้อมูลจริงด้วยโค้ด ไม่ได้ให้ AI บวกเอง กดดู “วิธีที่ระบบตีความคำถาม” ใต้คำตอบเพื่อตรวจเงื่อนไขที่ใช้ค้น", 'class="num"')
+          + (showBar ? th("", "แถบเปรียบเทียบสัดส่วนระหว่างแถว", 'style="width:34%"') : ``)
+          + `</tr></thead><tbody>`;
     html += j.rows.map(r => `<tr>
         <td>${esc(r.label)}${r.confidence ? ` <span class="conf ${r.confidence}">${CONF_TH[r.confidence]||r.confidence}</span>` : ""}</td>
         <td class="num"><b>${fmt(r.value)}</b> <span class="muted">${esc(r.unit||"")}</span></td>
@@ -2070,8 +2107,21 @@ const monthTH = m => m ? `${TH_MONTH[Number(m.slice(5,7))-1]} ${m.slice(0,4)}` :
 window.fcQuick = (kind, btn) => {
   document.querySelectorAll('#page-forecast .quick-range button').forEach(b => b.classList.remove('on'));
   btn?.classList.add('on');
+  document.querySelectorAll('#fcKpi .k.tap').forEach(k => k.classList.toggle('on', k.dataset.kind === kind));
   fcKind = kind;
   renderForecast();
+};
+
+window.fcFromKpi = (kind) => {
+  // Clear the other filters, or a card saying "18 items" could land on a
+  // filtered table showing three and read as a broken number.
+  $("fcSearch").value = "";
+  $("fcConf").value = "all";
+  $("fcProduct").value = "all";
+  const btns = document.querySelectorAll('#page-forecast .quick-range button');
+  const index = {all: 0, item: 1, resource: 2, rising: 3, risky: 4}[kind] ?? 0;
+  fcQuick(kind, btns[index]);
+  $("fcBody").scrollIntoView({behavior: "smooth", block: "start"});
 };
 
 window.loadForecast = async () => {
@@ -2106,14 +2156,26 @@ window.loadForecast = async () => {
     const risky = f.materials.filter(m => m.confidence === "low").length;
 
     kpi.innerHTML = `
-      <div class="k"><span>ช่วงที่พยากรณ์</span><b>${esc(span)}</b></div>
-      <div class="k"><span>รายการที่ต้องเตรียม</span><b>${f.materials.length} <small class="muted" style="font-size:12px">รายการ</small></b></div>
-      <div class="k"><span>เพิ่มขึ้นจากปกติเกิน 10%</span><b style="color:${rising ? 'var(--amber)' : 'var(--text)'}">${rising} <small class="muted" style="font-size:12px">รายการ</small></b></div>
-      <div class="k"><span>ผันผวน ควรตรวจก่อนสั่ง</span><b style="color:${risky ? 'var(--rose)' : 'var(--text)'}">${risky} <small class="muted" style="font-size:12px">รายการ</small></b></div>`;
+      <div class="k"><span>ช่วงที่พยากรณ์<i class="ttip" tabindex="0" data-tip="เดือนข้างหน้าที่ระบบคำนวณให้ ปรับได้ที่ช่อง “ช่วงที่พยากรณ์” ด้านล่าง ระบบใช้เฉพาะเดือนที่จบแล้วเป็นข้อมูลตั้งต้น เดือนปัจจุบันที่ยังไม่จบจะไม่ถูกนับ">i</i></span><b>${esc(span)}</b>
+        <span class="muted" style="font-size:11.5px">ใช้ข้อมูล ${f.months_available} เดือน</span></div>
+      <div class="k tap" data-kind="all" onclick="fcFromKpi('all')"><span>รายการที่ต้องเตรียม<i class="ttip" tabindex="0" data-tip="จำนวนวัตถุดิบและทรัพยากรทั้งหมดที่ระบบพยากรณ์ให้ กดเพื่อดูรายการทั้งหมดในตารางด้านล่าง">i</i></span>
+        <b>${f.materials.length} <small class="muted" style="font-size:12px">รายการ</small></b>
+        <span class="hint">ดูทั้งหมด →</span></div>
+      <div class="k tap" data-kind="rising" onclick="fcFromKpi('rising')"><span>เพิ่มขึ้นจากปกติเกิน 10%<i class="ttip" tabindex="0" data-tip="รายการที่คาดว่าจะใช้มากกว่าค่าเฉลี่ยเดิมเกิน 10% มักเกิดจากยอดผลิตโตขึ้นหรือสัดส่วนสินค้าเปลี่ยน กดเพื่อดูว่ามีตัวไหนบ้าง">i</i></span>
+        <b style="color:${rising ? 'var(--amber)' : 'var(--text)'}">${rising} <small class="muted" style="font-size:12px">รายการ</small></b>
+        <span class="hint">${rising ? "ดูว่ามีตัวไหนบ้าง →" : "ไม่มีรายการ"}</span></div>
+      <div class="k tap" data-kind="risky" onclick="fcFromKpi('risky')"><span>ผันผวน ควรตรวจก่อนสั่ง<i class="ttip" tabindex="0" data-tip="รายการที่การใช้งานที่ผ่านมาไม่สม่ำเสมอ ค่าพยากรณ์จึงมีช่วงกว้าง ไม่ควรใช้ตัวเลขกลางสั่งของโดยตรง ควรดูช่วงที่เป็นไปได้ประกอบ">i</i></span>
+        <b style="color:${risky ? 'var(--rose)' : 'var(--text)'}">${risky} <small class="muted" style="font-size:12px">รายการ</small></b>
+        <span class="hint">${risky ? "ดูว่ามีตัวไหนบ้าง →" : "ไม่มีรายการ"}</span></div>`;
 
     prod.innerHTML = `<table class="q-table">
-      <thead><tr><th>ผลิตภัณฑ์</th><th class="num">เฉลี่ย/เดือน</th><th class="num">พยากรณ์</th>
-        <th style="width:110px">ย้อนหลัง</th><th>ความเชื่อมั่น</th></tr></thead>
+      <thead><tr>
+        ${th("ผลิตภัณฑ์","ชื่อสินค้าและรหัส Series No. จากใบสั่งผลิต")}
+        ${th("เฉลี่ย/เดือน","ยอดผลิตเฉลี่ยต่อเดือนของสินค้านี้ จากเดือนที่ผ่านมาทั้งหมด","class=\"num\"")}
+        ${th("พยากรณ์","ยอดผลิตที่คาดว่าจะเกิดในช่วงที่เลือก ประมาณจากเส้นแนวโน้มของยอดผลิตย้อนหลัง และถูกจำกัดไม่ให้เหวี่ยงเกินช่วงที่สมเหตุสมผล","class=\"num\"")}
+        ${th("ย้อนหลัง","กราฟยอดผลิตรายเดือนย้อนหลัง แท่งขวาสุดคือเดือนล่าสุด","style=\"width:110px\"")}
+        ${th("ความเชื่อมั่น","วัดจากความสม่ำเสมอของยอดผลิตรายเดือน ยิ่งแกว่งมากความเชื่อมั่นยิ่งต่ำ")}
+      </tr></thead>
       <tbody>${f.products.map(p => `<tr>
         <td><b>${esc(p.product_name)}</b><div class="muted" style="font-size:11.5px">${esc(p.series_no)}</div></td>
         <td class="num">${fmt(p.avg_monthly)}</td>
@@ -2140,8 +2202,14 @@ function renderResources(f){
   }
   const days = f.avg_active_days;
   box.innerHTML = `<table class="q-table">
-    <thead><tr><th>ทรัพยากร</th><th class="num">เฉลี่ย/เดือน</th><th class="num">ที่ต้องใช้</th>
-      <th class="num">ต่อวันทำงาน</th><th class="num">เทียบเท่ากะ 8 ชม.</th><th>ความเชื่อมั่น</th></tr></thead>
+    <thead><tr>
+      ${th("ทรัพยากร","รายการที่ระบุ Type = Resource ในใบสั่งผลิต เช่น เครื่องจักรและแรงงาน หน่วยเป็นชั่วโมง")}
+      ${th("เฉลี่ย/เดือน","ชั่วโมงที่ใช้จริงเฉลี่ยต่อเดือนจากข้อมูลย้อนหลัง","class=\"num\"")}
+      ${th("ที่ต้องใช้","ชั่วโมงที่คาดว่าจะต้องใช้ในช่วงที่พยากรณ์ คำนวณแบบเดียวกับวัตถุดิบ คือถอดอัตราการใช้ต่อหน่วยผลิตแล้วคูณกับยอดผลิตที่พยากรณ์","class=\"num\"")}
+      ${th("ต่อวันทำงาน","ชั่วโมงที่ต้องใช้ หารด้วยจำนวนวันที่มีการผลิตจริงเฉลี่ยต่อเดือน (ไม่ใช่ 30 วันตามปฏิทิน) ใช้ดูภาระงานต่อวัน","class=\"num\"")}
+      ${th("เทียบเท่ากะ 8 ชม.","แปลงชั่วโมงต่อวันเป็นจำนวนกะ โดยคิดกะละ 8 ชั่วโมง เช่น 1.61 กะ = ต้องมีคนหรือเครื่อง 2 ชุดจึงจะพอ","class=\"num\"")}
+      ${th("ความเชื่อมั่น","ความสม่ำเสมอของอัตราการใช้ทรัพยากรต่อหน่วยผลิตที่ผ่านมา")}
+    </tr></thead>
     <tbody>${rows.map(m => {
       const perDay = days ? m.forecast / (days * f.horizon_months) : null;
       return `<tr>
@@ -2169,7 +2237,11 @@ function renderWarehouses(f){
   if(!rows.length){ box.innerHTML = '<span class="muted">ไม่มีข้อมูลคลัง</span>'; return; }
   const max = Math.max(...rows.map(r => r.forecast)) || 1;
   box.innerHTML = `<table class="q-table">
-    <thead><tr><th>คลัง</th><th class="num">ปริมาณที่ต้องรับ</th><th style="width:38%"></th></tr></thead>
+    <thead><tr>
+      ${th("คลัง","รหัสคลังที่ระบุในช่อง Whse ของใบสั่งผลิต บรรทัดล่างคือจำนวนรายการวัตถุดิบที่เก็บในคลังนั้น")}
+      ${th("ปริมาณที่ต้องรับ","ผลรวมปริมาณวัตถุดิบที่พยากรณ์ไว้ของทุกรายการในคลังนั้น ใช้วางแผนพื้นที่จัดเก็บและรอบรับของ นับเฉพาะ Type = Item","class=\"num\"")}
+      ${th("","แถบเปรียบเทียบสัดส่วนระหว่างคลัง เทียบกับคลังที่ปริมาณมากที่สุด","style=\"width:38%\"")}
+    </tr></thead>
     <tbody>${rows.map(r => `<tr>
       <td><b>${esc(r.whse)}</b><div class="muted" style="font-size:11.5px">${r.items} รายการ</div></td>
       <td class="num"><b>${fmt(r.forecast)}</b> <span class="muted">${esc(r.unit)}</span></td>
@@ -2183,7 +2255,12 @@ function renderMix(f){
   const rows = f.mix || [];
   if(!rows.length){ box.innerHTML = '<span class="muted">ไม่มีข้อมูล</span>'; return; }
   box.innerHTML = `<table class="q-table">
-    <thead><tr><th>ผลิตภัณฑ์</th><th class="num">สัดส่วน</th><th class="num">เปลี่ยนแปลง</th><th style="width:28%"></th></tr></thead>
+    <thead><tr>
+      ${th("ผลิตภัณฑ์","สินค้าสำเร็จรูปที่ผลิต อ้างอิงจาก Series No. ในใบสั่งผลิต")}
+      ${th("สัดส่วน","สัดส่วนยอดผลิตของสินค้านี้ต่อยอดผลิตรวมทั้งหมดในช่วงที่พยากรณ์ บรรทัดล่างคือสัดส่วนของเดือนล่าสุดเพื่อเทียบ","class=\"num\"")}
+      ${th("เปลี่ยนแปลง","ผลต่างของสัดส่วนเทียบเดือนล่าสุด หน่วยเป็นจุดเปอร์เซ็นต์ — ค่านี้คือคำอธิบายว่าทำไมวัตถุดิบบางตัวถึงขยับ ทั้งที่ยอดผลิตรวมเท่าเดิม","class=\"num\"")}
+      ${th("","แถบแสดงสัดส่วนที่พยากรณ์ไว้","style=\"width:28%\"")}
+    </tr></thead>
     <tbody>${rows.map(r => `<tr>
       <td><b>${esc(r.product_name)}</b></td>
       <td class="num"><b>${r.share}%</b><div class="muted" style="font-size:11.5px">เดือนก่อน ${r.share_last_month}%</div></td>
@@ -2225,8 +2302,14 @@ window.renderForecast = () => {
 
   const productNames = f.products_index || {};
   body.innerHTML = `<table class="q-table">
-    <thead><tr><th>วัตถุดิบ</th><th class="num">เฉลี่ย/เดือน</th><th class="num">พยากรณ์</th>
-      <th class="num">ช่วงที่เป็นไปได้</th><th style="width:90px">ย้อนหลัง</th><th>ความเชื่อมั่น</th></tr></thead>
+    <thead><tr>
+      ${th("วัตถุดิบ","ชื่อและรหัสวัตถุดิบตามที่อ่านได้จากใบสั่งผลิต บรรทัดล่างบอกว่าถูกใช้ในกี่ผลิตภัณฑ์")}
+      ${th("เฉลี่ย/เดือน","ปริมาณที่ใช้จริงเฉลี่ยต่อเดือน คำนวณจากเดือนที่ผ่านมาทั้งหมด ใช้เป็นฐานเปรียบเทียบกับค่าพยากรณ์","class=\"num\"")}
+      ${th("พยากรณ์","ปริมาณที่คาดว่าจะใช้ในช่วงที่เลือก = ยอดผลิตที่พยากรณ์ของแต่ละสินค้า × สูตรการใช้ต่อหน่วยผลิต ตัวเลข % ใต้ค่าคือส่วนต่างจากค่าเฉลี่ย","class=\"num\"")}
+      ${th("ช่วงที่เป็นไปได้","ขอบล่างถึงขอบบนที่ค่าจริงมีโอกาสตกอยู่ ยิ่งช่วงกว้างยิ่งแปลว่าการใช้งานที่ผ่านมาไม่สม่ำเสมอ ควรใช้ขอบบนเวลาสั่งของสำคัญ","class=\"num\"")}
+      ${th("ย้อนหลัง","กราฟแท่งแสดงปริมาณที่ใช้จริงรายเดือนย้อนหลัง แท่งขวาสุดคือเดือนล่าสุด ชี้ที่กราฟเพื่อดูตัวเลขแต่ละเดือน","style=\"width:90px\"")}
+      ${th("ความเชื่อมั่น","วัดจากความสม่ำเสมอของสูตรและยอดใช้รายเดือน — เชื่อมั่นสูง = ใช้ตัวเลขสั่งของได้เลย, ปานกลาง = ควรดูช่วงประกอบ, ผันผวน = ควรตรวจสอบก่อนสั่ง")}
+    </tr></thead>
     <tbody>${rows.map(m => `<tr>
       <td><b>${esc(m.item_description)}</b>
         <div class="muted" style="font-size:11.5px">${esc(m.item_no)}
@@ -2297,8 +2380,14 @@ function renderYield(y){
       <b style="color:var(--rose)">พบ ${y.alert_count} ผลิตภัณฑ์ที่ผลผลิตต่ำกว่าค่าเฉลี่ยของตัวเองเกิน 2%</b>
       — ควรตรวจสอบไลน์ผลิตหรือคุณภาพวัตถุดิบก่อนที่จะกลายเป็นต้นทุนสะสม</div>` : ""}
     <table class="q-table">
-      <thead><tr><th>ผลิตภัณฑ์</th><th class="num">เดือนล่าสุด</th><th class="num">เฉลี่ย</th>
-        <th class="num">ต่าง</th><th style="width:110px">แนวโน้ม</th><th>สถานะ</th></tr></thead>
+      <thead><tr>
+        ${th("ผลิตภัณฑ์","ชื่อสินค้า รหัส Series No. และจำนวนเดือนที่มีข้อมูลให้คำนวณ")}
+        ${th("เดือนล่าสุด","Yield ของเดือนที่จบล่าสุด = ยอดผลิตจริง ÷ ยอดผลิตตามแผน × 100 ค่ายิ่งต่ำแปลว่าสูญเสียระหว่างผลิตมาก","class=\"num\"")}
+        ${th("เฉลี่ย","Yield เฉลี่ยของสินค้าตัวนี้ตลอดช่วงข้อมูล ใช้เป็นเกณฑ์ของตัวเอง ไม่ได้เทียบข้ามสินค้า เพราะแต่ละสูตรมีอัตราสูญเสียปกติต่างกัน","class=\"num\"")}
+        ${th("ต่าง","ผลต่างระหว่างเดือนล่าสุดกับค่าเฉลี่ยของตัวเอง ค่าติดลบแปลว่าเดือนนี้แย่กว่าปกติ","class=\"num\"")}
+        ${th("แนวโน้ม","กราฟ Yield รายเดือน ปรับสเกลให้พอดีกับช่วงค่าที่เกิดขึ้นจริง เพราะ Yield อยู่ใกล้ 100% ตลอด ถ้าใช้สเกล 0–100 จะดูเป็นเส้นตรงหมด","style=\"width:110px\"")}
+        ${th("สถานะ","ขึ้น “ต้องตรวจสอบ” เมื่อ Yield เดือนล่าสุดต่ำกว่าค่าเฉลี่ยของตัวเองเกิน 2 จุด ซึ่งมักหมายถึงปัญหาที่ไลน์ผลิตหรือคุณภาพวัตถุดิบ")}
+      </tr></thead>
       <tbody>${y.products.map(p => `<tr>
         <td><b>${esc(p.product_name)}</b><div class="muted" style="font-size:11.5px">${esc(p.series_no)} · ${p.months} เดือน</div></td>
         <td class="num"><b style="color:${p.declining ? 'var(--rose)' : 'var(--text)'}">${p.latest}%</b></td>
@@ -2322,21 +2411,36 @@ window.renderVariance = () => {
   const q = ($("hlSearch")?.value || "").trim().toLowerCase();
   const rows = v.materials.filter(m => !q || `${m.item_description} ${m.item_no}`.toLowerCase().includes(q));
   if(!rows.length){ box.innerHTML = '<span class="muted">ไม่พบรายการที่ค้นหา</span>'; return; }
-  box.innerHTML = `<table class="q-table">
-    <thead><tr><th>วัตถุดิบ</th><th class="num">เกินแผนปกติ</th><th class="num">เคยเกินสูงสุด</th>
-      <th class="num">เกินแผน</th><th class="num">จำนวนครั้ง</th></tr></thead>
-    <tbody>${rows.map(m => `<tr>
+  box.innerHTML = `
+    <div class="muted" style="font-size:12.5px;margin-bottom:14px;line-height:1.7">
+      เปรียบเทียบ <b style="color:var(--text)">ปริมาณที่เบิกจริง</b> กับ <b style="color:var(--text)">ปริมาณตามแผน</b>
+      ในใบสั่งผลิตที่ผ่านมา เพื่อดูว่าวัตถุดิบตัวไหนมักใช้เกินแผน และควรสั่งเผื่อเท่าไหร่
+    </div>
+    <table class="q-table">
+    <thead><tr>
+      ${th("วัตถุดิบ","ชื่อและรหัสวัตถุดิบ รายการที่เป็นเครื่องจักรหรือแรงงานจะมีป้าย Resource กำกับ")}
+      ${th("ควรสั่งเผื่อ","ส่วนต่างระหว่างที่เบิกจริงกับแผน ที่เกิดขึ้นเป็นประจำ (ใช้ค่ามัธยฐาน ไม่ใช่ค่าเฉลี่ย) เช่น +3% หมายถึงถ้าพยากรณ์ว่าใช้ 1,000 กก. ควรเตรียม 1,030 กก.","class=\"num\"")}
+      ${th("เกินมากที่สุดที่เคยเกิด","ครั้งที่เบิกเกินแผนมากที่สุดเท่าที่เคยบันทึกไว้ ใช้ดูว่ากรณีแย่ที่สุดหนักแค่ไหน ไม่ควรใช้ตั้ง buffer ประจำ","class=\"num\"")}
+      ${th("เกินแผนบ่อยแค่ไหน","จำนวนใบที่เบิกเกินแผน จากจำนวนใบทั้งหมดที่มีวัตถุดิบตัวนี้ ยิ่งบ่อยยิ่งแปลว่าเป็นรูปแบบที่เกิดซ้ำ ไม่ใช่ความบังเอิญ","class=\"num\"")}
+    </tr></thead>
+    <tbody>${rows.map(m => {
+      const pct = Math.round(m.over_count / m.samples * 100);
+      return `<tr>
       <td><b>${esc(m.item_description)}</b><div class="muted" style="font-size:11.5px">${esc(m.item_no)}
         ${m.type === "Resource" ? ' · <span style="color:var(--amber)">Resource</span>' : ""}</div></td>
-      <td class="num"><b style="color:${m.over_pct > 0 ? 'var(--amber)' : 'var(--emerald)'}">${m.over_pct > 0 ? "+" : ""}${m.over_pct}%</b></td>
+      <td class="num"><b style="color:${m.over_pct > 0 ? 'var(--amber)' : 'var(--emerald)'}">${m.over_pct > 0 ? "+" : ""}${m.over_pct}%</b>
+        <div class="muted" style="font-size:11.5px">${m.over_pct > 0 ? "สั่งเผื่อจากที่พยากรณ์" : "ใช้น้อยกว่าแผน"}</div></td>
       <td class="num muted">+${m.worst_pct}%</td>
-      <td class="num muted">${Math.round(m.over_count / m.samples * 100)}% ของครั้ง</td>
-      <td class="num muted">${fmt(m.samples)}</td>
-    </tr>`).join("")}</tbody></table>
+      <td class="num"><b>${fmt(m.over_count)}</b> <span class="muted">จาก ${fmt(m.samples)} ครั้ง</span>
+        <div class="bar" style="margin-top:5px"><i style="width:${pct}%"></i></div></td>
+    </tr>`;}).join("")}</tbody></table>
     <div class="method">
-      ใช้<b style="color:var(--text)">ค่ามัธยฐาน</b>ของส่วนต่าง (เบิกจริง − แผน) ไม่ใช่ค่าเฉลี่ย
-      เพราะการคีย์จำนวนผิดครั้งเดียวไม่ควรกลายเป็น buffer ของการสั่งซื้อเดือนถัดไป<br>
-      ตัวเลข “เกินแผนปกติ” เอาไปบวกเพิ่มจากปริมาณที่พยากรณ์ไว้ได้ตรง ๆ เช่น +2% หมายถึงสั่งเผื่อ 2%
+      <b style="color:var(--text)">ควรสั่งเผื่อ</b> — ส่วนต่างที่เกิดขึ้น<i>เป็นประจำ</i> เช่น +3.07%
+      หมายถึงถ้าพยากรณ์ว่าจะใช้ 1,000 กก. ควรเตรียมไว้ราว 1,031 กก.
+      ใช้<b style="color:var(--text)">ค่ามัธยฐาน</b>ไม่ใช่ค่าเฉลี่ย เพราะการคีย์จำนวนผิดครั้งเดียว
+      ไม่ควรกลายเป็นยอดสั่งเผื่อถาวรของเดือนถัดไป<br>
+      <b style="color:var(--text)">เกินแผนบ่อยแค่ไหน</b> — นับจำนวนใบที่เบิกเกินแผน จากใบทั้งหมดที่มีวัตถุดิบตัวนี้
+      ยิ่งบ่อยยิ่งแปลว่าเป็นรูปแบบที่เกิดซ้ำ ไม่ใช่ความบังเอิญ จึงเชื่อถือได้มากกว่า
     </div>`;
 };
 
@@ -2347,12 +2451,12 @@ function renderWorkload(w){
   const maxDaily = Math.max(...w.daily.map(d => d.count), 1);
   box.innerHTML = `
     <div class="kpi3" style="grid-template-columns:1fr 1fr;margin-bottom:16px">
-      <div class="k"><span>เดือนล่าสุด</span><b>${fmt(w.last_month)} <small class="muted" style="font-size:12px">ใบ</small></b></div>
-      <div class="k"><span>พยากรณ์เดือนหน้า</span><b style="color:var(--indigo)">${fmt(w.forecast_next_month)} <small class="muted" style="font-size:12px">ใบ</small></b></div>
-      <div class="k"><span>เฉลี่ยต่อวันที่มีงาน</span><b>${w.avg_per_active_day} <small class="muted" style="font-size:12px">ใบ</small></b></div>
-      <div class="k"><span>สแกนสะสมทั้งหมด</span><b>${fmt(w.total)} <small class="muted" style="font-size:12px">ใบ</small></b></div>
+      <div class="k"><span>เดือนล่าสุด<i class="ttip" tabindex="0" data-tip="จำนวนใบสั่งผลิตที่สแกนเข้าระบบในเดือนที่จบล่าสุด">i</i></span><b>${fmt(w.last_month)} <small class="muted" style="font-size:12px">ใบ</small></b></div>
+      <div class="k"><span>พยากรณ์เดือนหน้า<i class="ttip" tabindex="0" data-tip="จำนวนใบที่คาดว่าจะต้องสแกนเดือนหน้า ประมาณจากแนวโน้มรายเดือนที่ผ่านมา ใช้วางแผนกำลังคนและงบ AI">i</i></span><b style="color:var(--indigo)">${fmt(w.forecast_next_month)} <small class="muted" style="font-size:12px">ใบ</small></b></div>
+      <div class="k"><span>เฉลี่ยต่อวันที่มีงาน<i class="ttip" tabindex="0" data-tip="จำนวนใบเฉลี่ยเฉพาะวันที่มีการสแกนจริง ไม่นับวันหยุดที่ไม่มีงาน จึงสะท้อนภาระงานจริงของวันทำงาน">i</i></span><b>${w.avg_per_active_day} <small class="muted" style="font-size:12px">ใบ</small></b></div>
+      <div class="k"><span>สแกนสะสมทั้งหมด<i class="ttip" tabindex="0" data-tip="จำนวนใบสั่งผลิตทั้งหมดที่อยู่ในระบบตั้งแต่เริ่มใช้งาน">i</i></span><b>${fmt(w.total)} <small class="muted" style="font-size:12px">ใบ</small></b></div>
     </div>
-    <div class="muted" style="font-size:11.5px;font-weight:600;margin-bottom:6px">ปริมาณงานรายวัน 30 วันล่าสุด</div>
+    <div class="muted" style="font-size:11.5px;font-weight:600;margin-bottom:6px">ปริมาณงานรายวัน 30 วันล่าสุด<i class="ttip" tabindex="0" data-tip="แต่ละแท่งคือหนึ่งวัน ความสูงคือจำนวนใบที่สแกนวันนั้น ชี้ที่แท่งเพื่อดูวันที่และจำนวน แท่งเตี้ยติดกันหลายวันมักเป็นวันหยุด">i</i></div>
     <div class="spark" style="height:44px;margin-bottom:16px">
       ${w.daily.map(d => `<i title="${d.date}: ${d.count} ใบ" style="height:${Math.max(8, d.count/maxDaily*100)}%"></i>`).join("")}
     </div>
@@ -2381,18 +2485,32 @@ window.updateAiCost = () => {
 function renderWeekday(p){
   const box = $("hlWeekday");
   if(!p || !p.ready){ box.innerHTML = '<span class="muted">ยังไม่มีข้อมูล</span>'; return; }
-  const max = Math.max(...p.days.map(d => d.avg_volume_per_day), 1);
+  const byHours = p.ranked_by === "hours";
+  const max = Math.max(...p.days.map(d => byHours ? d.avg_hours_per_day : d.avg_volume_per_day), 1);
   box.innerHTML = `<table class="q-table">
-    <thead><tr><th>วัน</th><th class="num">ใบสั่งผลิต</th><th class="num">เฉลี่ย/วัน</th><th style="width:34%"></th></tr></thead>
+    <thead><tr>
+      ${th("วัน","วันในสัปดาห์ ป้าย “หนักสุด” ติดที่วันซึ่งใช้ชั่วโมงงานมากที่สุด ไม่ใช่วันที่ผลิตกิโลกรัมมากที่สุด")}
+      ${th("ใบสั่งผลิต","จำนวนใบสั่งผลิตทั้งหมดที่ตรงกับวันนั้นตลอดช่วงข้อมูล ยิ่งหลายใบยิ่งมีการเปลี่ยนรุ่นบ่อย","class=\"num\"")}
+      ${th("ปริมาณ/วัน","ยอดผลิตรวมทุกสินค้าของวันนั้น หารด้วยจำนวนครั้งที่วันนั้นเกิดขึ้น เป็นน้ำหนักรวม ไม่ได้สะท้อนความยากของงาน","class=\"num\"")}
+      ${th("ชั่วโมงงาน/วัน","ชั่วโมงแรงงานและเครื่องจักรเฉลี่ยต่อวันนั้น มาจากบรรทัด Type = Resource นี่คือตัววัดภาระงานที่แท้จริง เพราะสินค้าแต่ละตัวใช้แรงงานต่อกิโลไม่เท่ากัน","class=\"num\"")}
+      ${th("","แถบเปรียบเทียบภาระงานระหว่างวัน","style=\"width:26%\"")}
+    </tr></thead>
     <tbody>${p.days.map(d => `<tr style="${d.orders ? "" : "opacity:.45"}">
       <td><b>${esc(d.name)}</b>${d.name === p.busiest ? ' <span class="conf high">หนักสุด</span>' : ""}</td>
       <td class="num">${fmt(d.orders)}</td>
-      <td class="num">${fmt(d.avg_volume_per_day)} <span class="muted">KG</span></td>
-      <td><div class="bar"><i style="width:${d.avg_volume_per_day/max*100}%"></i></div></td>
+      <td class="num muted">${fmt(d.avg_volume_per_day)} KG</td>
+      <td class="num"><b>${fmt(d.avg_hours_per_day)}</b> <span class="muted">ชม.</span></td>
+      <td><div class="bar"><i style="width:${(byHours ? d.avg_hours_per_day : d.avg_volume_per_day)/max*100}%"></i></div></td>
     </tr>`).join("")}</tbody></table>
     <div class="method">
-      ${p.idle_days.length ? `ไม่มีการผลิตในวัน<b style="color:var(--text)">${p.idle_days.join(", ")}</b> — ` : ""}
-      ใช้เกลี่ยงานและจัดกะ วันที่ปริมาณสูงกว่าค่าเฉลี่ยมากคือจุดที่มักเกิดคอขวดและของขาด
+      ${p.idle_days.length ? `ไม่มีการผลิตในวัน<b style="color:var(--text)">${p.idle_days.join(", ")}</b><br>` : ""}
+      ${byHours
+        ? `จัดอันดับ “หนักสุด” ด้วย<b style="color:var(--text)">ชั่วโมงแรงงานและเครื่องจักร</b> ไม่ใช่จำนวนกิโลกรัม
+           เพราะสินค้าแต่ละตัวใช้แรงงานต่อกิโลไม่เท่ากัน — วันที่ผลิตของง่ายจำนวนมาก
+           อาจเบากว่าวันที่ผลิตของประกอบมือจำนวนน้อยกว่า`
+        : `ยังไม่พบบรรทัด Type = Resource ในใบสั่งผลิต จึงจัดอันดับด้วยปริมาณ KG ไปก่อน
+           ซึ่งไม่ได้สะท้อนภาระงานจริงเสมอไป`}<br>
+      ปริมาณ KG คือผลรวมยอดผลิตของทุกสินค้าในวันนั้น หารด้วยจำนวนครั้งที่วันนั้นเกิดขึ้นในช่วงข้อมูล
     </div>`;
 }
 

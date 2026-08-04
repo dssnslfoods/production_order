@@ -404,3 +404,38 @@ class TestForecastExtras(unittest.TestCase):
     def test_active_days_counts_distinct_dates(self):
         f = analytics.forecast(_health_dataset(), today=dt.date(2026, 8, 4))
         self.assertAlmostEqual(f["avg_active_days"], 4.0, places=1)
+
+
+class TestWeekdayRanking(unittest.TestCase):
+    def _day(self, order_no, date, volume, hours):
+        o = _order(order_no, date, "S1", "x", volume,
+                   [("M1", "แป้งสาลี", volume * 0.3, volume * 0.3),
+                    ("R1", "แรงงาน", hours, hours)])
+        o["lines"][1]["type"] = "Resource"
+        o["lines"][1]["unit"] = "Hour"
+        return o
+
+    def test_busiest_is_ranked_by_hours_not_kilograms(self):
+        # Monday moves more weight; Tuesday takes far more labour to make.
+        data = [self._day("MON", "2026-07-06", 2000.0, 10.0),
+                self._day("TUE", "2026-07-07", 800.0, 40.0)]
+        p = analytics.weekday_pattern(data)
+        self.assertEqual(p["ranked_by"], "hours")
+        self.assertEqual(p["busiest"], "อังคาร")
+
+    def test_falls_back_to_volume_without_resource_lines(self):
+        data = [_order("MON", "2026-07-06", "S1", "x", 2000.0,
+                       [("M1", "แป้งสาลี", 600.0, 600.0)]),
+                _order("TUE", "2026-07-07", "S1", "x", 800.0,
+                       [("M1", "แป้งสาลี", 240.0, 240.0)])]
+        p = analytics.weekday_pattern(data)
+        self.assertEqual(p["ranked_by"], "volume")
+        self.assertEqual(p["busiest"], "จันทร์")
+
+    def test_hours_are_averaged_per_occurrence_of_that_weekday(self):
+        data = [self._day("A", "2026-07-06", 100.0, 8.0),
+                self._day("B", "2026-07-13", 100.0, 12.0)]   # two Mondays
+        p = analytics.weekday_pattern(data)
+        monday = next(d for d in p["days"] if d["weekday"] == 0)
+        self.assertEqual(monday["hours"], 20.0)
+        self.assertEqual(monday["avg_hours_per_day"], 10.0)

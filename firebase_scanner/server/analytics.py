@@ -721,12 +721,19 @@ WEEKDAY_TH = ["จันทร์", "อังคาร", "พุธ", "พฤ�
 
 
 def weekday_pattern(orders=None):
-    """Production rhythm across the week, for shift and workload levelling."""
+    """Production rhythm across the week, for shift and workload levelling.
+
+    The busiest day is ranked by labour and machine hours, not by kilograms.
+    Products differ in how much work a kilogram takes, so a heavy-tonnage day
+    of a simple line can be lighter than a smaller day of hand-assembled goods.
+    Kilograms are still reported, they just do not decide the ranking.
+    """
     orders = orders if orders is not None else load_orders()
     orders, _ = clean_orders(orders)
 
     counts = {i: 0 for i in range(7)}
     volume = {i: 0.0 for i in range(7)}
+    hours = {i: 0.0 for i in range(7)}
     dates = {i: set() for i in range(7)}
     for o in orders:
         d = (o.get("document_date") or "")[:10]
@@ -740,8 +747,12 @@ def weekday_pattern(orders=None):
         counts[w] += 1
         volume[w] += _num(o.get("plan_total"))
         dates[w].add(d)
+        for ln in o.get("lines") or []:
+            if (ln.get("type") or "") == "Resource":
+                hours[w] += _num(ln.get("quantity"))
 
     total_volume = sum(volume.values()) or 1.0
+    total_hours = sum(hours.values())
     rows = []
     for w in range(7):
         n_days = len(dates[w])
@@ -750,12 +761,19 @@ def weekday_pattern(orders=None):
             "name": WEEKDAY_TH[w],
             "orders": counts[w],
             "volume": round(volume[w], 1),
+            "hours": round(hours[w], 1),
             "share": round(volume[w] / total_volume * 100, 1),
             "avg_orders_per_day": round(counts[w] / n_days, 1) if n_days else 0.0,
             "avg_volume_per_day": round(volume[w] / n_days, 1) if n_days else 0.0,
+            "avg_hours_per_day": round(hours[w] / n_days, 1) if n_days else 0.0,
             "days_observed": n_days,
         })
-    busiest = max(rows, key=lambda r: r["avg_volume_per_day"])
+
+    # Hours are the honest workload measure; fall back to volume only when the
+    # forms carry no Resource lines at all.
+    ranked_by = "hours" if total_hours > 0 else "volume"
+    key = "avg_hours_per_day" if ranked_by == "hours" else "avg_volume_per_day"
+    busiest = max(rows, key=lambda r: r[key])
     idle = [r["name"] for r in rows if r["days_observed"] == 0 or r["orders"] == 0]
     return {"ready": any(r["orders"] for r in rows), "days": rows,
-            "busiest": busiest["name"], "idle_days": idle}
+            "busiest": busiest["name"], "ranked_by": ranked_by, "idle_days": idle}
