@@ -268,6 +268,61 @@
     font-size:15px;background:var(--surface);border:1px solid var(--line2);border-radius:8px;cursor:pointer;transition:.15s}
   .q-table .act-btns button:hover{border-color:var(--indigo);color:var(--indigo);background:rgba(99,102,241,.06)}
 
+  /* ---- orders filter bar ---- */
+  .ord-filters{display:grid;grid-template-columns:1.6fr .9fr .9fr .9fr;gap:10px;margin-bottom:12px}
+  .ord-filters label{display:block;font-size:11px;font-weight:600;color:var(--muted);
+    margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px}
+  .ord-filters input,.ord-filters select{font-size:13px;padding:8px 11px}
+  .quick-range{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px;align-items:center}
+  .quick-range button{width:auto;padding:5px 12px;font-size:12px;font-weight:600;border-radius:999px;
+    background:var(--surface);border:1px solid var(--line2);color:var(--muted);cursor:pointer;transition:.15s}
+  .quick-range button:hover{border-color:var(--indigo);color:var(--indigo)}
+  .quick-range button.on{background:rgba(99,102,241,.1);border-color:var(--indigo);color:var(--indigo)}
+  .filter-note{font-size:12.5px;color:var(--muted);margin-left:auto}
+
+  /* ---- ask AI ---- */
+  .chat{display:flex;flex-direction:column;gap:14px;min-height:200px;max-height:54vh;
+    overflow-y:auto;padding:2px 2px 14px;margin-bottom:14px}
+  .bub{max-width:86%;padding:11px 15px;border-radius:15px;font-size:13.5px;line-height:1.7}
+  .bub.me{align-self:flex-end;background:var(--indigo);color:#fff;border-bottom-right-radius:5px}
+  .bub.ai{align-self:flex-start;background:var(--surface2);border-bottom-left-radius:5px;max-width:96%;width:100%}
+  .bub .ans{white-space:pre-wrap}
+  .bub .q-table{margin-top:12px;background:var(--surface);border-radius:10px;overflow:hidden}
+  .bub details{margin-top:10px;font-size:12px;color:var(--muted)}
+  .bub details pre{margin-top:6px;padding:10px;background:var(--surface);border-radius:8px;
+    overflow-x:auto;font-size:11.5px;line-height:1.5}
+  .bub .thinking{display:inline-flex;gap:4px;align-items:center}
+  .bub .thinking i{width:6px;height:6px;border-radius:50%;background:var(--faint);
+    animation:blink 1.2s infinite}
+  .bub .thinking i:nth-child(2){animation-delay:.2s} .bub .thinking i:nth-child(3){animation-delay:.4s}
+  @keyframes blink{0%,60%,100%{opacity:.25}30%{opacity:1}}
+  .sugg{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .sugg button{width:auto;padding:7px 13px;font-size:12.5px;border-radius:999px;background:var(--surface);
+    border:1px solid var(--line2);color:var(--muted);cursor:pointer;transition:.15s;text-align:left}
+  .sugg button:hover{border-color:var(--indigo);color:var(--indigo);background:rgba(99,102,241,.04)}
+
+  /* ---- forecast ---- */
+  .kpi3{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:20px}
+  .kpi3 .k{background:var(--surface2);border-radius:12px;padding:14px 16px}
+  .kpi3 .k span{font-size:11.5px;color:var(--muted);font-weight:600}
+  .kpi3 .k b{display:block;font-size:21px;margin-top:5px;letter-spacing:-.5px}
+  .bar{height:6px;border-radius:999px;background:var(--surface2);overflow:hidden;min-width:60px}
+  .bar>i{display:block;height:100%;background:var(--grad);border-radius:999px}
+  .spark{display:flex;align-items:flex-end;gap:2px;height:26px}
+  .spark i{flex:1;min-width:3px;background:rgba(99,102,241,.35);border-radius:2px 2px 0 0}
+  .spark i.last{background:var(--indigo)}
+  .conf{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+  .conf.high{background:rgba(16,185,129,.14);color:#059669}
+  .conf.medium{background:rgba(245,158,11,.17);color:#d97706}
+  .conf.low{background:rgba(148,163,184,.22);color:#64748b}
+  .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .method{font-size:12.5px;color:var(--muted);line-height:1.8;background:var(--surface2);
+    border-radius:12px;padding:14px 16px;margin-top:18px}
+  @media(max-width:820px){
+    .ord-filters{grid-template-columns:1fr 1fr}
+    .bub{max-width:94%}
+  }
+
   .spin{width:16px;height:16px;border:2.5px solid var(--surface2);border-top-color:var(--indigo);
     border-radius:50%;display:inline-block;vertical-align:-3px;animation:s .8s linear infinite}
   @keyframes s{to{transform:rotate(360deg)}}
@@ -409,6 +464,12 @@
       <button class="nav-item" data-page="orders" onclick="showPage('orders')">
         <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg></span> รายการ
       </button>
+      <button class="nav-item" data-page="ask" onclick="showPage('ask')">
+        <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z"/></svg></span> ถาม AI
+      </button>
+      <button class="nav-item" data-page="forecast" onclick="showPage('forecast')">
+        <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span> พยากรณ์
+      </button>
       <button class="nav-item" data-page="export" onclick="showPage('export')">
         <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span> Export
       </button>
@@ -533,14 +594,39 @@
         <div class="card panel">
           <div class="between" style="margin-bottom:16px">
             <div class="phead" style="margin:0"><span class="pico" style="background:rgba(52,211,153,.16);color:var(--emerald)"><svg viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></span><h2>รายการที่สแกนแล้ว</h2></div>
-            <div class="row" style="gap:8px">
-              <select id="statusFilter" onchange="applyStatusFilter()" style="font-size:13px;padding:6px 10px;border-radius:8px;border:1px solid var(--line2);background:var(--surface)">
+            <button class="ghost sm" onclick="loadOrders()">รีเฟรช</button>
+          </div>
+
+          <div class="ord-filters">
+            <div>
+              <label for="ordSearch">ค้นหา</label>
+              <input type="search" id="ordSearch" placeholder="เลขที่ / ชื่อสินค้า / ผู้อนุมัติ" oninput="applyOrderFilters()">
+            </div>
+            <div>
+              <label for="statusFilter">สถานะ</label>
+              <select id="statusFilter" onchange="applyOrderFilters()">
                 <option value="all">ทั้งหมด</option>
                 <option value="pending_approval">รออนุมัติ</option>
+                <option value="draft">Draft</option>
                 <option value="approved">อนุมัติแล้ว</option>
               </select>
-              <button class="ghost sm" onclick="loadOrders()">รีเฟรช</button>
             </div>
+            <div>
+              <label for="ordFrom">ตั้งแต่วันที่</label>
+              <input type="date" id="ordFrom" onchange="applyOrderFilters()">
+            </div>
+            <div>
+              <label for="ordTo">ถึงวันที่</label>
+              <input type="date" id="ordTo" onchange="applyOrderFilters()">
+            </div>
+          </div>
+          <div class="quick-range">
+            <button onclick="quickRange(7,this)">7 วัน</button>
+            <button onclick="quickRange(30,this)">30 วัน</button>
+            <button onclick="quickRange('this',this)">เดือนนี้</button>
+            <button onclick="quickRange('last',this)">เดือนที่แล้ว</button>
+            <button onclick="quickRange('all',this)">ทั้งหมด</button>
+            <span id="filterNote" class="filter-note"></span>
           </div>
           <div id="batchBar" class="batch-bar hidden">
             <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--muted)"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this.checked)"> เลือกทั้งหมด</label>
@@ -552,6 +638,48 @@
           <div id="loadMoreBar" style="text-align:center;margin:8px 0"></div>
         </div>
 
+      </section>
+
+      <!-- ======== PAGE: Ask AI ======== -->
+      <section id="page-ask" class="page-section hidden">
+        <div class="card panel">
+          <div class="between" style="margin-bottom:16px">
+            <div class="phead" style="margin:0"><span class="pico" style="background:rgba(139,92,246,.16);color:var(--violet)"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z"/></svg></span><h2>ถามข้อมูลด้วยภาษาธรรมชาติ</h2></div>
+            <button class="ghost sm" onclick="clearChat()">ล้างการสนทนา</button>
+          </div>
+
+          <div id="askChat" class="chat"></div>
+
+          <div class="row" style="gap:8px;flex-wrap:nowrap">
+            <input id="askInput" placeholder="เช่น เดือนที่แล้วใช้แป้งสาลีไปเท่าไหร่" onkeydown="if(event.key==='Enter')sendAsk()">
+            <button class="btn sm" id="askBtn" style="flex:none" onclick="sendAsk()">ถาม</button>
+          </div>
+          <div id="askSuggest" class="sugg"></div>
+
+          <div class="method">
+            <b style="color:var(--text)">ตัวเลขทั้งหมดคำนวณจากฐานข้อมูลจริง</b> — AI ทำหน้าที่แปลคำถามเป็นเงื่อนไขค้นหา
+            และเรียบเรียงคำตอบเท่านั้น ไม่ได้เป็นผู้บวกเลขเอง จึงไม่มีโอกาสตอบตัวเลขที่ไม่มีอยู่จริง
+            กดดู <i>“วิธีที่ระบบตีความคำถาม”</i> ใต้คำตอบเพื่อตรวจสอบเงื่อนไขที่ใช้ค้นได้
+          </div>
+        </div>
+      </section>
+
+      <!-- ======== PAGE: Forecast ======== -->
+      <section id="page-forecast" class="page-section hidden">
+        <div class="card panel">
+          <div class="between" style="margin-bottom:16px">
+            <div class="phead" style="margin:0"><span class="pico" style="background:rgba(14,165,233,.16);color:var(--sky)"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span><h2>พยากรณ์ความต้องการวัตถุดิบ</h2></div>
+            <button class="ghost sm" onclick="loadForecast()">คำนวณใหม่</button>
+          </div>
+
+          <div id="fcKpi" class="kpi3"></div>
+          <div id="fcBody"><span class="muted">กำลังคำนวณ…</span></div>
+        </div>
+
+        <div class="card panel">
+          <div class="phead"><span class="pico" style="background:rgba(245,158,11,.16);color:var(--amber)"><svg viewBox="0 0 24 24"><path d="M12 2 2 7l10 5 10-5z"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></span><h2>แผนการผลิตรายผลิตภัณฑ์</h2></div>
+          <div id="fcProducts"><span class="muted">กำลังคำนวณ…</span></div>
+        </div>
       </section>
 
       <!-- ======== PAGE: Export ======== -->
@@ -1258,6 +1386,8 @@ window.showPage = (page) => {
   document.querySelector(`.tab-item[data-page="${page}"]`)?.classList.add('active');
   if(page==='users'){ loadUsers(); renderPermMatrix(); }
   if(page==='activity') loadActivity();
+  if(page==='ask') loadSuggestions();
+  if(page==='forecast') loadForecast();
 };
 
 const notConfigured = FIREBASE_CONFIG.apiKey === "PASTE_API_KEY";
@@ -1569,11 +1699,88 @@ window.deleteSelected = async () => {
   toast(`ลบสำเร็จ ${ok} รายการ` + (fail ? ` · ล้มเหลว ${fail}` : ''));
   loadOrders(); loadReport();
 };
-window.applyStatusFilter = () => {
-  const f = $("statusFilter").value;
-  const filtered = f === "all" ? allOrders : allOrders.filter(o => o.status === f);
+function orderDate(o){ return (o.document_date || o.scanned_at || "").slice(0,10); }
+function filtersActive(){
+  return !!($("ordSearch")?.value.trim() || $("ordFrom")?.value || $("ordTo")?.value);
+}
+window.applyOrderFilters = () => {
+  const status = $("statusFilter").value;
+  const q = ($("ordSearch")?.value || "").trim().toLowerCase();
+  const from = $("ordFrom")?.value || "";
+  const to = $("ordTo")?.value || "";
+
+  const filtered = allOrders.filter(o => {
+    if(status !== "all"){
+      const isDraft = o.edited && o.status !== "approved";
+      if(status === "draft" ? !isDraft : (o.status !== status || isDraft)) return false;
+    }
+    const d = orderDate(o);
+    if(from && (!d || d < from)) return false;
+    if(to && (!d || d > to)) return false;
+    if(q){
+      const hay = [o.order_no, o.product_name, o.approved_by, o.scanned_by, o.series_no]
+        .filter(Boolean).join(" ").toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  const note = $("filterNote");
+  if(note){
+    const active = filtersActive() || status !== "all";
+    note.textContent = active
+      ? `พบ ${filtered.length.toLocaleString()} จาก ${allOrders.length.toLocaleString()} รายการที่โหลดแล้ว`
+      : `ทั้งหมด ${allOrders.length.toLocaleString()} รายการ`;
+  }
   renderOrders(filtered);
+
+  // A date or text filter is meaningless over a partial list, so pull the rest in.
+  if(filtersActive() && ordersCursor && !loadingAll) ensureAllOrders();
 };
+window.applyStatusFilter = () => applyOrderFilters();   // kept for older call sites
+
+window.quickRange = (kind, btn) => {
+  document.querySelectorAll('.quick-range button').forEach(b => b.classList.remove('on'));
+  btn?.classList.add('on');
+  // Local date parts, not toISOString(): UTC+7 would shift every boundary back a day.
+  const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  const today = new Date();
+  let from = "", to = "";
+  if(kind === "all"){
+    if($("ordSearch")) $("ordSearch").value = "";
+    $("statusFilter").value = "all";
+  } else if(kind === "this"){
+    from = iso(new Date(today.getFullYear(), today.getMonth(), 1));
+    to = iso(today);
+  } else if(kind === "last"){
+    from = iso(new Date(today.getFullYear(), today.getMonth()-1, 1));
+    to = iso(new Date(today.getFullYear(), today.getMonth(), 0));
+  } else {
+    const start = new Date(today); start.setDate(start.getDate() - Number(kind) + 1);
+    from = iso(start); to = iso(today);
+  }
+  $("ordFrom").value = from;
+  $("ordTo").value = to;
+  applyOrderFilters();
+};
+
+let loadingAll = false;
+window.ensureAllOrders = async () => {
+  if(loadingAll || !ordersCursor) return;
+  loadingAll = true;
+  const lb = $("loadMoreBar");
+  if(lb) lb.innerHTML = '<span class="muted">กำลังโหลดรายการทั้งหมดเพื่อกรอง…</span>';
+  let guard = 0;
+  try{
+    while(ordersCursor && guard++ < 80) await loadOrders(true);
+  } finally {
+    loadingAll = false;
+    if(lb) lb.innerHTML = ordersCursor
+      ? '<button class="btn ghost sm" onclick="ensureAllOrders()">โหลดต่อ</button>' : '';
+    applyOrderFilters();
+  }
+};
+
 let ordersCursor = null;
 window.loadOrders = async (append) => {
   try{
@@ -1584,15 +1791,190 @@ window.loadOrders = async (append) => {
     ordersCursor = j.next_cursor || null;
     if(append) allOrders = allOrders.concat(items);
     else allOrders = items;
-    applyStatusFilter();
+    applyOrderFilters();
     const approved = allOrders.filter(o => o.status === "approved").length;
     const pending = allOrders.filter(o => o.status !== "approved").length;
     $("approvedCount").textContent = approved;
     $("pendingApprovalCount").textContent = pending;
     const lb = $("loadMoreBar");
-    if(lb) lb.innerHTML = ordersCursor ? '<button class="btn ghost sm" onclick="loadOrders(true)">โหลดเพิ่มเติม...</button>' : '';
+    if(lb && !loadingAll) lb.innerHTML = ordersCursor
+      ? '<button class="btn ghost sm" onclick="loadOrders(true)">โหลดเพิ่มเติม...</button> <button class="btn ghost sm" onclick="ensureAllOrders()">โหลดทั้งหมด</button>'
+      : '';
   }catch(e){ $("ordersList").innerHTML = '<span class="muted">โหลดไม่สำเร็จ</span>'; }
 };
+// ---- Ask AI ----------------------------------------------------------------
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c =>
+  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt = n => (typeof n === "number")
+  ? n.toLocaleString("th-TH", {maximumFractionDigits: 2}) : esc(n);
+
+let askBusy = false;
+
+window.loadSuggestions = async () => {
+  const box = $("askSuggest");
+  if(!box || box.dataset.done) return;
+  try{
+    const j = await (await api("/ask/suggestions")).json();
+    box.innerHTML = (j.suggestions||[]).map(s =>
+      `<button onclick="askThis(${JSON.stringify(s).replace(/"/g,'&quot;')})">${esc(s)}</button>`).join("");
+    box.dataset.done = "1";
+  }catch(e){ /* suggestions are optional */ }
+};
+window.askThis = (q) => { $("askInput").value = q; sendAsk(); };
+window.clearChat = () => { $("askChat").innerHTML = ""; };
+
+function bubble(cls, html){
+  const chat = $("askChat");
+  const el = document.createElement("div");
+  el.className = "bub " + cls;
+  el.innerHTML = html;
+  chat.appendChild(el);
+  chat.scrollTop = chat.scrollHeight;
+  return el;
+}
+
+function renderAnswer(j){
+  let html = `<div class="ans">${esc(j.answer || "")}</div>`;
+
+  if(j.rows && j.rows.length){
+    const max = Math.max(...j.rows.map(r => Math.abs(r.value) || 0)) || 1;
+    const showBar = j.rows.length > 1;
+    html += `<table class="q-table"><thead><tr><th>รายการ</th><th class="num">ค่า</th>`
+          + (showBar ? `<th style="width:34%"></th>` : ``) + `</tr></thead><tbody>`;
+    html += j.rows.map(r => `<tr>
+        <td>${esc(r.label)}${r.confidence ? ` <span class="conf ${r.confidence}">${CONF_TH[r.confidence]||r.confidence}</span>` : ""}</td>
+        <td class="num"><b>${fmt(r.value)}</b> <span class="muted">${esc(r.unit||"")}</span></td>
+        ${showBar ? `<td><div class="bar"><i style="width:${Math.abs(r.value)/max*100}%"></i></div></td>` : ""}
+      </tr>`).join("");
+    html += `</tbody></table>`;
+  }
+
+  if(j.kind === "aggregate" && j.rows && j.rows.length !== 1){
+    html += `<div class="muted" style="margin-top:10px;font-size:12.5px">
+      รวมทั้งสิ้น <b style="color:var(--text)">${fmt(j.total)} ${esc(j.unit||"")}</b>
+      จาก ${fmt(j.n_orders)} ใบสั่งผลิต</div>`;
+  }
+  if(j.comparison){
+    const c = j.comparison, up = (c.delta || 0) >= 0;
+    html += `<div class="muted" style="margin-top:6px;font-size:12.5px">
+      ช่วงเทียบ ${esc(c.date_from||"")} – ${esc(c.date_to||"")}: ${fmt(c.total)} ${esc(j.unit||"")}
+      · <b style="color:${up ? 'var(--emerald)' : 'var(--rose)'}">${up ? "▲" : "▼"}
+      ${c.delta_pct == null ? "—" : Math.abs(c.delta_pct) + "%"}</b></div>`;
+  }
+  if(j.excluded_outliers){
+    html += `<div class="muted" style="margin-top:6px;font-size:12px">
+      หมายเหตุ: ตัดใบที่ยอดผลิตผิดปกติออกจากการคำนวณ ${j.excluded_outliers} ใบ</div>`;
+  }
+  if(j.spec){
+    html += `<details><summary style="cursor:pointer">วิธีที่ระบบตีความคำถาม</summary>
+      <pre>${esc(JSON.stringify(j.spec, null, 2))}</pre></details>`;
+  }
+  return html;
+}
+
+window.sendAsk = async () => {
+  if(askBusy) return;
+  const input = $("askInput");
+  const q = input.value.trim();
+  if(!q){ toast("กรุณาพิมพ์คำถาม"); return; }
+
+  askBusy = true;
+  $("askBtn").disabled = true;
+  input.value = "";
+  bubble("me", esc(q));
+  const pending = bubble("ai", '<span class="thinking"><i></i><i></i><i></i></span>');
+
+  try{
+    const res = await api("/ask", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({question: q}),
+    });
+    const j = await res.json();
+    if(!res.ok){ pending.innerHTML = `<div class="ans">${esc(j.detail || "ถามไม่สำเร็จ")}</div>`; }
+    else { pending.innerHTML = renderAnswer(j); }
+  }catch(e){
+    pending.innerHTML = '<div class="ans">เชื่อมต่อไม่สำเร็จ กรุณาลองใหม่</div>';
+  }finally{
+    askBusy = false;
+    $("askBtn").disabled = false;
+    $("askChat").scrollTop = $("askChat").scrollHeight;
+  }
+};
+
+// ---- Forecast --------------------------------------------------------------
+const CONF_TH = {high: "เชื่อมั่นสูง", medium: "ปานกลาง", low: "ผันผวน"};
+
+function sparkline(history){
+  if(!history || !history.length) return "";
+  const max = Math.max(...history.map(h => h.value)) || 1;
+  return `<div class="spark" title="${history.map(h => h.month+': '+fmt(h.value)).join('\n')}">`
+    + history.map((h, i) => `<i class="${i === history.length-1 ? 'last' : ''}" style="height:${Math.max(6, h.value/max*100)}%"></i>`).join("")
+    + `</div>`;
+}
+
+window.loadForecast = async () => {
+  const body = $("fcBody"), kpi = $("fcKpi"), prod = $("fcProducts");
+  body.innerHTML = '<span class="muted">กำลังคำนวณ…</span>';
+  try{
+    const res = await api("/analytics/forecast");
+    const f = await res.json();
+    if(!res.ok){ body.innerHTML = `<span class="muted">${esc(f.detail||"คำนวณไม่สำเร็จ")}</span>`; return; }
+    if(!f.ready){
+      kpi.innerHTML = "";
+      body.innerHTML = `<span class="muted">${esc(f.reason || "ข้อมูลยังไม่พอสำหรับการพยากรณ์")}</span>`;
+      prod.innerHTML = "";
+      return;
+    }
+
+    const growth = f.production_total_last_month
+      ? ((f.production_total_forecast - f.production_total_last_month) / f.production_total_last_month * 100) : null;
+    kpi.innerHTML = `
+      <div class="k"><span>เดือนที่พยากรณ์</span><b>${esc(f.target_months.join(", "))}</b></div>
+      <div class="k"><span>ยอดผลิตเดือนล่าสุด</span><b>${fmt(f.production_total_last_month)} <small class="muted" style="font-size:12px">KG</small></b></div>
+      <div class="k"><span>ยอดผลิตที่พยากรณ์</span><b style="color:var(--indigo)">${fmt(f.production_total_forecast)} <small class="muted" style="font-size:12px">KG</small></b>
+        ${growth == null ? "" : `<span class="muted" style="font-size:12px">${growth >= 0 ? "▲" : "▼"} ${Math.abs(growth).toFixed(1)}%</span>`}</div>
+      <div class="k"><span>ข้อมูลที่ใช้</span><b>${f.months_available} <small class="muted" style="font-size:12px">เดือน</small></b></div>`;
+
+    body.innerHTML = `<table class="q-table">
+      <thead><tr><th>วัตถุดิบ</th><th class="num">เฉลี่ย/เดือน</th><th class="num">พยากรณ์</th>
+        <th class="num">ช่วงที่เป็นไปได้</th><th style="width:90px">ย้อนหลัง</th><th>ความเชื่อมั่น</th></tr></thead>
+      <tbody>${f.materials.map(m => `<tr>
+        <td><b>${esc(m.item_description)}</b><div class="muted" style="font-size:11.5px">${esc(m.item_no)}</div></td>
+        <td class="num">${fmt(m.avg_monthly)}</td>
+        <td class="num"><b style="color:var(--indigo)">${fmt(m.forecast)}</b> <span class="muted">${esc(m.unit)}</span>
+          ${m.vs_avg_pct == null ? "" : `<div class="muted" style="font-size:11.5px">${m.vs_avg_pct >= 0 ? "▲" : "▼"} ${Math.abs(m.vs_avg_pct)}%</div>`}</td>
+        <td class="num muted">${fmt(m.low)} – ${fmt(m.high)}</td>
+        <td>${sparkline(m.history)}</td>
+        <td><span class="conf ${m.confidence}">${CONF_TH[m.confidence]}</span></td>
+      </tr>`).join("")}</tbody></table>
+      ${f.excluded_outliers ? `<div class="muted" style="margin-top:10px;font-size:12.5px">
+        ตัดใบที่ยอดผลิตผิดปกติออกจากการคำนวณ ${f.excluded_outliers} ใบ (น่าจะเกิดจาก OCR อ่านตัวเลขผิด)</div>` : ""}
+      <div class="method">
+        <b style="color:var(--text)">วิธีคำนวณ</b> — ระบบไม่ได้ทำนายจากยอดใช้ในอดีตโดยตรง แต่ถอด
+        <b>สูตรการใช้ต่อหน่วยผลิต</b> ของแต่ละสินค้าจากใบเบิกจริง (ใช้ค่ามัธยฐาน จึงไม่เพี้ยนเพราะใบเดียว)
+        แล้วคูณกับยอดผลิตที่พยากรณ์ไว้ของสินค้านั้น ผลลัพธ์จึงขยับตามสัดส่วนสินค้าที่จะผลิตจริง<br>
+        <b style="color:var(--text)">ความเชื่อมั่น</b> — วัดจากความสม่ำเสมอของสูตรและยอดใช้รายเดือน
+        “ผันผวน” หมายถึงยังไม่ควรใช้ตัวเลขนี้สั่งซื้อโดยตรง ควรดูช่วงที่เป็นไปได้ประกอบ<br>
+        <b style="color:var(--text)">ข้อจำกัด</b> — ยังไม่ได้นำยอดสต็อกคงเหลือมาคิด ตัวเลขนี้คือ
+        <i>ปริมาณที่จะใช้</i> ไม่ใช่ <i>ปริมาณที่ต้องสั่งซื้อ</i>
+      </div>`;
+
+    prod.innerHTML = `<table class="q-table">
+      <thead><tr><th>ผลิตภัณฑ์</th><th class="num">เฉลี่ย/เดือน</th><th class="num">พยากรณ์</th>
+        <th style="width:110px">ย้อนหลัง</th><th>ความเชื่อมั่น</th></tr></thead>
+      <tbody>${f.products.map(p => `<tr>
+        <td><b>${esc(p.product_name)}</b><div class="muted" style="font-size:11.5px">${esc(p.series_no)}</div></td>
+        <td class="num">${fmt(p.avg_monthly)}</td>
+        <td class="num"><b style="color:var(--indigo)">${fmt(p.forecast)}</b> <span class="muted">KG</span></td>
+        <td>${sparkline(p.history)}</td>
+        <td><span class="conf ${p.confidence}">${CONF_TH[p.confidence]}</span></td>
+      </tr>`).join("")}</tbody></table>`;
+  }catch(e){
+    body.innerHTML = '<span class="muted">โหลดไม่สำเร็จ</span>';
+  }
+};
+
 // ---- webcam capture (PC webcam + mobile camera) ----
 let camStream = null, camShots = 0;
 window.openCamera = async () => {
@@ -1626,7 +2008,6 @@ window.closeCamera = () => {
 let editId = null;
 let orderIds = [];
 let editIdx = -1;
-const esc = s => String(s??"").replace(/"/g,"&quot;");
 const num = v => { const t=String(v).trim(); if(t==="") return null; const n=Number(t); return isNaN(n)?t:n; };
 
 function lineRow(l={}){

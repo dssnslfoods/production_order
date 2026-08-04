@@ -16,6 +16,8 @@ Production Order Scanner digitizes handwritten material requisition forms (ใ�
 - **3-State Approval Workflow** — `pending_approval` → `draft` → `approved` with role-based permissions
 - **Role-Based Access Control** — Admin, Supervisor, and Staff roles with a configurable permission matrix
 - **Excel Export** — Generates `.xlsx` files with auto-filters, frozen headers, and multi-sheet output matching the factory's existing template
+- **Natural-Language Q&A** — Ask questions in plain Thai ("how much flour did we use last month?"). The AI translates the question into a query spec and phrases the reply; every figure is computed in Python, so the model can never report a number that isn't in the database
+- **Material Demand Forecasting** — Derives each product's implied bill of materials from issued quantities, forecasts production volume per product, and multiplies the two — so the forecast tracks the product mix rather than the calendar. Reports a confidence band and flags OCR outliers instead of averaging them in
 - **Duplicate Detection** — Prevents duplicate entries by matching on Production Order number
 - **Queue System** — Upload-now, scan-later architecture with automatic retry and dead letter queue for persistent failures
 - **Google Drive Integration** — Optionally pulls new files from a shared Drive folder on each scan cycle
@@ -58,6 +60,8 @@ production_order/
 │   ├── server/                # Backend API
 │   │   ├── main.py            # FastAPI endpoints
 │   │   ├── extractor.py       # AI vision extraction + auto-crop
+│   │   ├── analytics.py       # Deterministic aggregation + demand forecasting
+│   │   ├── ask_ai.py          # Natural-language question → query spec → answer
 │   │   ├── firestore_store.py # Data layer (Firestore + Storage)
 │   │   ├── excel_export.py    # Excel workbook builder
 │   │   ├── auth.py            # Firebase Auth token verification
@@ -65,7 +69,8 @@ production_order/
 │   │   ├── scheduler_admin.py # Cloud Scheduler management
 │   │   ├── Dockerfile         # Container definition
 │   │   ├── requirements.txt   # Python dependencies
-│   │   └── tests/             # Unit tests (143 tests)
+│   │   ├── tools/             # Mock data generator for development
+│   │   └── tests/             # Unit tests (172 tests)
 │   ├── firebase.json          # Firebase configuration
 │   ├── firestore.rules        # Security rules
 │   ├── storage.rules          # Storage security rules
@@ -113,7 +118,7 @@ pip install -r requirements.txt
 python -m pytest tests/ -v
 ```
 
-All 143 tests pass, covering API endpoints, data layer logic, extraction pipeline, image optimization, pagination, error handling, and the dead letter queue.
+All 172 tests pass, covering API endpoints, data layer logic, extraction pipeline, image optimization, pagination, error handling, the dead letter queue, and the analytics and forecasting engines.
 
 ### Updating
 
@@ -128,6 +133,8 @@ All 143 tests pass, covering API endpoints, data layer logic, extraction pipelin
 | AI extraction prompt | `server/extractor.py` → `EXTRACTION_PROMPT` |
 | Excel export schema | `server/excel_export.py` |
 | Data model | `server/firestore_store.py` |
+| Forecast tuning | `server/analytics.py` → `OUTLIER_FACTOR`, `FORECAST_TREND_WINDOW` |
+| Q&A prompts | `server/ask_ai.py` → `_PLAN_PROMPT`, `_NARRATE_PROMPT` |
 | Permission defaults | `server/firestore_store.py` → `DEFAULT_PERMISSIONS` |
 | UI / Frontend | `public/index.html` |
 

@@ -1,0 +1,244 @@
+"""Tests for the deterministic analytics layer.
+
+These guard the numbers the AI is not allowed to compute: if run_query or
+forecast drifts, the natural-language answers silently become wrong.
+"""
+import datetime as dt
+import os
+import sys
+import unittest
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+import analytics
+
+
+def _order(order_no, date, series, product, plan_total, lines, status="approved"):
+    return {
+        "id": order_no, "order_no": order_no, "document_date": date,
+        "series_no": series, "product_name": product,
+        "plan_total": plan_total, "actual_total": plan_total,
+        "plan_unit": "KG", "status": status,
+        "lines": [{"row_no": i + 1, "item_no": n, "item_description": d,
+                   "type": "Item", "quantity": q, "plan": p,
+                   "whse": "P8-RM01", "unit": "KG"}
+                  for i, (n, d, q, p) in enumerate(lines)],
+    }
+
+
+def _dataset():
+    """Two months, one product, two materials, tidy round numbers."""
+    out = []
+    for i in range(4):
+        out.append(_order(f"J{i}", "2026-06-10", "S1", "ขนมปัง", 100.0,
+                          [("M1", "แป้งสาลี", 30.0, 30.0),
+                           ("M2", "น้ำตาลทราย", 10.0, 8.0)]))
+    for i in range(4):
+        out.append(_order(f"K{i}", "2026-07-10", "S1", "ขนมปัง", 100.0,
+                          [("M1", "แป้งสาลี", 30.0, 30.0),
+                           ("M2", "น้ำตาลทราย", 12.0, 8.0)]))
+    return out
+
+
+class TestNormalisation(unittest.TestCase):
+    def test_norm_strips_spaces_and_case(self):
+        self.assertEqual(analytics._norm("  น้ำตาล ทราย "), analytics._norm("น้ำตาลทราย"))
+
+    def test_num_handles_junk(self):
+        self.assertEqual(analytics._num("abc"), 0.0)
+        self.assertEqual(analytics._num(None), 0.0)
+        self.assertEqual(analytics._num("12.5"), 12.5)
+
+    def test_month_rejects_bad_dates(self):
+        self.assertIsNone(analytics._month({"document_date": "ไม่ทราบ"}))
+        self.assertEqual(analytics._month({"document_date": "2026-07-10"}), "2026-07")
+
+
+class TestMatching(unittest.TestCase):
+    def setUp(self):
+        self.materials = {"M1": "แป้งสาลีอเนกประสงค์", "M2": "น้ำตาลทรายขาว"}
+
+    def test_no_term_means_no_filter(self):
+        self.assertIsNone(analytics.match_keys("", self.materials))
+        self.assertIsNone(analytics.match_keys(None, self.materials))
+
+    def test_substring_match(self):
+        self.assertEqual(analytics.match_keys("แป้งสาลี", self.materials), {"M1"})
+
+    def test_match_ignores_spacing(self):
+        self.assertEqual(analytics.match_keys("น้ำตาล ทราย", self.materials), {"M2"})
+
+    def test_match_by_code(self):
+        self.assertEqual(analytics.match_keys("M2", self.materials), {"M2"})
+
+    def test_unknown_term_returns_empty_not_none(self):
+        # Empty set means "found nothing"; None would mean "no filter" and
+        # would wrongly report the total for every material.
+        self.assertEqual(analytics.match_keys("ทองคำแท่ง", self.materials), set())
+
+
+class TestRunQuery(unittest.TestCase):
+    def setUp(self):
+        self.data = _dataset()
+
+    def test_sum_one_material_in_one_month(self):
+        r = analytics.run_query({"metric": "quantity", "group_by": "none",
+                                 "filters": {"material": "น้ำตาลทราย",
+                                             "date_from": "2026-07-01",
+                                             "date_to": "2026-07-31"}}, self.data)
+        self.assertAlmostEqual(r["total"], 48.0)
+        self.assertEqual(r["n_orders"], 4)
+
+    def test_group_by_material(self):
+        r = analytics.run_query({"metric": "quantity", "group_by": "material",
+                                 "filters": {}}, self.data)
+        by_key = {row["key"]: row["value"] for row in r["rows"]}
+        self.assertAlmostEqual(by_key["M1"], 240.0)
+        self.assertAlmostEqual(by_key["M2"], 88.0)
+
+    def test_group_by_month_is_chronological(self):
+        r = analytics.run_query({"metric": "quantity", "group_by": "month",
+                                 "filters": {"material": "แป้งสาลี"}}, self.data)
+        self.assertEqual([row["key"] for row in r["rows"]], ["2026-06", "2026-07"])
+
+    def test_variance_metric(self):
+        r = analytics.run_query({"metric": "variance", "group_by": "none",
+                                 "filters": {"material": "น้ำตาลทราย"}}, self.data)
+        # June 4x(10-8) + July 4x(12-8)
+        self.assertAlmostEqual(r["total"], 24.0)
+
+    def test_order_count_metric(self):
+        r = analytics.run_query({"metric": "order_count", "group_by": "none",
+                                 "filters": {}}, self.data)
+        self.assertEqual(r["total"], 8)
+
+    def test_production_metric(self):
+        r = analytics.run_query({"metric": "production", "group_by": "none",
+                                 "filters": {}}, self.data)
+        self.assertAlmostEqual(r["total"], 800.0)
+
+    def test_status_filter(self):
+        data = self.data + [_order("D1", "2026-07-11", "S1", "ขนมปัง", 100.0,
+                                   [("M1", "แป้งสาลี", 30.0, 30.0)], status="draft")]
+        r = analytics.run_query({"metric": "order_count", "group_by": "none",
+                                 "filters": {"status": "draft"}}, data)
+        self.assertEqual(r["total"], 1)
+
+    def test_unknown_material_reports_not_found(self):
+        r = analytics.run_query({"metric": "quantity", "group_by": "none",
+                                 "filters": {"material": "ทองคำแท่ง"}}, self.data)
+        self.assertEqual(r["rows"], [])
+        self.assertTrue(r["not_found"])
+
+    def test_bad_metric_falls_back_to_quantity(self):
+        r = analytics.run_query({"metric": "หมุนขวา", "group_by": "ดวงจันทร์",
+                                 "filters": {}}, self.data)
+        self.assertAlmostEqual(r["total"], 328.0)
+
+
+class TestOutlierGuard(unittest.TestCase):
+    def test_ocr_misread_is_excluded(self):
+        data = [_order(f"N{i}", "2026-07-10", "S1", "ขนมปัง", 100.0,
+                       [("M1", "แป้งสาลี", 30.0, 30.0)]) for i in range(12)]
+        data.append(_order("BAD", "2026-07-20", "S1", "ขนมปัง", 100000.0,
+                           [("M1", "แป้งสาลี", 30000.0, 30000.0)]))
+        r = analytics.run_query({"metric": "quantity", "group_by": "none",
+                                 "filters": {"material": "แป้งสาลี"}}, data)
+        self.assertAlmostEqual(r["total"], 360.0)
+        self.assertEqual(r["excluded_outliers"], 1)
+
+    def test_normal_variation_is_not_excluded(self):
+        data = [_order(f"N{i}", "2026-07-10", "S1", "ขนมปัง", 100.0 + i * 20,
+                       [("M1", "แป้งสาลี", 30.0, 30.0)]) for i in range(12)]
+        kept, dropped = analytics.clean_orders(data)
+        self.assertEqual(len(kept), 12)
+        self.assertEqual(dropped, [])
+
+    def test_small_datasets_are_left_alone(self):
+        # Below the sample threshold there is no reliable median to judge against.
+        kept, dropped = analytics.clean_orders(
+            [_order("A", "2026-07-01", "S1", "x", 100.0, [("M1", "m", 1.0, 1.0)])])
+        self.assertEqual(len(kept), 1)
+        self.assertEqual(dropped, [])
+
+
+class TestComparison(unittest.TestCase):
+    def test_period_over_period_delta(self):
+        r = analytics.run_with_comparison({
+            "metric": "quantity", "group_by": "none",
+            "filters": {"material": "น้ำตาลทราย",
+                        "date_from": "2026-07-01", "date_to": "2026-07-31"},
+            "compare_to": {"date_from": "2026-06-01", "date_to": "2026-06-30"},
+        }, _dataset())
+        self.assertAlmostEqual(r["total"], 48.0)
+        self.assertAlmostEqual(r["comparison"]["total"], 40.0)
+        self.assertAlmostEqual(r["comparison"]["delta"], 8.0)
+        self.assertAlmostEqual(r["comparison"]["delta_pct"], 20.0)
+
+    def test_zero_baseline_gives_no_percentage(self):
+        data = _dataset()
+        r = analytics.run_with_comparison({
+            "metric": "quantity", "group_by": "none",
+            "filters": {"material": "น้ำตาลทราย",
+                        "date_from": "2026-07-01", "date_to": "2026-07-31"},
+            "compare_to": {"date_from": "2026-01-01", "date_to": "2026-01-31"},
+        }, data)
+        self.assertIsNone(r["comparison"]["delta_pct"])
+
+
+class TestImpliedBom(unittest.TestCase):
+    def test_ratio_is_recovered(self):
+        bom = analytics.implied_bom(_dataset())
+        lines = {ln["item_no"]: ln for ln in bom["S1"]["lines"]}
+        self.assertAlmostEqual(lines["M1"]["ratio"], 0.30, places=4)
+        self.assertEqual(lines["M1"]["cv"], 0.0)
+
+    def test_rare_materials_are_skipped(self):
+        data = _dataset()
+        data[0]["lines"].append({"row_no": 9, "item_no": "M9",
+                                 "item_description": "ของหายาก", "type": "Item",
+                                 "quantity": 5.0, "plan": 5.0,
+                                 "whse": "P8-RM01", "unit": "KG"})
+        bom = analytics.implied_bom(data, min_orders=3)
+        self.assertNotIn("M9", {ln["item_no"] for ln in bom["S1"]["lines"]})
+
+
+class TestForecast(unittest.TestCase):
+    def test_flat_history_forecasts_flat(self):
+        f = analytics.forecast(_dataset(), today=dt.date(2026, 8, 4))
+        self.assertTrue(f["ready"])
+        self.assertEqual(f["target_months"], ["2026-08"])
+        self.assertAlmostEqual(f["production_total_forecast"], 400.0, places=1)
+
+    def test_material_forecast_follows_the_recipe(self):
+        f = analytics.forecast(_dataset(), today=dt.date(2026, 8, 4))
+        rows = {m["item_no"]: m for m in f["materials"]}
+        # 400 KG of production at a 0.30 recipe ratio
+        self.assertAlmostEqual(rows["M1"]["forecast"], 120.0, places=1)
+        self.assertLessEqual(rows["M1"]["low"], rows["M1"]["forecast"])
+        self.assertGreaterEqual(rows["M1"]["high"], rows["M1"]["forecast"])
+
+    def test_current_partial_month_is_excluded(self):
+        data = _dataset() + [_order("AUG", "2026-08-02", "S1", "ขนมปัง", 100.0,
+                                    [("M1", "แป้งสาลี", 30.0, 30.0)])]
+        f = analytics.forecast(data, today=dt.date(2026, 8, 4))
+        self.assertNotIn("2026-08", f["months_used"])
+
+    def test_no_data_is_reported_not_guessed(self):
+        f = analytics.forecast([], today=dt.date(2026, 8, 4))
+        self.assertFalse(f["ready"])
+        self.assertIn("reason", f)
+
+    def test_growing_history_forecasts_upward(self):
+        data = []
+        for idx, (month, volume) in enumerate(
+                [("2026-04", 100.0), ("2026-05", 120.0), ("2026-06", 140.0),
+                 ("2026-07", 160.0)]):
+            data.append(_order(f"G{idx}", f"{month}-10", "S1", "ขนมปัง", volume,
+                               [("M1", "แป้งสาลี", volume * 0.3, volume * 0.3)]))
+        f = analytics.forecast(data, today=dt.date(2026, 8, 4))
+        self.assertGreater(f["production_total_forecast"], 160.0)
+
+
+if __name__ == "__main__":
+    unittest.main()

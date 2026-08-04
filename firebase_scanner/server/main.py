@@ -15,6 +15,8 @@ from fastapi.responses import JSONResponse, Response
 from PIL import Image
 from pydantic import BaseModel
 
+import analytics
+import ask_ai
 import auth
 from auth import require_role
 import excel_export
@@ -194,6 +196,7 @@ async def scan(file: UploadFile = File(...), user=Depends(auth.verify_token)):
 
     blob_path = store.upload_image(optimized, opt_ct, file.filename)
     order_id = store.add_order(data, blob_path, provider, user_email=user["email"])
+    analytics.invalidate_cache()
     store.log_activity("scan", user["email"], user["role"],
                        f"สแกนไฟล์ {file.filename} → Order {data.get('order_no') or '-'}", order_id)
     return {"id": order_id, "data": data,
@@ -496,6 +499,7 @@ def order_approve(order_id: str, user=Depends(_require_perm("approve"))):
     if not o:
         raise HTTPException(status_code=404, detail="ไม่พบรายการ")
     result = store.approve_order(order_id, user["email"])
+    analytics.invalidate_cache()
     store.log_activity("approve", user["email"], user["role"],
                        f"อนุมัติ Order {o.get('order_no') or '-'}", order_id)
     return result
@@ -518,6 +522,7 @@ def order_update(order_id: str, body: OrderIn, user=Depends(auth.verify_token)):
     if not o:
         raise HTTPException(status_code=404, detail="ไม่พบรายการ")
     result = store.update_order(order_id, body.model_dump(exclude_unset=True))
+    analytics.invalidate_cache()
     store.log_activity("edit_order", user["email"], user["role"],
                        f"แก้ไข Order {o.get('order_no') or '-'}", order_id)
     return result
@@ -527,6 +532,7 @@ def order_update(order_id: str, body: OrderIn, user=Depends(auth.verify_token)):
 def order_delete(order_id: str, user=Depends(_require_perm("delete"))):
     o = store.get_order(order_id)
     store.delete_order(order_id)
+    analytics.invalidate_cache()
     store.log_activity("delete_order", user["email"], user["role"],
                        f"ลบ Order {(o or {}).get('order_no') or '-'}", order_id)
     return {"deleted": order_id}
@@ -562,6 +568,46 @@ def export(from_date: Optional[str] = None, to_date: Optional[str] = None,
 # ---------------------------------------------------------------------------
 # User management (admin only)
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Analytics: natural-language Q&A and material demand forecasting
+# ---------------------------------------------------------------------------
+class AskIn(BaseModel):
+    question: str
+
+
+@app.get("/api/ask/suggestions")
+def ask_suggestions(user=Depends(auth.verify_token)):
+    return {"suggestions": ask_ai.SUGGESTIONS}
+
+
+@app.post("/api/ask")
+def ask(body: AskIn, user=Depends(auth.verify_token)):
+    settings = store.get_settings()
+    provider = settings["provider"]
+    key = _api_key(provider)
+    if not key:
+        raise HTTPException(400, "ยังไม่ได้ตั้งค่า API Key — กรุณาตั้งค่าในหน้า Settings")
+    try:
+        return ask_ai.ask(body.question, provider, key,
+                          settings["models"][provider])
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except Exception as e:  # noqa: BLE001
+        log.error("ask failed: %s", e, exc_info=True)
+        raise HTTPException(502, _friendly_error(e))
+
+
+@app.get("/api/analytics/forecast")
+def analytics_forecast(months: int = 1, user=Depends(auth.verify_token)):
+    months = max(1, min(6, months))
+    return analytics.forecast(months=months)
+
+
+@app.get("/api/analytics/bom")
+def analytics_bom(user=Depends(auth.verify_token)):
+    return {"products": analytics.implied_bom()}
+
+
 @app.get("/api/permissions")
 def get_permissions(user=Depends(admin_only)):
     return {"permissions": store.get_permissions()}

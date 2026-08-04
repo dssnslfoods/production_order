@@ -256,6 +256,49 @@ def _call_with_retry(provider, images, api_key, model, retries=4):
             raise
 
 
+def _claude_text(prompt, key, model, max_tokens):
+    import anthropic
+    client = anthropic.Anthropic(api_key=key)
+    msg = client.messages.create(model=model, max_tokens=max_tokens,
+                                 messages=[{"role": "user", "content": prompt}])
+    return "".join(b.text for b in msg.content if b.type == "text")
+
+
+def _gemini_text(prompt, key, model, max_tokens):
+    from google import genai
+    client = genai.Client(api_key=key)
+    return client.models.generate_content(model=model, contents=[prompt]).text
+
+
+def _openai_text(prompt, key, model, max_tokens):
+    from openai import OpenAI
+    client = OpenAI(api_key=key)
+    resp = client.chat.completions.create(
+        model=model, max_tokens=max_tokens,
+        messages=[{"role": "user", "content": prompt}])
+    return resp.choices[0].message.content
+
+
+_TEXT_PROVIDERS = {"claude": _claude_text, "gemini": _gemini_text, "openai": _openai_text}
+
+
+def chat(prompt, provider, api_key, model, max_tokens=1024, retries=2):
+    """Text-only completion, sharing the provider config used for extraction."""
+    for attempt in range(retries + 1):
+        try:
+            return _TEXT_PROVIDERS[provider](prompt, api_key, model, max_tokens) or ""
+        except Exception as e:  # noqa: BLE001
+            if attempt < retries and any(k in str(e).lower() for k in _TRANSIENT):
+                time.sleep(min(20, 2 * (2 ** attempt)))
+                continue
+            raise
+
+
+def parse_json(text):
+    """Public wrapper — model replies are JSON wrapped in stray prose or fences."""
+    return _parse_json(text)
+
+
 def _detect_orientation_once(images, provider, api_key, model):
     """Single orientation detection call."""
     if provider == "claude":
