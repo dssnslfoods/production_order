@@ -247,3 +247,53 @@ class TestFailPending:
             mock_db().collection().document().delete = MagicMock()
             result = store.fail_pending("p1", Exception("still failing"))
         assert result == "dead"
+
+
+# ---------------------------------------------------------------------------
+# Permission migration: a release that adds pages must not remove access
+# ---------------------------------------------------------------------------
+class TestPermissionMigration:
+    def test_defaults_include_the_analytics_pages(self):
+        for role in ("admin", "supervisor", "staff"):
+            granted = store.DEFAULT_PERMISSIONS[role]
+            for key in ("ask", "forecast", "health"):
+                assert key in granted, f"{role} missing {key}"
+
+    def test_old_saved_permissions_are_topped_up(self):
+        old = {
+            "admin": ["dashboard", "scan", "orders", "users", "settings"],
+            "supervisor": ["dashboard", "scan", "orders"],
+            "staff": ["dashboard", "scan"],
+        }
+        with patch.object(store, "get_settings",
+                          return_value={"role_permissions": old, "perm_version": 1}), \
+             patch.object(store, "db") as db:
+            perms = store.get_permissions()
+            db.assert_called()      # persisted once, not recomputed on every read
+        for role in ("admin", "supervisor", "staff"):
+            for key in ("ask", "forecast", "health"):
+                assert key in perms[role]
+
+    def test_current_version_is_left_alone(self):
+        saved = {
+            "admin": ["dashboard", "users", "settings"],
+            "supervisor": ["dashboard"],
+            "staff": ["dashboard"],
+        }
+        with patch.object(store, "get_settings",
+                          return_value={"role_permissions": saved,
+                                        "perm_version": store.PERM_VERSION}), \
+             patch.object(store, "db") as db:
+            perms = store.get_permissions()
+            db.assert_not_called()
+        # An admin who deliberately removed a page keeps it removed.
+        assert "ask" not in perms["supervisor"]
+
+    def test_admin_cannot_be_locked_out(self):
+        with patch.object(store, "get_settings",
+                          return_value={"role_permissions": {"admin": []},
+                                        "perm_version": store.PERM_VERSION}), \
+             patch.object(store, "db"):
+            perms = store.get_permissions()
+        for must in ("dashboard", "users", "settings"):
+            assert must in perms["admin"]

@@ -614,12 +614,12 @@ class AskIn(BaseModel):
 
 
 @app.get("/api/ask/suggestions")
-def ask_suggestions(user=Depends(auth.verify_token)):
+def ask_suggestions(user=Depends(_require_perm("ask"))):
     return {"suggestions": ask_ai.SUGGESTIONS}
 
 
 @app.post("/api/ask")
-def ask(body: AskIn, user=Depends(auth.verify_token)):
+def ask(body: AskIn, user=Depends(_require_perm("ask"))):
     settings = store.get_settings()
     provider = settings["provider"]
     key = _api_key(provider)
@@ -636,18 +636,18 @@ def ask(body: AskIn, user=Depends(auth.verify_token)):
 
 
 @app.get("/api/analytics/forecast")
-def analytics_forecast(months: int = 1, user=Depends(auth.verify_token)):
+def analytics_forecast(months: int = 1, user=Depends(_require_perm("forecast"))):
     months = max(1, min(6, months))
     return analytics.forecast(months=months)
 
 
 @app.get("/api/analytics/bom")
-def analytics_bom(user=Depends(auth.verify_token)):
+def analytics_bom(user=Depends(_require_perm("forecast"))):
     return {"products": analytics.implied_bom()}
 
 
 @app.get("/api/analytics/health")
-def analytics_health(user=Depends(auth.verify_token)):
+def analytics_health(user=Depends(_require_perm("health"))):
     """Production health in one round trip — all four views share one order load."""
     orders = analytics.load_orders()
     return {

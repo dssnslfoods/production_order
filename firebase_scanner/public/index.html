@@ -89,6 +89,48 @@
   .sidebar-footer .ghost{color:rgba(255,255,255,.5);border-color:rgba(255,255,255,.15);background:transparent;font-size:12px}
   .sidebar-footer .ghost:hover{color:#fff;border-color:rgba(255,255,255,.3)}
 
+  /* ---- collapsible rail ----
+     The sidebar collapses to icons rather than disappearing, so navigation
+     stays one click away on a tablet where a full 260px rail costs too much
+     of the working width. */
+  .nav-toggle{
+    margin-left:auto;flex:none;width:28px;height:28px;padding:0;
+    display:grid;place-items:center;border:none;border-radius:8px;cursor:pointer;
+    background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);transition:.18s}
+  .nav-toggle:hover{background:rgba(255,255,255,.2);color:#fff}
+  .nav-toggle svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2.4;
+    stroke-linecap:round;stroke-linejoin:round;transition:transform .25s ease}
+
+  body.nav-mini{--sidebar-w:76px}
+  body.nav-mini .nav-toggle svg{transform:rotate(180deg)}
+  body.nav-mini .sidebar-brand{flex-direction:column;gap:10px;padding:18px 10px 14px}
+  body.nav-mini .sidebar-brand-text,
+  body.nav-mini .nav-label,
+  body.nav-mini .nav-tag,
+  body.nav-mini .nav-text,
+  body.nav-mini .sf-chips{display:none}
+  body.nav-mini .nav-toggle{margin-left:0}
+  body.nav-mini .sidebar-nav{padding:14px 10px}
+  body.nav-mini .nav-item{justify-content:center;gap:0;padding:12px 0;border-left-width:0}
+  body.nav-mini .nav-item.active{box-shadow:inset 3px 0 0 #818cf8}
+  body.nav-mini .nav-group + .nav-group{margin-top:12px;padding-top:12px}
+  body.nav-mini .sidebar-footer{justify-content:center;padding:14px 10px}
+  body.nav-mini .sf-logout{width:38px;height:38px;padding:0;display:grid;place-items:center}
+  .sf-logout{display:flex;align-items:center;gap:7px;width:auto}
+  .sf-ico{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;
+    stroke-linecap:round;stroke-linejoin:round;flex:none;display:none}
+  body.nav-mini .sf-ico{display:block}
+
+  /* Labels move into hover tooltips once the text is gone.  The tooltip lives
+     on <body>, not inside the scrolling nav, which would clip it. */
+  .rail-tip{
+    position:fixed;z-index:120;pointer-events:none;
+    background:#0f172a;color:#fff;font-size:12px;font-weight:600;
+    padding:7px 11px;border-radius:8px;white-space:nowrap;
+    opacity:0;transform:translateX(-4px);transition:opacity .14s,transform .14s;
+    box-shadow:0 8px 24px rgba(15,23,42,.3)}
+  .rail-tip.show{opacity:1;transform:translateX(0)}
+
   /* ---- content area ---- */
   .main-content{
     margin-left:var(--sidebar-w);
@@ -133,7 +175,45 @@
     opacity:0;transition:opacity .25s ease}
   .sidebar-backdrop.show{opacity:1}
 
-  @media(max-width:768px){
+  /* iPad / small laptop */
+  @media(max-width:1180px) and (min-width:700px){
+    .container{padding:24px 24px}
+  }
+  @media(max-width:1024px){
+    #page-export .panels-grid,
+    #page-users .panels-grid{grid-template-columns:1fr !important}
+    .ord-filters{grid-template-columns:1fr 1fr}
+    .panel{padding:20px 20px}
+  }
+  @media(max-width:700px){
+    .two{grid-template-columns:1fr}
+    .container{padding:16px 14px}
+    .panel{padding:18px 16px}
+    .kpi3{grid-template-columns:1fr 1fr}
+    .cmp{grid-template-columns:1fr;gap:10px}
+    .cmp-mid{flex-direction:row;min-width:0}
+    .phead h2{font-size:14px}
+  }
+  @media(max-width:480px){
+    .ord-filters{grid-template-columns:1fr}
+    .kpi3{grid-template-columns:1fr}
+    .hero-num b{font-size:28px}
+  }
+
+  @media(max-width:699px){
+    /* The rail is a drawer here, so the desktop collapse must not apply. */
+    body.nav-mini{--sidebar-w:260px}
+    body.nav-mini .sidebar-brand{flex-direction:row;padding:22px 20px 18px}
+    body.nav-mini .sidebar-brand-text,
+    body.nav-mini .nav-label,
+    body.nav-mini .nav-tag,
+    body.nav-mini .nav-text,
+    body.nav-mini .sf-chips{display:revert}
+    body.nav-mini .nav-item{justify-content:flex-start;gap:12px;padding:11px 16px;border-left-width:3px}
+  
+    body.nav-mini .sf-logout{width:auto;height:auto;padding:8px 14px}
+    body.nav-mini .sf-ico{display:none}
+    .nav-toggle{display:none}
     .sidebar{transform:translateX(-100%)}
     .sidebar.open{transform:translateX(0);box-shadow:0 0 40px rgba(0,0,0,.35)}
     .sidebar-backdrop.show{display:block}
@@ -584,64 +664,70 @@
     <div class="sidebar-brand">
       <div class="logo"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
       <div class="sidebar-brand-text">ใบเบิกวัตถุดิบ<small>Scanner</small></div>
+      <button class="nav-toggle" onclick="toggleNavMini()" aria-label="ย่อ/ขยายเมนู" data-label="ย่อเมนู">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
     </div>
     <nav class="sidebar-nav">
       <div class="nav-group" data-group="work">
         <div class="nav-label">งานประจำวัน</div>
-        <button class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')">
-          <span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="4"/><line x1="12" y1="20" x2="12" y2="10"/><line x1="6" y1="20" x2="6" y2="16"/></svg></span> แดชบอร์ด
+        <button data-label="แดชบอร์ด" class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="4"/><line x1="12" y1="20" x2="12" y2="10"/><line x1="6" y1="20" x2="6" y2="16"/></svg></span> <span class="nav-text">แดชบอร์ด</span>
         </button>
-        <button class="nav-item" data-page="scan" onclick="showPage('scan')">
-          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span> สแกน
+        <button data-label="สแกน" class="nav-item" data-page="scan" onclick="showPage('scan')">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span> <span class="nav-text">สแกน</span>
         </button>
-        <button class="nav-item" data-page="orders" onclick="showPage('orders')">
-          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg></span> รายการ
+        <button data-label="รายการ" class="nav-item" data-page="orders" onclick="showPage('orders')">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg></span> <span class="nav-text">รายการ</span>
         </button>
       </div>
 
       <div class="nav-group" data-group="insight">
         <div class="nav-label">วิเคราะห์และรายงาน</div>
-        <button class="nav-item" data-page="ask" onclick="showPage('ask')">
-          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z"/></svg></span> ถามน้อง Order <span class="nav-tag">AI</span>
+        <button data-label="ถามน้อง Order" class="nav-item" data-page="ask" onclick="showPage('ask')">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z"/></svg></span> <span class="nav-text">ถามน้อง Order</span><span class="nav-tag">AI</span>
         </button>
-        <button class="nav-item" data-page="forecast" onclick="showPage('forecast')">
-          <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span> พยากรณ์ <span class="nav-tag">AI</span>
+        <button data-label="พยากรณ์" class="nav-item" data-page="forecast" onclick="showPage('forecast')">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span> <span class="nav-text">พยากรณ์</span><span class="nav-tag">AI</span>
         </button>
-        <button class="nav-item" data-page="health" onclick="showPage('health')">
-          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span> สุขภาพการผลิต
+        <button data-label="สุขภาพการผลิต" class="nav-item" data-page="health" onclick="showPage('health')">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span> <span class="nav-text">สุขภาพการผลิต</span>
         </button>
-        <button class="nav-item" data-page="export" onclick="showPage('export')">
-          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span> Export
+        <button data-label="Export" class="nav-item" data-page="export" onclick="showPage('export')">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span> <span class="nav-text">Export</span>
         </button>
       </div>
 
       <div class="nav-group" data-group="admin">
         <div class="nav-label">จัดการระบบ</div>
-        <button class="nav-item" data-page="users" onclick="showPage('users')">
-          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> ผู้ใช้งาน
+        <button data-label="ผู้ใช้งาน" class="nav-item" data-page="users" onclick="showPage('users')">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> <span class="nav-text">ผู้ใช้งาน</span>
         </button>
-        <button class="nav-item" data-page="activity" onclick="showPage('activity')">
-          <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span> ประวัติการใช้งาน
+        <button data-label="ประวัติการใช้งาน" class="nav-item" data-page="activity" onclick="showPage('activity')">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span> <span class="nav-text">ประวัติการใช้งาน</span>
         </button>
-        <button class="nav-item" data-page="settings" onclick="showPage('settings')">
-          <span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg></span> ตั้งค่า
+        <button data-label="ตั้งค่า" class="nav-item" data-page="settings" onclick="showPage('settings')">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg></span> <span class="nav-text">ตั้งค่า</span>
         </button>
       </div>
 
       <div style="flex:1"></div>
 
       <div class="nav-group" data-group="help">
-        <button class="nav-item" data-page="manual" onclick="showPage('manual')">
-          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span> คู่มือการใช้งาน
+        <button data-label="คู่มือการใช้งาน" class="nav-item" data-page="manual" onclick="showPage('manual')">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span> <span class="nav-text">คู่มือการใช้งาน</span>
         </button>
       </div>
     </nav>
     <div class="sidebar-footer">
-      <div style="display:flex;flex-direction:column;gap:4px">
+      <div class="sf-chips">
         <span class="chip"><span class="dot"></span>ออนไลน์</span>
         <span id="roleChip" class="chip" style="font-size:11px"></span>
       </div>
-      <button class="ghost sm" onclick="doLogout()">ออกจากระบบ</button>
+      <button class="ghost sm sf-logout" data-label="ออกจากระบบ" onclick="doLogout()" aria-label="ออกจากระบบ">
+        <svg class="sf-ico" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <span class="nav-text">ออกจากระบบ</span>
+      </button>
     </div>
   </aside>
 
@@ -1353,6 +1439,21 @@
               </tbody>
             </table>
             <p class="m-hint">เมนูที่บทบาทของคุณไม่มีสิทธิ์จะถูกซ่อน หากทั้งกลุ่มถูกซ่อน หัวข้อกลุ่มจะหายไปด้วย</p>
+
+            <h4 style="margin:16px 0 8px;font-size:14px">3.1 ย่อ/ขยายเมนู</h4>
+            <p>กดปุ่ม <b>‹</b> ที่มุมขวาบนของเมนู เพื่อย่อเมนูให้เหลือเฉพาะไอคอน ได้พื้นที่ทำงานกว้างขึ้น
+              — ชี้ที่ไอคอนเพื่อดูชื่อเมนู กดปุ่มเดิมอีกครั้งเพื่อขยายกลับ</p>
+            <p class="m-hint">ระบบจำค่าที่คุณเลือกไว้ในเครื่องนั้น ๆ เปิดครั้งหน้าจะอยู่ในสถานะเดิม</p>
+
+            <h4 style="margin:16px 0 8px;font-size:14px">3.2 การแสดงผลตามขนาดหน้าจอ</h4>
+            <table class="m-table">
+              <thead><tr><th style="width:170px">อุปกรณ์</th><th>รูปแบบเมนู</th></tr></thead>
+              <tbody>
+                <tr><td><b>คอมพิวเตอร์</b><div class="muted" style="font-size:11.5px">กว้าง 1180px ขึ้นไป</div></td><td>เมนูเต็มพร้อมชื่อ ย่อเองได้</td></tr>
+                <tr><td><b>iPad / โน้ตบุ๊กเล็ก</b><div class="muted" style="font-size:11.5px">700–1180px</div></td><td>เมนูย่อเป็นไอคอนให้อัตโนมัติ ขยายเองได้ตลอด</td></tr>
+                <tr><td><b>มือถือ</b><div class="muted" style="font-size:11.5px">ต่ำกว่า 700px</div></td><td>เมนูซ่อน เปิดด้วยปุ่ม ☰ พร้อมแถบทางลัดด้านล่าง</td></tr>
+              </tbody>
+            </table>
             <div class="m-note">
               <b>บนมือถือ:</b> แตะปุ่ม <b>☰</b> มุมบนซ้ายเพื่อเปิดเมนูทั้งหมด แตะเมนูที่ต้องการหรือแตะพื้นที่นอกเมนูเพื่อปิด<br>
               แถบด้านล่างเป็นทางลัดไปเมนูที่ใช้บ่อย (แดชบอร์ด สแกน รายการ ประวัติ) — เมนูอื่นเข้าผ่านปุ่ม ☰<br>
@@ -1673,6 +1774,11 @@
 
             <h4 style="margin:16px 0 8px;font-size:14px">12.3 Permission Matrix</h4>
             <p>ตาราง Checkbox แสดงสิทธิ์แต่ละ Role — Tick/Untick แล้วกด <b>"บันทึกสิทธิ์"</b></p>
+            <p>ตารางครอบคลุมทุกหน้าในระบบ: แดชบอร์ด · สแกน · รายการ · ถามน้อง Order · พยากรณ์ ·
+              สุขภาพการผลิต · Export · ผู้ใช้งาน · ประวัติการใช้งาน · ตั้งค่า
+              และสิทธิ์การดำเนินการ: อนุมัติ · ลบ</p>
+            <p class="m-hint">เมื่อระบบมีหน้าใหม่เพิ่มเข้ามา ทุกบทบาทจะได้รับสิทธิ์เริ่มต้นของหน้านั้นอัตโนมัติ
+              เพื่อไม่ให้ใครเสียการเข้าถึงที่เคยมี จากนั้น Admin ปรับได้ตามต้องการ</p>
             <div class="m-note">Admin จะมีสิทธิ์ "ผู้ใช้งาน", "ตั้งค่า" และ "แดชบอร์ด" ติดตัวเสมอ ยกเลิกไม่ได้ เพื่อป้องกันการล็อกตัวเองออกจากระบบ</div>
           </div>
 
@@ -1907,6 +2013,52 @@ const FIREBASE_CONFIG = {
 
 const $ = id => document.getElementById(id);
 
+// ---- sidebar collapse -------------------------------------------------------
+const NAV_MINI_KEY = "nsl_nav_mini";
+
+window.toggleNavMini = (force) => {
+  const on = force === undefined ? !document.body.classList.contains("nav-mini") : !!force;
+  document.body.classList.toggle("nav-mini", on);
+  localStorage.setItem(NAV_MINI_KEY, on ? "1" : "0");
+};
+
+// Rail tooltips: one shared element, positioned against the hovered item.
+let railTip = null;
+function initRailTips(){
+  railTip = document.createElement("div");
+  railTip.className = "rail-tip";
+  document.body.appendChild(railTip);
+  const bar = document.querySelector(".sidebar");
+  bar.addEventListener("mouseover", e => {
+    const el = e.target.closest("[data-label]");
+    if(!el || !document.body.classList.contains("nav-mini") || window.innerWidth < 700){
+      railTip.classList.remove("show");
+      return;
+    }
+    const r = el.getBoundingClientRect();
+    railTip.textContent = el.dataset.label;
+    railTip.style.top = (r.top + r.height / 2) + "px";
+    railTip.style.left = (r.right + 12) + "px";
+    railTip.style.transform = "translateY(-50%)";
+    railTip.classList.add("show");
+  });
+  bar.addEventListener("mouseleave", () => railTip.classList.remove("show"));
+}
+
+function initNavMini(){
+  const saved = localStorage.getItem(NAV_MINI_KEY);
+  if(saved !== null){
+    document.body.classList.toggle("nav-mini", saved === "1");
+    return;
+  }
+  // No stored choice yet: start collapsed on tablet widths, where a full rail
+  // eats a third of the usable width, and expanded on a real desktop.
+  const w = window.innerWidth;
+  document.body.classList.toggle("nav-mini", w >= 700 && w < 1180);
+}
+initNavMini();
+initRailTips();
+
 // sidebar navigation
 window.toggleSidebar = (force) => {
   const bar = document.querySelector('.sidebar');
@@ -1981,7 +2133,8 @@ function applyRole(role, perms){
   $("roleChip").textContent = labels[role]||role;
   $("roleChip").style.color = colors[role]||"var(--muted)";
   // pages - show/hide nav items by permission
-  const pages = ["dashboard","scan","orders","export","users","activity","settings"];
+  const pages = ["dashboard","scan","orders","ask","forecast","health",
+                 "export","users","activity","settings"];
   pages.forEach(p => {
     const show = hasPerm(p);
     document.querySelectorAll(`.nav-item[data-page="${p}"]`).forEach(el => el.style.display = show ? "" : "none");
@@ -3641,12 +3794,15 @@ const PERM_ITEMS = [
   {key:"dashboard", label:"แดชบอร์ด", group:"หน้าจอ"},
   {key:"scan",      label:"สแกน", group:"หน้าจอ"},
   {key:"orders",    label:"รายการ", group:"หน้าจอ"},
+  {key:"ask",       label:"ถามน้อง Order (AI)", group:"หน้าจอ"},
+  {key:"forecast",  label:"พยากรณ์", group:"หน้าจอ"},
+  {key:"health",    label:"สุขภาพการผลิต", group:"หน้าจอ"},
+  {key:"export",    label:"Export", group:"หน้าจอ"},
   {key:"users",     label:"ผู้ใช้งาน", group:"หน้าจอ"},
   {key:"activity",  label:"ประวัติการใช้งาน", group:"หน้าจอ"},
   {key:"settings",  label:"ตั้งค่า", group:"หน้าจอ"},
   {key:"approve",   label:"อนุมัติ record", group:"สิทธิ์การดำเนินการ"},
   {key:"delete",    label:"ลบ record", group:"สิทธิ์การดำเนินการ"},
-  {key:"export",    label:"Export Excel", group:"สิทธิ์การดำเนินการ"},
 ];
 const ROLES_ORDER = ["admin","supervisor","staff"];
 const ADMIN_LOCKED = ["dashboard","users","settings"];

@@ -18,12 +18,19 @@ MAX_RETRY = 3
 LOG_RETENTION_DAYS = 90
 
 DEFAULT_PERMISSIONS = {
-    "admin": ["dashboard", "scan", "orders", "users", "activity", "settings",
-              "approve", "delete", "export"],
-    "supervisor": ["dashboard", "scan", "orders", "activity",
-                   "approve", "export"],
-    "staff": ["dashboard", "scan", "orders", "export"],
+    "admin": ["dashboard", "scan", "orders", "ask", "forecast", "health",
+              "users", "activity", "settings", "approve", "delete", "export"],
+    "supervisor": ["dashboard", "scan", "orders", "ask", "forecast", "health",
+                   "activity", "approve", "export"],
+    "staff": ["dashboard", "scan", "orders", "ask", "forecast", "health",
+              "export"],
 }
+
+# Bump when a release adds permissions.  Roles saved before that release have
+# no opinion about the new keys, so they are granted the default rather than
+# silently losing a page that used to be open to everyone.
+PERM_VERSION = 2
+_NEW_BY_VERSION = {2: ["ask", "forecast", "health"]}
 
 DEFAULT_SETTINGS = {
     "provider": "claude",
@@ -74,6 +81,19 @@ def get_permissions():
     for role in ("admin", "supervisor", "staff"):
         if role not in perms:
             perms[role] = list(DEFAULT_PERMISSIONS.get(role, []))
+
+    stored_version = int(s.get("perm_version") or 1)
+    if stored_version < PERM_VERSION:
+        for version, keys in _NEW_BY_VERSION.items():
+            if version <= stored_version:
+                continue
+            for role, granted in perms.items():
+                for key in keys:
+                    if key in DEFAULT_PERMISSIONS.get(role, []) and key not in granted:
+                        granted.append(key)
+        db().collection(SETTINGS).document("app").set(
+            {"role_permissions": perms, "perm_version": PERM_VERSION}, merge=True)
+
     # admin always keeps users + settings to avoid lockout
     for must in ("users", "settings", "dashboard"):
         if must not in perms["admin"]:
@@ -87,7 +107,7 @@ def save_permissions(perms):
         if must not in perms.get("admin", []):
             perms.setdefault("admin", []).append(must)
     db().collection(SETTINGS).document("app").set(
-        {"role_permissions": perms}, merge=True)
+        {"role_permissions": perms, "perm_version": PERM_VERSION}, merge=True)
     return get_permissions()
 
 
