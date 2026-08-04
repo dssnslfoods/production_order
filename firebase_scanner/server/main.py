@@ -538,14 +538,37 @@ def order_delete(order_id: str, user=Depends(_require_perm("delete"))):
     return {"deleted": order_id}
 
 
+@app.get("/api/export/status")
+def export_status(user=Depends(auth.verify_token)):
+    """How many approved orders have not yet been handed to SAP."""
+    return store.export_status()
+
+
+@app.get("/api/export/batches")
+def export_batches(limit: int = 20, user=Depends(auth.verify_token)):
+    return {"batches": store.list_export_batches(limit)}
+
+
+@app.post("/api/export/batches/{batch_id}/undo")
+def export_batch_undo(batch_id: str, user=Depends(admin_only)):
+    """Un-mark a batch whose file never actually reached anyone."""
+    cleared = store.undo_export_batch(batch_id)
+    store.log_activity("export_undo", user["email"], user["role"],
+                       f"ยกเลิกการทำเครื่องหมาย export {cleared} รายการ", batch_id)
+    return {"cleared": cleared}
+
+
 @app.get("/api/export")
 def export(from_date: Optional[str] = None, to_date: Optional[str] = None,
           field: str = "document_date", status: str = "approved",
+          only_new: bool = False, mark: bool = True,
           user=Depends(auth.verify_token)):
     from urllib.parse import quote
     data, _ = store.list_orders(limit=2000)
     if status and status != "all":
         data = [o for o in data if o.get("status") == status]
+    if only_new:
+        data = [o for o in data if not o.get("exported_at")]
     if field not in ("document_date", "scanned_at"):
         field = "document_date"
     if from_date or to_date:
@@ -554,7 +577,22 @@ def export(from_date: Optional[str] = None, to_date: Optional[str] = None,
         data = [o for o in data if datekey(o)
                 and (not from_date or datekey(o) >= from_date)
                 and (not to_date or datekey(o) <= to_date)]
+    if not data:
+        raise HTTPException(404, "ไม่พบรายการที่ตรงกับเงื่อนไข — ไม่มีอะไรให้ Export")
     xlsx = excel_export.build_workbook(data)
+
+    # Only approved orders count as handed over; a draft in the file is a
+    # preview, and marking it would hide it from the "not yet sent" count.
+    if mark:
+        ids = [o["id"] for o in data if o.get("status") == "approved" and o.get("id")]
+        batch_id = store.mark_exported(ids, user["email"], {
+            "from_date": from_date, "to_date": to_date,
+            "field": field, "status": status, "only_new": only_new,
+        })
+        if ids:
+            analytics.invalidate_cache()
+            store.log_activity("export", user["email"], user["role"],
+                               f"Export {len(ids)} รายการ", batch_id)
     # HTTP headers are latin-1 only, so encode the Thai filename per RFC 5987.
     thai = quote("ใบเบิกวัตถุดิบ.xlsx")
     cd = f"attachment; filename=\"requisition.xlsx\"; filename*=UTF-8''{thai}"

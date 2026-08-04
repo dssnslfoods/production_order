@@ -596,3 +596,117 @@ def flush_data(mock_only=False, include_activity=False):
 
     deleted["images"] = images
     return deleted
+
+
+# ---------------------------------------------------------------------------
+# SAP hand-off: remember which orders have already been exported
+# ---------------------------------------------------------------------------
+EXPORT_BATCHES = "export_batches"
+
+
+def mark_exported(order_ids, user_email, meta=None):
+    """Record that these orders went out in an export file.
+
+    Written as one batch per chunk so a large export cannot leave half the
+    orders flagged and half not.
+    """
+    if not order_ids:
+        return None
+    client = db()
+    batch_ref = client.collection(EXPORT_BATCHES).document()
+    stamp = firestore.SERVER_TIMESTAMP
+    col = client.collection(ORDERS)
+
+    for start in range(0, len(order_ids), 400):
+        chunk = order_ids[start:start + 400]
+        wb = client.batch()
+        for oid in chunk:
+            wb.update(col.document(oid), {
+                "exported_at": stamp,
+                "exported_by": user_email,
+                "export_batch": batch_ref.id,
+                "export_count": firestore.Increment(1),
+            })
+        wb.commit()
+
+    batch_ref.set({
+        "created_at": stamp,
+        "user_email": user_email,
+        "count": len(order_ids),
+        "order_ids": order_ids[:2000],
+        "meta": meta or {},
+        "undone": False,
+    })
+    return batch_ref.id
+
+
+def export_status():
+    """How many approved orders are still waiting to go into SAP."""
+    pending, exported, oldest = 0, 0, None
+    for d in db().collection(ORDERS).stream():
+        row = d.to_dict() or {}
+        if row.get("status") != "approved":
+            continue
+        if row.get("exported_at"):
+            exported += 1
+        else:
+            pending += 1
+            date = (row.get("document_date") or "")[:10]
+            if date and (oldest is None or date < oldest):
+                oldest = date
+    return {"pending": pending, "exported": exported, "oldest_pending": oldest}
+
+
+def list_export_batches(limit=20):
+    q = (db().collection(EXPORT_BATCHES)
+         .order_by("created_at", direction=firestore.Query.DESCENDING)
+         .limit(limit))
+    out = []
+    for d in q.stream():
+        row = d.to_dict() or {}
+        ts = row.get("created_at")
+        out.append({
+            "id": d.id,
+            "created_at": ts.isoformat() if hasattr(ts, "isoformat") else None,
+            "user_email": row.get("user_email"),
+            "count": row.get("count", 0),
+            "meta": row.get("meta") or {},
+            "undone": bool(row.get("undone")),
+        })
+    return out
+
+
+def undo_export_batch(batch_id):
+    """Clear the export mark from a batch — for when a download never arrived.
+
+    Only orders whose latest export is this batch are reset; an order exported
+    again afterwards keeps its newer mark.
+    """
+    client = db()
+    ref = client.collection(EXPORT_BATCHES).document(batch_id)
+    doc = ref.get()
+    if not doc.exists:
+        return 0
+    ids = (doc.to_dict() or {}).get("order_ids") or []
+    col = client.collection(ORDERS)
+    cleared = 0
+    for start in range(0, len(ids), 400):
+        wb = client.batch()
+        touched = 0
+        for oid in ids[start:start + 400]:
+            snap = col.document(oid).get()
+            if not snap.exists:
+                continue
+            if (snap.to_dict() or {}).get("export_batch") != batch_id:
+                continue
+            wb.update(col.document(oid), {
+                "exported_at": firestore.DELETE_FIELD,
+                "exported_by": firestore.DELETE_FIELD,
+                "export_batch": firestore.DELETE_FIELD,
+            })
+            touched += 1
+        if touched:
+            wb.commit()
+            cleared += touched
+    ref.update({"undone": True})
+    return cleared

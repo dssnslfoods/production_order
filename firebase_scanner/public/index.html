@@ -767,6 +767,7 @@
                 <option value="pending_approval">รออนุมัติ</option>
                 <option value="draft">Draft</option>
                 <option value="approved">อนุมัติแล้ว</option>
+                <option value="not_exported">อนุมัติแล้ว · ยังไม่ส่ง SAP</option>
               </select>
             </div>
             <div>
@@ -935,6 +936,8 @@
           <div class="card panel">
             <div class="phead"><span class="pico" style="background:rgba(56,189,248,.16);color:var(--sky)"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span><h2>Export Excel</h2></div>
 
+            <div id="expBanner" style="margin-bottom:20px"></div>
+
             <div class="two" style="gap:20px">
               <div>
                 <label>วันที่เริ่มต้น</label>
@@ -963,6 +966,12 @@
                   <option value="draft">ฉบับร่าง</option>
                 </select>
               </div>
+            </div>
+
+            <div class="mt">
+              <label class="l-confirm" style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+                <input type="checkbox" id="expOnlyNew"> เฉพาะใบที่ยังไม่เคย Export
+              </label>
             </div>
 
             <div style="margin-top:24px;display:flex;gap:12px;align-items:center">
@@ -997,6 +1006,15 @@
             </div>
           </div>
         </div>
+
+        <div class="card panel">
+          <div class="between" style="margin-bottom:16px">
+            <div class="phead" style="margin:0"><span class="pico" style="background:rgba(16,185,129,.16);color:var(--emerald)"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg></span><h2>ประวัติการส่งเข้า SAP</h2></div>
+            <button class="ghost sm" onclick="loadExportBatches()">รีเฟรช</button>
+          </div>
+          <div id="expHistory" class="scroll-x"><span class="muted">กำลังโหลด…</span></div>
+        </div>
+
         <style>
           @media(max-width:820px){ #page-export .panels-grid{grid-template-columns:1fr !important} }
         </style>
@@ -1484,6 +1502,23 @@
               ค่าเริ่มต้นคือ <b>เฉพาะรายการที่อนุมัติแล้ว</b> หากต้องการรวมรายการที่ยังไม่อนุมัติ ให้เปลี่ยนตัวเลือกสถานะเป็น "ทั้งหมด"
             </div>
             <p>ไฟล์ Excel ที่ได้มี Dropdown กรอง/เรียงลำดับทุกคอลัมน์ และตรึงหัวตาราง (Freeze Panes)</p>
+
+            <h4 style="margin:16px 0 8px;font-size:14px">8.1 การติดตามการส่งเข้า SAP</h4>
+            <p>ระบบจดจำว่าใบไหนเคยอยู่ในไฟล์ Export แล้ว เพื่อไม่ให้มีใบตกหล่นจากการคีย์เข้า SAP</p>
+            <ul class="m-list">
+              <li>ด้านบนหน้า Export มีแถบบอก <b>"ยังไม่ได้ส่งเข้า SAP กี่ใบ"</b> พร้อมวันที่ของใบที่ค้างนานที่สุด</li>
+              <li>ปุ่ม <b>"Export เฉพาะที่ยังไม่ได้ส่ง"</b> — กดครั้งเดียวได้ครบทุกใบที่ค้าง ไม่ต้องเลือกวันที่เอง</li>
+              <li>ในหน้ารายการ ใบที่ส่งแล้วจะมีป้าย <b>SAP ✓</b> ส่วนใบที่อนุมัติแล้วแต่ยังไม่ส่งจะขึ้น <b>รอส่ง SAP</b></li>
+              <li>ตัวกรอง <b>"อนุมัติแล้ว · ยังไม่ส่ง SAP"</b> ในหน้ารายการ ใช้ดูรายการที่ค้างทั้งหมด</li>
+              <li><b>ประวัติการส่งเข้า SAP</b> ด้านล่างหน้า Export บันทึกทุกครั้งที่ Export — เวลา ผู้ทำ จำนวนใบ และเงื่อนไขที่ใช้</li>
+            </ul>
+            <div class="m-note">
+              <b>Export ซ้ำได้เสมอ</b> ระบบไม่บล็อก เผื่อไฟล์หายหรือต้องส่งให้คนอื่นอีกรอบ —
+              การ Export ซ้ำไม่เปลี่ยนสถานะของใบที่ส่งไปแล้ว และไม่ทำให้ตัวเลข "ยังไม่ได้ส่ง" ผิด<br>
+              <b>หากกด Export แล้วไฟล์ไม่ได้ดาวน์โหลดจริง</b> (เช่น เน็ตหลุด) ให้ Admin กด
+              <b>"ยกเลิกการทำเครื่องหมาย"</b> ที่แถวนั้นในประวัติ ใบเหล่านั้นจะกลับมานับรวมใน "ยังไม่ได้ส่งเข้า SAP" อีกครั้ง<br>
+              เฉพาะใบที่ <b>อนุมัติแล้ว</b> เท่านั้นที่ถูกทำเครื่องหมาย — ใบที่ยังไม่อนุมัติที่หลุดเข้าไฟล์จะไม่ถูกนับว่าส่งแล้ว
+            </div>
           </div>
 
           <!-- 9. Ask -->
@@ -1736,6 +1771,14 @@
               <div class="m-a">A: ยังไม่ได้ทั้งหมด — ตัวเลขคือ "ปริมาณที่จะใช้" ยังไม่ได้หักของที่มีในคลัง และควรบวกส่วนเกินจากแผน (ดูหน้าสุขภาพการผลิต) เข้าไปด้วย รายการที่ขึ้นว่า "ผันผวน" ควรตรวจสอบก่อนเสมอ</div>
             </div>
             <div class="m-faq">
+              <div class="m-q">Q: จะรู้ได้อย่างไรว่าคีย์เข้า SAP ครบทุกใบแล้ว?</div>
+              <div class="m-a">A: ดูแถบด้านบนหน้า Export — ถ้าขึ้นสีเขียวว่า "ส่งเข้า SAP ครบแล้วทุกใบ" แปลว่าไม่มีใบค้าง หากขึ้นสีเหลืองพร้อมจำนวน ให้กดปุ่ม "Export เฉพาะที่ยังไม่ได้ส่ง" เพื่อดึงเฉพาะใบที่ค้างออกมาในครั้งเดียว</div>
+            </div>
+            <div class="m-faq">
+              <div class="m-q">Q: Export ไปแล้วแต่ไฟล์หาย ต้อง Export ใหม่ทำอย่างไร?</div>
+              <div class="m-a">A: Export ซ้ำได้เลยตามปกติ โดยเลือกช่วงวันที่ที่ต้องการ — ระบบไม่บล็อกและสถานะจะไม่เปลี่ยน แต่ถ้าไฟล์นั้นยังไม่เคยถูกคีย์เข้า SAP เลย ให้ Admin กด "ยกเลิกการทำเครื่องหมาย" ที่ประวัติครั้งนั้นก่อน ใบเหล่านั้นจะกลับมาแสดงว่ายังไม่ได้ส่ง</div>
+            </div>
+            <div class="m-faq">
               <div class="m-q">Q: บนมือถือเข้าเมนู Export หรือ ตั้งค่า ไม่ได้?</div>
               <div class="m-a">A: แตะปุ่ม ☰ มุมบนซ้ายเพื่อเปิดเมนูทั้งหมด — แถบด้านล่างเป็นทางลัดเฉพาะเมนูที่ใช้บ่อยเท่านั้น</div>
             </div>
@@ -1885,6 +1928,7 @@ window.showPage = (page) => {
   if(page==='ask') loadSuggestions();
   if(page==='forecast') loadForecast();
   if(page==='health') loadHealth();
+  if(page==='export'){ loadExportStatus(); loadExportBatches(); }
   if(page==='settings' && currentRole === 'admin') loadFlushPreview();
 };
 
@@ -2130,9 +2174,14 @@ function renderOrderRow(o){
     const clr = diff>0.10 ? "color:#ef4444" : "color:#16a34a";
     planTag = ` · <span style="${clr};font-weight:500">${pct}%</span>`;
   }
+  const sapBadge = o.exported_at
+    ? '<span class="pill" style="font-size:10px;padding:2px 7px;background:rgba(14,165,233,.14);color:#0284c7" title="อยู่ในไฟล์ Export แล้ว">SAP ✓</span>'
+    : approved
+      ? '<span class="pill" style="font-size:10px;padding:2px 7px;background:rgba(245,158,11,.14);color:#b45309" title="อนุมัติแล้วแต่ยังไม่เคยอยู่ในไฟล์ Export">รอส่ง SAP</span>'
+      : '';
   const borderClr = approved ? 'var(--emerald)' : isDraft ? 'var(--indigo)' : 'var(--amber)';
   const chk = hasPerm("delete") ? `<input type="checkbox" class="o-check" data-oid="${o.id}" data-label="${po.replace(/"/g,'')}" onchange="updateBatchBar()">` : '';
-  return `<div class="order orow" style="border-left-color:${borderClr}">${chk}<div class="obody"><b>${po} ${statusBadge} <span class="muted" style="font-weight:400">${dt?' · '+dt:''} ${o.product_name?' · '+o.product_name:''}</span></b>
+  return `<div class="order orow" style="border-left-color:${borderClr}">${chk}<div class="obody"><b>${po} ${statusBadge} ${sapBadge} <span class="muted" style="font-weight:400">${dt?' · '+dt:''} ${o.product_name?' · '+o.product_name:''}</span></b>
     <div class="meta">${o.scanned_at ? o.scanned_at.slice(0,16).replace("T"," ") : ""}
     · ${(o.lines||[]).length} รายการ${planTag}${o.approved_by?' · อนุมัติโดย '+o.approved_by:''}</div></div>
     <button class="del" title="${approved?'ดู':'แก้ไข'}" onclick="openEdit('${o.id}')">${approved?'⌕':'✎'}</button>
@@ -2216,7 +2265,9 @@ window.applyOrderFilters = () => {
   const to = $("ordTo")?.value || "";
 
   const filtered = allOrders.filter(o => {
-    if(status !== "all"){
+    if(status === "not_exported"){
+      if(o.status !== "approved" || o.exported_at) return false;
+    } else if(status !== "all"){
       const isDraft = o.edited && o.status !== "approved";
       if(status === "draft" ? !isDraft : (o.status !== status || isDraft)) return false;
     }
@@ -3388,24 +3439,115 @@ window.deleteOrder = async (id, label) => {
   }catch(e){ toast("เชื่อมต่อไม่สำเร็จ"); }
 };
 
-window.exportExcel = async () => {
+// ---- SAP hand-off tracking ---------------------------------------------
+// The risk this guards against is a silent gap: an order approved, never
+// exported, and therefore never keyed into SAP, with nothing on screen saying so.
+window.loadExportStatus = async () => {
+  const box = $("expBanner");
+  if(!box) return;
+  try{
+    const r = await api("/export/status");
+    const j = await r.json();
+    if(!r.ok){ box.innerHTML = ""; return; }
+    const waiting = j.pending || 0;
+    box.innerHTML = waiting
+      ? `<div class="viz" style="border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.06);margin:0">
+           <div class="between" style="gap:14px;flex-wrap:wrap">
+             <div>
+               <div class="hero-num"><b style="color:var(--amber)">${fmt(waiting)}</b><span>ใบยังไม่ได้ส่งเข้า SAP</span></div>
+               <div class="hero-sub">อนุมัติแล้วแต่ยังไม่เคยอยู่ในไฟล์ Export
+                 ${j.oldest_pending ? ` · ค้างมาตั้งแต่ ${esc(j.oldest_pending)}` : ""}</div>
+             </div>
+             <button class="btn sm" style="flex:none;width:auto" onclick="exportExcel(true)">Export เฉพาะที่ยังไม่ได้ส่ง</button>
+           </div>
+         </div>`
+      : `<div class="viz" style="border-color:rgba(16,185,129,.4);background:rgba(16,185,129,.06);margin:0">
+           <b style="color:#059669">ส่งเข้า SAP ครบแล้วทุกใบ</b>
+           <div class="hero-sub">ใบที่อนุมัติแล้วทั้งหมด ${fmt(j.exported || 0)} ใบ อยู่ในไฟล์ Export เรียบร้อย</div>
+         </div>`;
+  }catch(e){ box.innerHTML = ""; }
+};
+
+window.loadExportBatches = async () => {
+  const box = $("expHistory");
+  if(!box) return;
+  box.innerHTML = '<span class="muted">กำลังโหลด…</span>';
+  try{
+    const j = await (await api("/export/batches")).json();
+    const rows = j.batches || [];
+    if(!rows.length){ box.innerHTML = '<span class="muted">ยังไม่เคย Export</span>'; return; }
+    box.innerHTML = `<table class="q-table"><thead><tr>
+        ${th("เวลา", "เวลาที่กดปุ่ม Export และไฟล์ถูกสร้าง")}
+        ${th("ผู้ทำรายการ", "อีเมลของผู้ที่ Export ไฟล์นี้")}
+        ${th("จำนวนใบ", "จำนวนใบสั่งผลิตที่อนุมัติแล้วและถูกทำเครื่องหมายว่าส่งออกในครั้งนั้น", 'class="num"')}
+        ${th("เงื่อนไขที่ใช้", "ช่วงวันที่และสถานะที่เลือกตอน Export")}
+        ${th("", "ใช้เมื่อไฟล์ไม่ได้ถูกดาวน์โหลดจริง — จะคืนใบเหล่านั้นกลับไปเป็นยังไม่ได้ส่ง")}
+      </tr></thead><tbody>${rows.map(b => {
+        const m = b.meta || {};
+        const range = (m.from_date || m.to_date)
+          ? `${esc(m.from_date || "เริ่มต้น")} – ${esc(m.to_date || "ล่าสุด")}`
+          : "ทั้งหมด";
+        return `<tr style="${b.undone ? "opacity:.5" : ""}">
+          <td>${esc((b.created_at || "").slice(0,16).replace("T"," "))}</td>
+          <td>${esc(b.user_email || "-")}</td>
+          <td class="num"><b>${fmt(b.count)}</b></td>
+          <td class="muted" style="font-size:12px">${range}${m.only_new ? " · เฉพาะที่ยังไม่ส่ง" : ""}</td>
+          <td>${b.undone
+            ? '<span class="muted" style="font-size:12px">ยกเลิกแล้ว</span>'
+            : (hasPerm("settings")
+                ? `<button class="ghost sm" onclick="undoExport('${b.id}', ${b.count})">ยกเลิกการทำเครื่องหมาย</button>`
+                : "")}</td>
+        </tr>`;}).join("")}</tbody></table>
+      <div class="method">
+        ระบบจดจำว่าใบไหนเคยอยู่ในไฟล์ Export แล้ว เพื่อให้เห็นได้ทันทีว่ายังเหลือใบไหนที่ยังไม่ได้คีย์เข้า SAP<br>
+        <b style="color:var(--text)">Export ซ้ำได้เสมอ</b> — ระบบไม่บล็อก เผื่อไฟล์หายหรือต้องส่งให้คนอื่นอีกรอบ
+        การ Export ซ้ำจะไม่เปลี่ยนสถานะของใบที่ส่งไปแล้ว<br>
+        หากกด Export แล้วไฟล์ไม่ได้ถูกดาวน์โหลดจริง ให้กด <b>ยกเลิกการทำเครื่องหมาย</b>
+        ใบเหล่านั้นจะกลับไปนับรวมใน "ยังไม่ได้ส่งเข้า SAP" อีกครั้ง
+      </div>`;
+  }catch(e){ box.innerHTML = '<span class="muted">โหลดไม่สำเร็จ</span>'; }
+};
+
+window.undoExport = async (id, count) => {
+  if(!confirm(`คืนสถานะ ${count} ใบให้กลับไปเป็น "ยังไม่ได้ส่งเข้า SAP"?\n\nใช้เมื่อไฟล์ Export ครั้งนั้นไม่ได้ถูกนำไปคีย์เข้า SAP จริง`)) return;
+  try{
+    const r = await api(`/export/batches/${id}/undo`, {method:"POST"});
+    const j = await r.json();
+    if(!r.ok){ toast(j.detail || "ยกเลิกไม่สำเร็จ"); return; }
+    toast(`คืนสถานะแล้ว ${j.cleared} ใบ`);
+    loadExportStatus(); loadExportBatches(); loadOrders();
+  }catch(e){ toast("ยกเลิกไม่สำเร็จ"); }
+};
+
+window.exportExcel = async (onlyNew) => {
   const p = new URLSearchParams();
-  if($("expFrom").value) p.set("from_date", $("expFrom").value);
-  if($("expTo").value) p.set("to_date", $("expTo").value);
+  const useOnlyNew = onlyNew === true || $("expOnlyNew")?.checked;
+  if(!useOnlyNew){
+    if($("expFrom").value) p.set("from_date", $("expFrom").value);
+    if($("expTo").value) p.set("to_date", $("expTo").value);
+  }
   p.set("field", $("expField").value);
-  const st = $("expStatus").value;
+  const st = useOnlyNew ? "approved" : $("expStatus").value;
   if(st !== "all") p.set("status", st);
+  if(useOnlyNew) p.set("only_new", "true");
+
   const prog = $("exportProgress");
   prog.innerHTML = '<span class="spin"></span> กำลังสร้างไฟล์…';
-  toast("กำลังสร้างไฟล์ Excel…");
   const r = await api("/export?"+p.toString());
-  if(!r.ok){ toast("export ไม่สำเร็จ"); prog.textContent=""; return; }
+  if(!r.ok){
+    const err = await r.json().catch(()=>({}));
+    toast(err.detail || "export ไม่สำเร็จ");
+    prog.textContent = "";
+    return;
+  }
   const blob = await r.blob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url; a.download = "ใบเบิกวัตถุดิบ.xlsx"; a.click();
   URL.revokeObjectURL(url);
   prog.textContent = "";
+  toast("ดาวน์โหลดไฟล์แล้ว — ระบบบันทึกว่าใบเหล่านี้ส่งออกแล้ว");
+  loadExportStatus(); loadExportBatches(); loadOrders();
 };
 
 // ---- user management (admin) ----

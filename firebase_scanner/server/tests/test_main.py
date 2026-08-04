@@ -491,3 +491,78 @@ class TestFlush:
             assert r.status_code == 200
             assert r.json()["counts"]["orders"] == 434
             st.flush_data.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# SAP hand-off tracking — the point is that nothing silently goes unexported
+# ---------------------------------------------------------------------------
+def _order_row(oid, status="approved", exported=False):
+    row = {"id": oid, "order_no": oid, "status": status,
+           "document_date": "2026-07-01", "lines": []}
+    if exported:
+        row["exported_at"] = "2026-07-02T10:00:00"
+    return row
+
+
+class TestExportTracking:
+    def test_export_marks_only_approved_orders(self, client):
+        rows = [_order_row("a"), _order_row("b"),
+                _order_row("c", status="draft")]
+        with patch("main.store") as st, patch("main.excel_export") as xl, \
+             patch("main.analytics"):
+            st.list_orders.return_value = (rows, None)
+            xl.build_workbook.return_value = b"xlsx"
+            st.mark_exported.return_value = "batch1"
+            r = client.get("/api/export?status=all")
+            assert r.status_code == 200
+            assert st.mark_exported.call_args[0][0] == ["a", "b"]
+
+    def test_only_new_skips_already_exported(self, client):
+        rows = [_order_row("a", exported=True), _order_row("b")]
+        with patch("main.store") as st, patch("main.excel_export") as xl, \
+             patch("main.analytics"):
+            st.list_orders.return_value = (rows, None)
+            xl.build_workbook.return_value = b"xlsx"
+            st.mark_exported.return_value = "batch2"
+            client.get("/api/export?only_new=true")
+            assert st.mark_exported.call_args[0][0] == ["b"]
+
+    def test_empty_result_is_an_error_not_an_empty_file(self, client):
+        # Handing someone a zero-row workbook looks like a successful export.
+        with patch("main.store") as st, patch("main.excel_export") as xl:
+            st.list_orders.return_value = ([_order_row("a", exported=True)], None)
+            r = client.get("/api/export?only_new=true")
+            assert r.status_code == 404
+            xl.build_workbook.assert_not_called()
+
+    def test_mark_false_downloads_without_marking(self, client):
+        with patch("main.store") as st, patch("main.excel_export") as xl, \
+             patch("main.analytics"):
+            st.list_orders.return_value = ([_order_row("a")], None)
+            xl.build_workbook.return_value = b"xlsx"
+            r = client.get("/api/export?mark=false")
+            assert r.status_code == 200
+            st.mark_exported.assert_not_called()
+
+    def test_export_is_logged(self, client):
+        with patch("main.store") as st, patch("main.excel_export") as xl, \
+             patch("main.analytics"):
+            st.list_orders.return_value = ([_order_row("a")], None)
+            xl.build_workbook.return_value = b"xlsx"
+            st.mark_exported.return_value = "batch3"
+            client.get("/api/export")
+            assert st.log_activity.call_args[0][0] == "export"
+
+    def test_status_endpoint(self, client):
+        with patch("main.store") as st:
+            st.export_status.return_value = {"pending": 7, "exported": 100,
+                                             "oldest_pending": "2026-06-01"}
+            r = client.get("/api/export/status")
+            assert r.json()["pending"] == 7
+
+    def test_undo_restores_and_is_logged(self, client):
+        with patch("main.store") as st:
+            st.undo_export_batch.return_value = 5
+            r = client.post("/api/export/batches/b1/undo")
+            assert r.json()["cleared"] == 5
+            assert st.log_activity.call_args[0][0] == "export_undo"
