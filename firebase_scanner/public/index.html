@@ -53,6 +53,12 @@
   .sidebar-brand-text small{display:block;font-weight:400;font-size:11.5px;color:rgba(255,255,255,.5)}
 
   .sidebar-nav{flex:1;padding:16px 12px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+  .nav-group{display:flex;flex-direction:column;gap:2px}
+  .nav-group + .nav-group{margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.09)}
+  .nav-label{font-size:10px;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;
+    color:rgba(255,255,255,.34);padding:0 16px 7px;user-select:none}
+  .nav-item .nav-tag{margin-left:auto;font-size:9.5px;font-weight:700;letter-spacing:.6px;
+    padding:2px 6px;border-radius:5px;background:rgba(129,140,248,.28);color:#c7d2fe}
   .nav-item{
     display:flex;align-items:center;gap:12px;
     padding:11px 16px;border-radius:10px;
@@ -115,9 +121,24 @@
   .tab-item .tab-icon{font-size:20px}
   .tab-item.active{color:var(--indigo)}
 
+  /* ---- mobile drawer: the sidebar is the only route to Export/Users/Settings/AI ---- */
+  .mobile-top{display:none;position:fixed;top:0;left:0;right:0;height:54px;z-index:45;
+    align-items:center;gap:12px;padding:0 14px;
+    background:rgba(255,255,255,.95);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+  .mobile-top b{font-size:14px}
+  .mob-menu{width:38px;height:38px;padding:0;display:grid;place-items:center;flex:none;
+    background:var(--surface2);border:none;border-radius:10px;cursor:pointer;color:var(--text)}
+  .mob-menu svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+  .sidebar-backdrop{display:none;position:fixed;inset:0;z-index:49;background:rgba(15,23,42,.45);
+    opacity:0;transition:opacity .25s ease}
+  .sidebar-backdrop.show{opacity:1}
+
   @media(max-width:768px){
     .sidebar{transform:translateX(-100%)}
-    .main-content{margin-left:0;margin-bottom:64px}
+    .sidebar.open{transform:translateX(0);box-shadow:0 0 40px rgba(0,0,0,.35)}
+    .sidebar-backdrop.show{display:block}
+    .mobile-top{display:flex}
+    .main-content{margin-left:0;margin-top:54px;margin-bottom:64px}
     .bottom-tabs{display:flex}
     .container{padding:16px}
   }
@@ -455,37 +476,52 @@
       <div class="sidebar-brand-text">ใบเบิกวัตถุดิบ<small>Scanner</small></div>
     </div>
     <nav class="sidebar-nav">
-      <button class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')">
-        <span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="4"/><line x1="12" y1="20" x2="12" y2="10"/><line x1="6" y1="20" x2="6" y2="16"/></svg></span> แดชบอร์ด
-      </button>
-      <button class="nav-item" data-page="scan" onclick="showPage('scan')">
-        <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span> สแกน
-      </button>
-      <button class="nav-item" data-page="orders" onclick="showPage('orders')">
-        <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg></span> รายการ
-      </button>
-      <button class="nav-item" data-page="ask" onclick="showPage('ask')">
-        <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z"/></svg></span> ถาม AI
-      </button>
-      <button class="nav-item" data-page="forecast" onclick="showPage('forecast')">
-        <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span> พยากรณ์
-      </button>
-      <button class="nav-item" data-page="export" onclick="showPage('export')">
-        <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span> Export
-      </button>
-      <button class="nav-item" data-page="users" onclick="showPage('users')">
-        <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> ผู้ใช้งาน
-      </button>
-      <button class="nav-item" data-page="activity" onclick="showPage('activity')">
-        <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span> ประวัติการใช้งาน
-      </button>
-      <button class="nav-item" data-page="settings" onclick="showPage('settings')">
-        <span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg></span> ตั้งค่า
-      </button>
+      <div class="nav-group" data-group="work">
+        <div class="nav-label">งานประจำวัน</div>
+        <button class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="4"/><line x1="12" y1="20" x2="12" y2="10"/><line x1="6" y1="20" x2="6" y2="16"/></svg></span> แดชบอร์ด
+        </button>
+        <button class="nav-item" data-page="scan" onclick="showPage('scan')">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span> สแกน
+        </button>
+        <button class="nav-item" data-page="orders" onclick="showPage('orders')">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg></span> รายการ
+        </button>
+      </div>
+
+      <div class="nav-group" data-group="insight">
+        <div class="nav-label">วิเคราะห์และรายงาน</div>
+        <button class="nav-item" data-page="ask" onclick="showPage('ask')">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z"/></svg></span> ถาม AI <span class="nav-tag">AI</span>
+        </button>
+        <button class="nav-item" data-page="forecast" onclick="showPage('forecast')">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span> พยากรณ์ <span class="nav-tag">AI</span>
+        </button>
+        <button class="nav-item" data-page="export" onclick="showPage('export')">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span> Export
+        </button>
+      </div>
+
+      <div class="nav-group" data-group="admin">
+        <div class="nav-label">จัดการระบบ</div>
+        <button class="nav-item" data-page="users" onclick="showPage('users')">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> ผู้ใช้งาน
+        </button>
+        <button class="nav-item" data-page="activity" onclick="showPage('activity')">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span> ประวัติการใช้งาน
+        </button>
+        <button class="nav-item" data-page="settings" onclick="showPage('settings')">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg></span> ตั้งค่า
+        </button>
+      </div>
+
       <div style="flex:1"></div>
-      <button class="nav-item" data-page="manual" onclick="showPage('manual')">
-        <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span> คู่มือการใช้งาน
-      </button>
+
+      <div class="nav-group" data-group="help">
+        <button class="nav-item" data-page="manual" onclick="showPage('manual')">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span> คู่มือการใช้งาน
+        </button>
+      </div>
     </nav>
     <div class="sidebar-footer">
       <div style="display:flex;flex-direction:column;gap:4px">
@@ -495,6 +531,15 @@
       <button class="ghost sm" onclick="doLogout()">ออกจากระบบ</button>
     </div>
   </aside>
+
+  <!-- ---- Mobile top bar + drawer backdrop ---- -->
+  <div class="mobile-top">
+    <button class="mob-menu" onclick="toggleSidebar()" aria-label="เปิดเมนู">
+      <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <b>ใบเบิกวัตถุดิบ</b>
+  </div>
+  <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar(false)"></div>
 
   <!-- ---- Bottom Tab Bar (mobile) ---- -->
   <nav class="bottom-tabs">
@@ -1377,7 +1422,15 @@ const FIREBASE_CONFIG = {
 const $ = id => document.getElementById(id);
 
 // sidebar navigation
+window.toggleSidebar = (force) => {
+  const bar = document.querySelector('.sidebar');
+  const open = force === undefined ? !bar.classList.contains('open') : !!force;
+  bar.classList.toggle('open', open);
+  $("sidebarBackdrop").classList.toggle('show', open);
+};
+
 window.showPage = (page) => {
+  toggleSidebar(false);   // picking a destination closes the mobile drawer
   document.querySelectorAll('.page-section').forEach(s => s.classList.add('hidden'));
   document.getElementById('page-' + page)?.classList.remove('hidden');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -1444,6 +1497,12 @@ function applyRole(role, perms){
     const show = hasPerm(p);
     document.querySelectorAll(`.nav-item[data-page="${p}"]`).forEach(el => el.style.display = show ? "" : "none");
     document.querySelectorAll(`.tab-item[data-page="${p}"]`).forEach(el => el.style.display = show ? "" : "none");
+  });
+  // A section header with nothing under it reads as a broken menu, so drop the
+  // whole group once permissions have hidden all of its items.
+  document.querySelectorAll('.nav-group').forEach(g => {
+    const visible = [...g.querySelectorAll('.nav-item')].some(el => el.style.display !== "none");
+    g.style.display = visible ? "" : "none";
   });
   // actions
   const approveBtn = $("approveBtn");
