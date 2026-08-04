@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ระบบสแกนใบเบิกวัตถุดิบ</title>
+<style>
+  :root {
+    --bg:#0f172a; --panel:#1e293b; --panel2:#334155; --line:#475569;
+    --text:#e2e8f0; --muted:#94a3b8; --accent:#38bdf8; --green:#22c55e;
+    --red:#ef4444; --amber:#f59e0b;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI",Roboto,"Noto Sans Thai",sans-serif;
+         background:var(--bg); color:var(--text); font-size:14px; }
+  header { padding:16px 24px; background:var(--panel); border-bottom:1px solid var(--line);
+           display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+  header h1 { font-size:18px; margin:0; }
+  .wrap { max-width:1080px; margin:0 auto; padding:20px 24px 60px; display:grid; gap:20px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:18px 20px; }
+  .card h2 { font-size:15px; margin:0 0 14px; color:var(--accent); }
+  .row { display:flex; gap:14px; flex-wrap:wrap; }
+  .field { display:flex; flex-direction:column; gap:5px; margin-bottom:12px; flex:1; min-width:200px; }
+  label { font-size:12px; color:var(--muted); }
+  input, select { background:var(--panel2); border:1px solid var(--line); color:var(--text);
+                  border-radius:8px; padding:9px 11px; font-size:14px; width:100%; }
+  input:focus, select:focus { outline:none; border-color:var(--accent); }
+  button { cursor:pointer; border:none; border-radius:8px; padding:10px 18px; font-size:14px;
+           font-weight:600; color:#0b1220; background:var(--accent); }
+  button.ghost { background:var(--panel2); color:var(--text); border:1px solid var(--line); }
+  button.big { padding:14px 26px; font-size:16px; background:var(--green); color:#052e12; }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  .statusbar { display:flex; gap:20px; flex-wrap:wrap; align-items:center; }
+  .stat { display:flex; flex-direction:column; }
+  .stat b { font-size:15px; }
+  .stat span { font-size:11px; color:var(--muted); }
+  .dot { width:9px; height:9px; border-radius:50%; display:inline-block; margin-right:6px; }
+  .dot.on { background:var(--green); } .dot.off { background:var(--muted); }
+  .dot.run { background:var(--amber); animation:pulse 1s infinite; }
+  @keyframes pulse { 50% { opacity:.3; } }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); }
+  th { color:var(--muted); font-weight:600; font-size:12px; }
+  .badge { padding:2px 9px; border-radius:20px; font-size:12px; font-weight:600; }
+  .badge.success { background:rgba(34,197,94,.18); color:#4ade80; }
+  .badge.failed { background:rgba(239,68,68,.18); color:#f87171; }
+  .drop { border:2px dashed var(--line); border-radius:10px; padding:26px; text-align:center;
+          color:var(--muted); transition:.15s; }
+  .drop.hover { border-color:var(--accent); color:var(--accent); background:rgba(56,189,248,.06); }
+  .inbox-list { list-style:none; padding:0; margin:8px 0 0; display:flex; flex-wrap:wrap; gap:8px; }
+  .inbox-list li { background:var(--panel2); border:1px solid var(--line); border-radius:20px;
+                   padding:4px 12px; font-size:12px; }
+  .toast { position:fixed; bottom:22px; left:50%; transform:translateX(-50%);
+           background:var(--panel2); border:1px solid var(--line); color:var(--text);
+           padding:12px 22px; border-radius:10px; opacity:0; transition:.25s; pointer-events:none; }
+  .toast.show { opacity:1; }
+  .switch { display:flex; align-items:center; gap:8px; }
+  .muted { color:var(--muted); font-size:12px; }
+  .mono { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>📄 ระบบสแกนใบเบิกวัตถุดิบ → Excel</h1>
+  <div class="statusbar" id="topstatus"></div>
+</header>
+
+<div class="wrap">
+
+  <!-- Scan control -->
+  <div class="card">
+    <h2>สแกนเอกสาร</h2>
+    <div class="row" style="align-items:center; justify-content:space-between;">
+      <div>
+        <button class="big" id="scanBtn" onclick="scanNow()">▶︎ สแกนไฟล์ใน Folder ทันที</button>
+        <div class="muted" style="margin-top:8px;">
+          ไฟล์ใน inbox: <b id="inboxCount">0</b> ไฟล์ ·
+          ระบบตั้งเวลา: <span id="schedText">ปิด</span>
+        </div>
+      </div>
+      <div class="stat" style="text-align:right;">
+        <b id="lastRun">—</b><span>สแกนล่าสุด</span>
+      </div>
+    </div>
+    <ul class="inbox-list" id="inboxList"></ul>
+  </div>
+
+  <!-- Upload -->
+  <div class="card">
+    <h2>เพิ่มไฟล์เข้า Folder (inbox)</h2>
+    <div class="drop" id="drop">
+      ลากไฟล์มาวางที่นี่ หรือ <label style="color:var(--accent); cursor:pointer;">เลือกไฟล์
+        <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.png,.pdf,.webp" hidden>
+      </label><br>
+      <span class="muted">รองรับ jpg, png, pdf, webp</span>
+    </div>
+  </div>
+
+  <!-- Config -->
+  <div class="card">
+    <h2>⚙️ ตั้งค่าระบบ (Scan Automation)</h2>
+    <div class="row">
+      <div class="field">
+        <label>ผู้ให้บริการ AI (Extraction Engine)</label>
+        <select id="provider" onchange="onProviderChange()">
+          <option value="claude">Claude (Anthropic) — แนะนำสำหรับลายมือไทย</option>
+          <option value="gemini">Gemini (Google)</option>
+          <option value="openai">GPT (OpenAI)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>โมเดล</label>
+        <input id="model" placeholder="เช่น claude-opus-4-8">
+      </div>
+    </div>
+    <div class="field">
+      <label>API Key <span id="keyState" class="muted"></span></label>
+      <input id="apiKey" type="password" placeholder="วาง API key ที่นี่ (เก็บไว้ในเครื่อง)">
+    </div>
+    <div class="field">
+      <label>ไฟล์ Excel ปลายทาง</label>
+      <input id="excelPath" class="mono">
+    </div>
+
+    <div class="row" style="align-items:flex-end;">
+      <div class="field" style="max-width:220px;">
+        <label>สแกนอัตโนมัติแบบตั้งเวลา</label>
+        <div class="switch">
+          <input type="checkbox" id="schedEnabled" style="width:auto;">
+          <span>เปิดใช้งาน</span>
+        </div>
+      </div>
+      <div class="field" style="max-width:220px;">
+        <label>ทุกๆ กี่นาที</label>
+        <input id="interval" type="number" min="1" value="30">
+      </div>
+    </div>
+
+    <div style="margin-top:8px; display:flex; gap:10px;">
+      <button onclick="saveConfig()">💾 บันทึกการตั้งค่า</button>
+      <button class="ghost" onclick="loadConfig()">รีเซ็ต</button>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="card">
+    <h2>ผลการสแกนล่าสุด</h2>
+    <table>
+      <thead><tr><th>เวลา</th><th>ไฟล์</th><th>สถานะ</th><th>รายละเอียด</th></tr></thead>
+      <tbody id="resultsBody"><tr><td colspan="4" class="muted">ยังไม่มีข้อมูล</td></tr></tbody>
+    </table>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+let cfg = null;
+
+function toast(msg) {
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 2600);
+}
+
+async function loadConfig() {
+  cfg = await (await fetch("/api/config")).json();
+  $("provider").value = cfg.provider;
+  $("excelPath").value = cfg.excel_path;
+  $("schedEnabled").checked = !!cfg.schedule.enabled;
+  $("interval").value = cfg.schedule.interval_minutes;
+  onProviderChange();
+}
+
+function onProviderChange() {
+  const p = $("provider").value;
+  $("model").value = cfg.models[p] || "";
+  const masked = cfg.api_keys[p];
+  $("apiKey").value = "";
+  $("apiKey").placeholder = masked ? "มีคีย์อยู่แล้ว (" + masked + ") — เว้นว่างถ้าไม่เปลี่ยน"
+                                   : "วาง API key ที่นี่";
+  $("keyState").textContent = masked ? "· ตั้งค่าแล้ว" : "· ยังไม่ได้ตั้งค่า";
+}
+
+async function saveConfig() {
+  const p = $("provider").value;
+  const body = {
+    provider: p,
+    models: { ...cfg.models, [p]: $("model").value.trim() },
+    api_keys: {},
+    excel_path: $("excelPath").value.trim(),
+    schedule: { enabled: $("schedEnabled").checked,
+                interval_minutes: parseInt($("interval").value) || 30 },
+  };
+  const key = $("apiKey").value.trim();
+  if (key) body.api_keys[p] = key;
+  cfg = await (await fetch("/api/config", {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(body),
+  })).json();
+  onProviderChange();
+  toast("บันทึกการตั้งค่าแล้ว ✓");
+}
+
+async function scanNow() {
+  $("scanBtn").disabled = true;
+  $("scanBtn").textContent = "⏳ กำลังสแกน...";
+  try {
+    const r = await (await fetch("/api/scan", {method: "POST"})).json();
+    if (r.skipped) toast(r.reason);
+    else if (r.error) toast("ผิดพลาด: " + r.error);
+    else toast(`เสร็จสิ้น: สำเร็จ ${r.succeeded} · ล้มเหลว ${r.failed}`);
+  } catch (e) { toast("เชื่อมต่อไม่สำเร็จ"); }
+  $("scanBtn").disabled = false;
+  $("scanBtn").textContent = "▶︎ สแกนไฟล์ใน Folder ทันที";
+  refresh();
+}
+
+async function refresh() {
+  let s;
+  try { s = await (await fetch("/api/status")).json(); } catch { return; }
+  const runDot = s.running ? '<span class="dot run"></span>กำลังทำงาน'
+                           : '<span class="dot on"></span>พร้อม';
+  const exDot = s.excel_exists ? '<span class="dot on"></span>เชื่อมต่อ Excel'
+                               : '<span class="dot off"></span>ไม่พบ Excel';
+  $("topstatus").innerHTML =
+    `<div class="stat"><b>${runDot}</b><span>สถานะ</span></div>
+     <div class="stat"><b>${s.provider}</b><span>Engine</span></div>
+     <div class="stat"><b>${exDot}</b><span>ปลายทาง</span></div>`;
+
+  $("inboxCount").textContent = s.inbox_files.length;
+  $("inboxList").innerHTML = s.inbox_files.map(f => `<li>📎 ${f}</li>`).join("")
+    || '<li class="muted" style="background:none;border:none;">— ไม่มีไฟล์รอสแกน —</li>';
+  $("lastRun").textContent = s.last_run || "—";
+  const sc = s.schedule;
+  $("schedText").textContent = sc.enabled
+    ? `เปิด (รอบถัดไป ${sc.next_run || "-"})` : "ปิด";
+
+  const rows = s.recent || [];
+  $("resultsBody").innerHTML = rows.length ? rows.map(e => `
+    <tr><td class="mono">${e.at || ""}</td><td>${e.file}</td>
+    <td><span class="badge ${e.status}">${e.status === "success" ? "สำเร็จ" : "ล้มเหลว"}</span></td>
+    <td>${e.detail || ""}</td></tr>`).join("")
+    : '<tr><td colspan="4" class="muted">ยังไม่มีข้อมูล</td></tr>';
+}
+
+// upload / drag-drop
+async function upload(files) {
+  if (!files.length) return;
+  const fd = new FormData();
+  for (const f of files) fd.append("files", f);
+  const r = await (await fetch("/api/upload", {method: "POST", body: fd})).json();
+  toast(`อัปโหลด ${r.saved.length} ไฟล์` + (r.skipped.length ? `, ข้าม ${r.skipped.length}` : ""));
+  refresh();
+}
+const drop = $("drop");
+["dragover","dragenter"].forEach(ev => drop.addEventListener(ev, e => {
+  e.preventDefault(); drop.classList.add("hover"); }));
+["dragleave","drop"].forEach(ev => drop.addEventListener(ev, e => {
+  e.preventDefault(); drop.classList.remove("hover"); }));
+drop.addEventListener("drop", e => upload([...e.dataTransfer.files]));
+$("fileInput").addEventListener("change", e => upload([...e.target.files]));
+
+loadConfig();
+refresh();
+setInterval(refresh, 4000);
+</script>
+</body>
+</html>

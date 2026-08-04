@@ -1,0 +1,11 @@
+fastapi>=0.110
+uvicorn[standard]>=0.27
+openpyxl>=3.1
+APScheduler>=3.10
+python-multipart>=0.0.9
+pymupdf>=1.23
+pillow>=10.0
+# Vision providers (optional — install only the one you use)
+anthropic>=0.39
+google-genai>=1.0
+openai>=1.30

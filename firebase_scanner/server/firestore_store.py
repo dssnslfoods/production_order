@@ -1,0 +1,504 @@
+"""Firestore + Cloud Storage access. Firebase Admin is initialized lazily on first use."""
+import datetime
+import os
+import uuid
+
+import firebase_admin
+from firebase_admin import firestore, storage
+
+_app = None
+ORDERS = "production_orders"
+SETTINGS = "settings"
+PENDING = "pending"
+DEAD_LETTER = "dead_letter"
+USERS = "users"
+ACTIVITY = "activity_logs"
+
+MAX_RETRY = 3
+LOG_RETENTION_DAYS = 90
+
+DEFAULT_PERMISSIONS = {
+    "admin": ["dashboard", "scan", "orders", "users", "activity", "settings",
+              "approve", "delete", "export"],
+    "supervisor": ["dashboard", "scan", "orders", "activity",
+                   "approve", "export"],
+    "staff": ["dashboard", "scan", "orders", "export"],
+}
+
+DEFAULT_SETTINGS = {
+    "provider": "claude",
+    "models": {"claude": "claude-opus-4-8", "gemini": "gemini-2.5-flash", "openai": "gpt-4o"},
+    "api_keys": {"claude": "", "gemini": "", "openai": ""},
+    "drive_folder_id": "",
+    "role_permissions": dict(DEFAULT_PERMISSIONS),
+}
+
+
+def _init():
+    global _app
+    if _app is None:
+        bucket = os.environ.get("STORAGE_BUCKET")  # e.g. my-project.appspot.com
+        opts = {"storageBucket": bucket} if bucket else None
+        # On Cloud Run, default application credentials are picked up automatically.
+        _app = firebase_admin.initialize_app(options=opts)
+    return _app
+
+
+def db():
+    _init()
+    return firestore.client()
+
+
+def bucket():
+    _init()
+    return storage.bucket()
+
+
+# ---------------------------------------------------------------------------
+# Settings
+# ---------------------------------------------------------------------------
+def get_settings():
+    doc = db().collection(SETTINGS).document("app").get()
+    if doc.exists:
+        data = dict(DEFAULT_SETTINGS)
+        data.update(doc.to_dict() or {})
+        return data
+    return dict(DEFAULT_SETTINGS)
+
+
+def get_permissions():
+    s = get_settings()
+    perms = s.get("role_permissions")
+    if not perms or not isinstance(perms, dict):
+        return dict(DEFAULT_PERMISSIONS)
+    for role in ("admin", "supervisor", "staff"):
+        if role not in perms:
+            perms[role] = list(DEFAULT_PERMISSIONS.get(role, []))
+    # admin always keeps users + settings to avoid lockout
+    for must in ("users", "settings", "dashboard"):
+        if must not in perms["admin"]:
+            perms["admin"].append(must)
+    return perms
+
+
+def save_permissions(perms):
+    # admin always keeps users + settings
+    for must in ("users", "settings", "dashboard"):
+        if must not in perms.get("admin", []):
+            perms.setdefault("admin", []).append(must)
+    db().collection(SETTINGS).document("app").set(
+        {"role_permissions": perms}, merge=True)
+    return get_permissions()
+
+
+def save_settings(patch):
+    cur = get_settings()
+    if "provider" in patch and patch["provider"]:
+        cur["provider"] = patch["provider"]
+    if "models" in patch and isinstance(patch["models"], dict):
+        cur["models"].update(patch["models"])
+    if "api_keys" in patch and isinstance(patch["api_keys"], dict):
+        cur.setdefault("api_keys", {})
+        for k, v in patch["api_keys"].items():
+            if v:  # only overwrite when a real value is supplied
+                cur["api_keys"][k] = v
+    if "drive_folder_id" in patch:
+        cur["drive_folder_id"] = patch["drive_folder_id"] or ""
+    db().collection(SETTINGS).document("app").set(cur)
+    return cur
+
+
+# ---------------------------------------------------------------------------
+# Images
+# ---------------------------------------------------------------------------
+def upload_image(raw: bytes, content_type: str, filename: str):
+    ext = os.path.splitext(filename or "")[1] or ".jpg"
+    blob_path = f"scans/{uuid.uuid4().hex}{ext}"
+    blob = bucket().blob(blob_path)
+    blob.upload_from_string(raw, content_type=content_type or "application/octet-stream")
+    return blob_path
+
+
+# ---------------------------------------------------------------------------
+# Orders
+# ---------------------------------------------------------------------------
+def add_order(data, source_image, provider, user_email=None, source_filename=None):
+    doc = {
+        "order_no": data.get("order_no"),
+        "document_date": data.get("document_date"),
+        "series_no": data.get("series_no"),
+        "product_name": data.get("product_name"),
+        "plan_total": data.get("plan_total"),
+        "actual_total": data.get("actual_total"),
+        "plan_unit": data.get("plan_unit"),
+        "lines": data.get("lines", []),
+        "source_image": source_image,
+        "source_filename": source_filename,
+        "provider": provider,
+        "scanned_by": user_email,
+        "scanned_at": firestore.SERVER_TIMESTAMP,
+        "status": "pending_approval",
+    }
+    ref = db().collection(ORDERS).add(doc)[1]
+    return ref.id
+
+
+RUNS = "scan_runs"
+
+
+def log_run(trigger, result):
+    """Record one processing run (manual button or scheduled) for the report."""
+    db().collection(RUNS).add({
+        "ran_at": firestore.SERVER_TIMESTAMP,
+        "trigger": trigger,
+        "processed": result.get("processed", 0),
+        "succeeded": result.get("succeeded", 0),
+        "failed": result.get("failed", 0),
+    })
+
+
+def list_runs(limit=20):
+    q = (db().collection(RUNS)
+         .order_by("ran_at", direction=firestore.Query.DESCENDING).limit(limit))
+    out = []
+    for d in q.stream():
+        r = d.to_dict()
+        ts = r.get("ran_at")
+        r["ran_at"] = ts.isoformat() if hasattr(ts, "isoformat") else None
+        out.append(r)
+    return out
+
+
+def count_orders():
+    try:
+        from google.cloud.firestore_v1.aggregation import AggregationQuery
+        agg = AggregationQuery(db().collection(ORDERS)).count(alias="n")
+        res = agg.get()
+        return int(res[0][0].value)
+    except Exception:  # noqa: BLE001
+        return sum(1 for _ in db().collection(ORDERS).stream())
+
+
+def list_orders(limit=100, cursor=None):
+    """List orders with cursor-based pagination.
+
+    Returns (orders, next_cursor).  Pass next_cursor back as `cursor`
+    to fetch the next page.  next_cursor is None when there are no more.
+    """
+    q = (db().collection(ORDERS)
+         .order_by("scanned_at", direction=firestore.Query.DESCENDING))
+    if cursor:
+        snap = db().collection(ORDERS).document(cursor).get()
+        if snap.exists:
+            q = q.start_after(snap)
+    q = q.limit(limit + 1)
+    docs = list(q.stream())
+    has_more = len(docs) > limit
+    if has_more:
+        docs = docs[:limit]
+    out = []
+    for d in docs:
+        row = d.to_dict()
+        row["id"] = d.id
+        ts = row.get("scanned_at")
+        row["scanned_at"] = ts.isoformat() if hasattr(ts, "isoformat") else None
+        out.append(row)
+    next_cursor = docs[-1].id if has_more else None
+    return out, next_cursor
+
+
+def get_order(order_id):
+    d = db().collection(ORDERS).document(order_id).get()
+    if not d.exists:
+        return None
+    row = d.to_dict()
+    row["id"] = d.id
+    ts = row.get("scanned_at")
+    row["scanned_at"] = ts.isoformat() if hasattr(ts, "isoformat") else None
+    return row
+
+
+def update_order(order_id, patch):
+    """Save edits to a scanned order (used by the review/edit page before export)."""
+    allowed = {"order_no", "document_date", "series_no", "product_name",
+                "plan_total", "actual_total", "plan_unit", "lines"}
+    upd = {k: v for k, v in patch.items() if k in allowed}
+    upd["edited"] = True
+    upd["edited_at"] = firestore.SERVER_TIMESTAMP
+    db().collection(ORDERS).document(order_id).update(upd)
+    return get_order(order_id)
+
+
+def approve_order(order_id, user_email):
+    ref = db().collection(ORDERS).document(order_id)
+    doc = ref.get()
+    img_path = (doc.to_dict() or {}).get("source_image") if doc.exists else None
+    ref.update({
+        "status": "approved",
+        "approved_by": user_email,
+        "approved_at": firestore.SERVER_TIMESTAMP,
+        "source_image": None,
+    })
+    if img_path:
+        try:
+            bucket().blob(img_path).delete()
+        except Exception:  # noqa: BLE001
+            pass
+    return get_order(order_id)
+
+
+def delete_order(order_id):
+    ref = db().collection(ORDERS).document(order_id)
+    doc = ref.get()
+    if doc.exists:
+        img = (doc.to_dict() or {}).get("source_image")
+        if img:
+            try:
+                bucket().blob(img).delete()  # ลบรูปต้นฉบับใน Storage ด้วย
+            except Exception:  # noqa: BLE001
+                pass
+    ref.delete()
+
+
+# ---------------------------------------------------------------------------
+# Pending queue (upload now, scan later — manual button or scheduled)
+# ---------------------------------------------------------------------------
+def add_pending(raw: bytes, content_type: str, filename: str, user_email=None):
+    ext = os.path.splitext(filename or "")[1] or ".jpg"
+    path = f"pending/{uuid.uuid4().hex}{ext}"
+    bucket().blob(path).upload_from_string(raw, content_type=content_type or "application/octet-stream")
+    doc = {
+        "filename": filename, "storage_path": path, "content_type": content_type,
+        "status": "pending", "error": None, "uploaded_by": user_email,
+        "uploaded_at": firestore.SERVER_TIMESTAMP,
+    }
+    return db().collection(PENDING).add(doc)[1].id
+
+
+def get_pending(pid):
+    d = db().collection(PENDING).document(pid).get()
+    if not d.exists:
+        return None
+    r = d.to_dict()
+    r["id"] = d.id
+    return r
+
+
+def list_pending():
+    out = []
+    for d in db().collection(PENDING).order_by("uploaded_at").stream():
+        r = d.to_dict(); r["id"] = d.id
+        ts = r.get("uploaded_at")
+        r["uploaded_at"] = ts.isoformat() if hasattr(ts, "isoformat") else None
+        out.append(r)
+    return out
+
+
+def download_bytes(blob_path):
+    return bucket().blob(blob_path).download_as_bytes()
+
+
+def delete_pending(pid):
+    db().collection(PENDING).document(pid).delete()
+
+
+def fail_pending(pid, err):
+    ref = db().collection(PENDING).document(pid)
+    doc = ref.get()
+    data = doc.to_dict() if doc.exists else {}
+    retries = data.get("retry_count", 0) + 1
+    if retries >= MAX_RETRY:
+        data.update({
+            "status": "dead",
+            "error": str(err)[:500],
+            "retry_count": retries,
+            "moved_at": firestore.SERVER_TIMESTAMP,
+        })
+        db().collection(DEAD_LETTER).document(pid).set(data)
+        ref.delete()
+        return "dead"
+    ref.update({
+        "status": "failed",
+        "error": str(err)[:500],
+        "retry_count": retries,
+    })
+    return "failed"
+
+
+def list_dead_letter():
+    out = []
+    for d in db().collection(DEAD_LETTER).order_by("moved_at", direction=firestore.Query.DESCENDING).stream():
+        r = d.to_dict()
+        r["id"] = d.id
+        for ts_field in ("uploaded_at", "moved_at"):
+            ts = r.get(ts_field)
+            r[ts_field] = ts.isoformat() if hasattr(ts, "isoformat") else None
+        out.append(r)
+    return out
+
+
+def retry_dead_letter(dlq_id):
+    ref = db().collection(DEAD_LETTER).document(dlq_id)
+    doc = ref.get()
+    if not doc.exists:
+        return None
+    data = doc.to_dict()
+    data["status"] = "pending"
+    data["error"] = None
+    data["retry_count"] = 0
+    data.pop("moved_at", None)
+    db().collection(PENDING).document(dlq_id).set(data)
+    ref.delete()
+    return dlq_id
+
+
+def delete_dead_letter(dlq_id):
+    ref = db().collection(DEAD_LETTER).document(dlq_id)
+    doc = ref.get()
+    if not doc.exists:
+        return False
+    data = doc.to_dict()
+    if data.get("storage_path"):
+        try:
+            bucket().blob(data["storage_path"]).delete()
+        except Exception:  # noqa: BLE001
+            pass
+    ref.delete()
+    return True
+
+
+def signed_image_url(blob_path, minutes=15):
+    import datetime
+    blob = bucket().blob(blob_path)
+    return blob.generate_signed_url(expiration=datetime.timedelta(minutes=minutes))
+
+
+# ---------------------------------------------------------------------------
+# Duplicate detection — Order No. is the primary key
+# ---------------------------------------------------------------------------
+def find_by_order_no(order_no: str):
+    """Return existing order if order_no already exists, else None."""
+    if not order_no:
+        return None
+    for d in (db().collection(ORDERS)
+              .where("order_no", "==", order_no).limit(1).stream()):
+        row = d.to_dict()
+        return {"id": d.id, "order_no": row.get("order_no"),
+                "series_no": row.get("series_no"),
+                "source_filename": row.get("source_filename")}
+
+
+# ---------------------------------------------------------------------------
+# User management (roles: admin, supervisor, staff)
+# ---------------------------------------------------------------------------
+VALID_ROLES = {"admin", "supervisor", "staff"}
+
+
+def get_user_role(uid, email):
+    """Get user role from Firestore. Auto-creates first user as admin."""
+    doc = db().collection(USERS).document(uid).get()
+    if doc.exists:
+        return (doc.to_dict() or {}).get("role", "staff")
+    if _count_users() == 0:
+        _create_user_doc(uid, email, "admin", "system")
+        return "admin"
+    _create_user_doc(uid, email, "staff", "auto")
+    return "staff"
+
+
+def _count_users():
+    try:
+        from google.cloud.firestore_v1.aggregation import AggregationQuery
+        agg = AggregationQuery(db().collection(USERS)).count(alias="n")
+        res = agg.get()
+        return int(res[0][0].value)
+    except Exception:  # noqa: BLE001
+        return sum(1 for _ in db().collection(USERS).limit(1).stream())
+
+
+def _create_user_doc(uid, email, role, created_by):
+    db().collection(USERS).document(uid).set({
+        "email": email,
+        "role": role,
+        "created_at": firestore.SERVER_TIMESTAMP,
+        "created_by": created_by,
+    })
+
+
+def list_users():
+    out = []
+    for d in db().collection(USERS).order_by("email").stream():
+        r = d.to_dict()
+        r["uid"] = d.id
+        ts = r.get("created_at")
+        r["created_at"] = ts.isoformat() if hasattr(ts, "isoformat") else None
+        out.append(r)
+    return out
+
+
+def update_user_role(uid, role):
+    if role not in VALID_ROLES:
+        raise ValueError(f"role ต้องเป็น {VALID_ROLES}")
+    db().collection(USERS).document(uid).update({"role": role})
+
+
+def delete_user_doc(uid):
+    db().collection(USERS).document(uid).delete()
+
+
+def get_user_doc(uid):
+    doc = db().collection(USERS).document(uid).get()
+    if not doc.exists:
+        return None
+    r = doc.to_dict()
+    r["uid"] = doc.id
+    return r
+
+
+# ---------------------------------------------------------------------------
+# Activity log (audit trail)
+# ---------------------------------------------------------------------------
+def log_activity(action, user_email, user_role, detail=None, target_id=None):
+    db().collection(ACTIVITY).add({
+        "action": action,
+        "user_email": user_email,
+        "user_role": user_role,
+        "detail": detail,
+        "target_id": target_id,
+        "timestamp": firestore.SERVER_TIMESTAMP,
+    })
+
+
+def list_activity(limit=100):
+    q = (db().collection(ACTIVITY)
+         .order_by("timestamp", direction=firestore.Query.DESCENDING)
+         .limit(limit))
+    out = []
+    for d in q.stream():
+        r = d.to_dict()
+        r["id"] = d.id
+        ts = r.get("timestamp")
+        r["timestamp"] = ts.isoformat() if hasattr(ts, "isoformat") else None
+        out.append(r)
+    return out
+
+
+def cleanup_old_logs(days=None):
+    """Delete activity logs older than `days` (default LOG_RETENTION_DAYS).
+
+    Returns the number of deleted documents.
+    """
+    days = days or LOG_RETENTION_DAYS
+    cutoff = datetime.datetime.utcnow() - datetime.timedelta(days=days)
+    q = db().collection(ACTIVITY).where("timestamp", "<", cutoff).limit(500)
+    deleted = 0
+    while True:
+        docs = list(q.stream())
+        if not docs:
+            break
+        batch = db().batch()
+        for d in docs:
+            batch.delete(d.reference)
+        batch.commit()
+        deleted += len(docs)
+    return deleted

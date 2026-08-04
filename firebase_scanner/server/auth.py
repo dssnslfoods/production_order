@@ -1,0 +1,51 @@
+"""Firebase ID-token verification with role-based access control.
+
+Roles: admin, supervisor, staff
+- admin: full access (user management, settings, all operations)
+- supervisor: approve/reject scanned records, view orders, export
+- staff: scan files, upload to queue, view orders (no approve, no settings)
+
+The first user to log in when no users exist is auto-promoted to admin.
+"""
+import os
+
+from fastapi import Header, HTTPException
+from firebase_admin import auth as fb_auth
+
+import firestore_store as store
+
+
+def _allowed():
+    raw = os.environ.get("ALLOWED_EMAILS", "").strip()
+    return {e.strip().lower() for e in raw.split(",") if e.strip()}
+
+
+async def verify_token(authorization: str = Header(default="")):
+    if not authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=401, detail="ต้องเข้าสู่ระบบก่อน (missing token)")
+    token = authorization.split(" ", 1)[1].strip()
+    store._init()
+    try:
+        decoded = fb_auth.verify_id_token(token)
+    except Exception:
+        raise HTTPException(status_code=401, detail="โทเคนไม่ถูกต้องหรือหมดอายุ")
+    uid = decoded.get("uid")
+    email = (decoded.get("email") or "").lower()
+    # If user was explicitly created by admin (exists in Firestore), skip ALLOWED_EMAILS
+    existing = store.get_user_doc(uid)
+    if not existing:
+        allow = _allowed()
+        if allow and email not in allow:
+            raise HTTPException(status_code=403, detail="อีเมลนี้ไม่มีสิทธิ์ใช้งาน")
+    role = store.get_user_role(uid, email)
+    return {"uid": uid, "email": decoded.get("email"), "role": role}
+
+
+def require_role(*roles):
+    """Factory that returns a FastAPI dependency checking the user has one of the given roles."""
+    async def _check(authorization: str = Header(default="")):
+        user = await verify_token(authorization)
+        if user["role"] not in roles:
+            raise HTTPException(status_code=403, detail=f"ต้องมีสิทธิ์ {'/'.join(roles)} เท่านั้น (คุณเป็น {user['role']})")
+        return user
+    return _check

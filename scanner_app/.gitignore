@@ -1,0 +1,8 @@
+.venv/
+config.json
+data/inbox/*
+data/scanned/*
+data/failed/*
+!data/**/.gitkeep
+__pycache__/
+*.pyc

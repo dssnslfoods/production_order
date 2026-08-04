@@ -1,0 +1,74 @@
+"""Build an .xlsx (Production Order layout) from Firestore orders.
+
+One sheet, one row per line item, columns matching the final form. Header-level
+fields are repeated on each line row.
+"""
+import io
+
+from openpyxl import Workbook
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from openpyxl.utils import get_column_letter
+
+_thin = Border(left=Side("thin"), right=Side("thin"), top=Side("thin"), bottom=Side("thin"))
+_hdr = Font(name="Arial", bold=True, size=11)
+_nrm = Font(name="Arial", size=11)
+_ctr = Alignment(horizontal="center", vertical="center", wrap_text=True)
+_lft = Alignment(horizontal="left", vertical="center", wrap_text=True)
+_rgt = Alignment(horizontal="right", vertical="center")
+_hdr_fill = PatternFill("solid", fgColor="FFC000")
+
+# (header text, order-line key, width, alignment, number-format)
+COLUMNS = [
+    ("Production Order", "order_no", 16, _ctr, None),
+    ("วันที่", "document_date", 12, _ctr, None),
+    ("Series No.", "series_no", 12, _ctr, None),
+    ("ผลิตภัณฑ์", "product_name", 22, _lft, None),
+    ("ยอดผลิต Plan", "plan_total", 14, _rgt, "#,##0.000"),
+    ("ยอดผลิตจริง", "actual_total", 14, _rgt, "#,##0.000"),
+    ("หน่วยผลิต", "plan_unit", 10, _ctr, None),
+    ("ลำดับ", "row_no", 8, _ctr, "0"),
+    ("รหัส", "item_no", 14, _ctr, None),
+    ("รายการวัตถุดิบ", "item_description", 44, _lft, None),
+    ("Type", "type", 11, _ctr, None),
+    ("Qty", "quantity", 12, _rgt, "#,##0.000"),
+    ("คลังสินค้า", "whse", 11, _ctr, None),
+    ("Plan", "plan", 12, _rgt, "#,##0.000"),
+    ("หน่วย", "unit", 8, _ctr, None),
+]
+_HEADER_KEYS = {"order_no", "document_date", "series_no", "product_name",
+                "plan_total", "actual_total", "plan_unit"}
+
+
+def build_workbook(orders):
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "production_order"
+
+    for c, (title, _, width, _, _) in enumerate(COLUMNS, 1):
+        cell = ws.cell(row=1, column=c, value=title)
+        cell.font = _hdr
+        cell.fill = _hdr_fill
+        cell.border = _thin
+        cell.alignment = _ctr
+        ws.column_dimensions[get_column_letter(c)].width = width
+
+    r = 2
+    for o in orders:
+        for line in (o.get("lines") or [{}]):
+            for c, (_, key, _, align, numfmt) in enumerate(COLUMNS, 1):
+                val = o.get(key) if key in _HEADER_KEYS else line.get(key)
+                cell = ws.cell(row=r, column=c, value=val)
+                cell.font = _nrm
+                cell.border = _thin
+                cell.alignment = align
+                if numfmt and isinstance(val, (int, float)):
+                    cell.number_format = numfmt
+            r += 1
+
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = f"A1:{get_column_letter(len(COLUMNS))}{max(r - 1, 1)}"
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return buf.getvalue()

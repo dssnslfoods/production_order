@@ -1,0 +1,14 @@
+fastapi>=0.110
+uvicorn[standard]>=0.27
+python-multipart>=0.0.9
+openpyxl>=3.1
+firebase-admin>=6.5
+google-cloud-storage>=2.16
+google-cloud-scheduler>=2.13
+google-api-python-client>=2.100
+pymupdf>=1.23
+pillow>=10.0
+# Vision providers
+anthropic>=0.39
+google-genai>=1.0
+openai>=1.30

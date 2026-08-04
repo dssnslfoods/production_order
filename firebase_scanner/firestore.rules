@@ -1,0 +1,10 @@
+rules_version = '2';
+// ข้อมูลทั้งหมดเข้าถึงผ่าน backend (Cloud Run + Admin SDK) เท่านั้น
+// Admin SDK ข้าม rules อยู่แล้ว จึงปิดการเข้าถึงตรงจาก client ทั้งหมดเพื่อความปลอดภัย
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

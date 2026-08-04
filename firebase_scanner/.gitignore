@@ -1,0 +1,6 @@
+config.env
+.venv/
+__pycache__/
+*.pyc
+.firebase/
+server/.env

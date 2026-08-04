@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.nsl.scanner</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/golf/Library/CloudStorage/GoogleDrive-arpaket@gmail.com/My Drive/Production_order/scanner_app/.venv/bin/python</string>
+        <string>-m</string>
+        <string>uvicorn</string>
+        <string>main:app</string>
+        <string>--host</string>
+        <string>127.0.0.1</string>
+        <string>--port</string>
+        <string>8000</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/golf/Library/CloudStorage/GoogleDrive-arpaket@gmail.com/My Drive/Production_order/scanner_app</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>ThrottleInterval</key>
+    <integer>15</integer>
+
+    <key>ProcessType</key>
+    <string>Background</string>
+
+    <key>StandardOutPath</key>
+    <string>/Users/golf/Library/CloudStorage/GoogleDrive-arpaket@gmail.com/My Drive/Production_order/scanner_app/logs/service.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/golf/Library/CloudStorage/GoogleDrive-arpaket@gmail.com/My Drive/Production_order/scanner_app/logs/service.err.log</string>
+</dict>
+</plist>
