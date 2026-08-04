@@ -8,6 +8,12 @@ from unittest.mock import MagicMock, patch, AsyncMock
 from fastapi.testclient import TestClient
 from fastapi import HTTPException
 
+# The submodules must be imported before they can be patched by name; without
+# this the file only collects when another test module happens to import them
+# first, and running it on its own fails.
+import firebase_admin.firestore  # noqa: F401
+import firebase_admin.storage    # noqa: F401
+
 # Patch firebase_admin before importing main to avoid init errors
 with patch.dict(os.environ, {"STORAGE_BUCKET": "test-bucket"}):
     with patch("firebase_admin.initialize_app"), \
@@ -406,3 +412,82 @@ class TestImageOptimization:
         optimized, ct = main._optimize_image(raw, "application/pdf")
         assert optimized == raw
         assert ct == "application/pdf"
+
+
+# ---------------------------------------------------------------------------
+# Flush — irreversible, so the guards matter more than the happy path
+# ---------------------------------------------------------------------------
+class TestFlush:
+    def test_wrong_confirmation_phrase_deletes_nothing(self, client):
+        with patch("main.store") as st:
+            st.FLUSH_CONFIRM = "ล้างข้อมูล"
+            r = client.post("/api/admin/flush",
+                            json={"scope": "all", "confirm": "ลบ"})
+            assert r.status_code == 400
+            st.flush_data.assert_not_called()
+
+    def test_empty_confirmation_deletes_nothing(self, client):
+        with patch("main.store") as st:
+            st.FLUSH_CONFIRM = "ล้างข้อมูล"
+            r = client.post("/api/admin/flush", json={"scope": "all"})
+            assert r.status_code == 400
+            st.flush_data.assert_not_called()
+
+    def test_unknown_scope_is_rejected(self, client):
+        with patch("main.store") as st:
+            st.FLUSH_CONFIRM = "ล้างข้อมูล"
+            r = client.post("/api/admin/flush",
+                            json={"scope": "everything", "confirm": "ล้างข้อมูล"})
+            assert r.status_code == 400
+            st.flush_data.assert_not_called()
+
+    def test_default_scope_spares_real_data(self, client):
+        # Omitting scope must not wipe production data.
+        with patch("main.store") as st, patch("main.analytics"):
+            st.FLUSH_CONFIRM = "ล้างข้อมูล"
+            st.flush_data.return_value = {"orders": 4, "pending": 0,
+                                          "dead_letter": 0, "activity": 0, "images": 0}
+            r = client.post("/api/admin/flush", json={"confirm": "ล้างข้อมูล"})
+            assert r.status_code == 200
+            assert st.flush_data.call_args.kwargs["mock_only"] is True
+
+    def test_scope_all_wipes_everything_but_activity_by_default(self, client):
+        with patch("main.store") as st, patch("main.analytics"):
+            st.FLUSH_CONFIRM = "ล้างข้อมูล"
+            st.flush_data.return_value = {"orders": 434, "pending": 2,
+                                          "dead_letter": 1, "activity": 0, "images": 5}
+            r = client.post("/api/admin/flush",
+                            json={"scope": "all", "confirm": "ล้างข้อมูล"})
+            assert r.status_code == 200
+            assert st.flush_data.call_args.kwargs == {"mock_only": False,
+                                                      "include_activity": False}
+            assert r.json()["deleted"]["orders"] == 434
+
+    def test_flush_is_recorded_in_the_activity_log(self, client):
+        with patch("main.store") as st, patch("main.analytics"):
+            st.FLUSH_CONFIRM = "ล้างข้อมูล"
+            st.flush_data.return_value = {"orders": 3, "pending": 0,
+                                          "dead_letter": 0, "activity": 0, "images": 0}
+            client.post("/api/admin/flush",
+                        json={"scope": "all", "confirm": "ล้างข้อมูล"})
+            st.log_activity.assert_called_once()
+            assert st.log_activity.call_args[0][0] == "flush_data"
+
+    def test_flush_clears_the_analytics_cache(self, client):
+        with patch("main.store") as st, patch("main.analytics") as an:
+            st.FLUSH_CONFIRM = "ล้างข้อมูล"
+            st.flush_data.return_value = {"orders": 1, "pending": 0,
+                                          "dead_letter": 0, "activity": 0, "images": 0}
+            client.post("/api/admin/flush",
+                        json={"scope": "all", "confirm": "ล้างข้อมูล"})
+            an.invalidate_cache.assert_called_once()
+
+    def test_preview_does_not_delete(self, client):
+        with patch("main.store") as st:
+            st.FLUSH_CONFIRM = "ล้างข้อมูล"
+            st.flush_preview.return_value = {"orders": 434, "pending": 0,
+                                             "dead_letter": 0, "activity": 0, "images": 12}
+            r = client.get("/api/admin/flush/preview?scope=all")
+            assert r.status_code == 200
+            assert r.json()["counts"]["orders"] == 434
+            st.flush_data.assert_not_called()

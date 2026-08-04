@@ -301,6 +301,84 @@
   .quick-range button.on{background:rgba(99,102,241,.1);border-color:var(--indigo);color:var(--indigo)}
   .filter-note{font-size:12.5px;color:var(--muted);margin-left:auto}
 
+  /* ---- น้อง Order mascot ---- */
+  .mascot{display:block;overflow:visible}
+  .mascot .m-body{animation:mBob 3.4s ease-in-out infinite;transform-origin:32px 56px}
+  @keyframes mBob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-2px) rotate(-1.5deg)}}
+  .mascot .m-eye{transform-origin:center;animation:mBlink 5s infinite}
+  @keyframes mBlink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.12)}}
+  .mascot .m-spark{opacity:0}
+  .mascot.think .m-body{animation-duration:1.1s}
+  .mascot.think .m-spark{animation:mSpark 1.2s ease-in-out infinite}
+  .mascot.think .m-spark:nth-of-type(2){animation-delay:.35s}
+  @keyframes mSpark{0%,100%{opacity:0;transform:translateY(2px) scale(.7)}
+    45%{opacity:1;transform:translateY(-3px) scale(1)}}
+  .mascot.happy .m-eye{animation:none;transform:scaleY(.35);transform-origin:center}
+
+  .m-avatar{width:38px;height:38px;flex:none;border-radius:12px;background:rgba(139,92,246,.12);
+    display:grid;place-items:center;padding:3px}
+  .m-avatar .mascot{width:100%;height:100%}
+
+  .ask-hero{display:flex;flex-direction:column;align-items:center;text-align:center;
+    gap:10px;padding:22px 16px 6px;margin:auto 0}
+  .ask-hero .mascot{width:104px;height:104px}
+  .ask-hero h3{font-size:16px;font-weight:700}
+  .ask-hero p{font-size:13px;color:var(--muted);max-width:440px;line-height:1.8}
+
+  .bub-row{display:flex;gap:10px;align-items:flex-start;max-width:96%}
+  .bub-row.me{align-self:flex-end;max-width:86%}
+  .bub-name{font-size:11.5px;font-weight:700;color:var(--violet);margin-bottom:4px}
+
+  /* ---- answer infographics ---- */
+  .viz{margin-top:14px;background:var(--surface);border:1px solid var(--line);
+    border-radius:14px;padding:16px 18px}
+  .viz + .viz{margin-top:10px}
+  .viz-cap{font-size:11.5px;font-weight:700;color:var(--muted);letter-spacing:.3px;
+    text-transform:uppercase;margin-bottom:12px}
+
+  .hero-num{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+  .hero-num b{font-size:34px;letter-spacing:-1px;line-height:1.1;color:var(--indigo)}
+  .hero-num span{font-size:15px;color:var(--muted);font-weight:600}
+  .hero-sub{margin-top:8px;font-size:12.5px;color:var(--muted)}
+
+  .cmp{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:center}
+  .cmp-box{background:var(--surface2);border-radius:12px;padding:12px 14px;text-align:center}
+  .cmp-box small{display:block;font-size:11px;color:var(--muted);font-weight:600;margin-bottom:5px}
+  .cmp-box b{font-size:20px;letter-spacing:-.5px}
+  .cmp-box i{display:block;font-style:normal;font-size:11px;color:var(--faint);margin-top:4px}
+  .cmp-mid{display:grid;place-items:center;gap:3px;min-width:74px}
+  .cmp-mid .arrow{font-size:19px;line-height:1}
+  .cmp-mid .pct{font-size:15px;font-weight:800;letter-spacing:-.3px}
+  .warn{margin-top:12px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);
+    border-radius:10px;padding:10px 13px;font-size:12.5px;line-height:1.7;color:#92400e}
+
+  .rank{display:flex;flex-direction:column;gap:11px}
+  .rank-row{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center}
+  .rank-no{width:22px;height:22px;border-radius:7px;display:grid;place-items:center;
+    font-size:11px;font-weight:800;background:var(--surface2);color:var(--muted)}
+  .rank-row:nth-child(1) .rank-no{background:rgba(99,102,241,.15);color:var(--indigo)}
+  .rank-name{font-size:12.5px;font-weight:600;margin-bottom:5px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rank-bar{height:9px;border-radius:999px;background:var(--surface2);overflow:hidden}
+  .rank-bar>i{display:block;height:100%;border-radius:999px;background:var(--grad)}
+  .rank-val{font-size:13px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .rank-val em{font-style:normal;font-size:11px;color:var(--muted);font-weight:600;margin-left:3px}
+
+  .trend svg{width:100%;height:auto;display:block;overflow:visible}
+  .trend .grid{stroke:var(--line);stroke-width:1}
+  .trend .area{fill:url(#trendFill)}
+  .trend .line{fill:none;stroke:var(--indigo);stroke-width:2.5;
+    stroke-linecap:round;stroke-linejoin:round}
+  .trend .dot{fill:#fff;stroke:var(--indigo);stroke-width:2.5}
+  .trend .dot-last{fill:var(--indigo)}
+  .trend .lbl{font-size:9.5px;fill:var(--muted);text-anchor:middle}
+  .trend .val{font-size:10px;font-weight:700;fill:var(--text);text-anchor:middle}
+  .trend-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:11.5px;color:var(--muted)}
+  .trend-legend b{color:var(--text)}
+
+  details.tbl-more{margin-top:12px}
+  details.tbl-more summary{cursor:pointer;font-size:12.5px;color:var(--indigo);font-weight:600}
+
   /* ---- ask AI ---- */
   .chat{display:flex;flex-direction:column;gap:14px;min-height:200px;max-height:54vh;
     overflow-y:auto;padding:2px 2px 14px;margin-bottom:14px}
@@ -361,6 +439,10 @@
   .q-table th:last-child .ttip::after,.q-table th:nth-last-child(2) .ttip::after{
     left:auto;right:0;transform:none}
   .ttip:hover::after,.ttip:focus::after{opacity:1;visibility:visible}
+
+  .card.panel.danger{border:1px solid rgba(239,68,68,.35);background:rgba(239,68,68,.02)}
+  .card.panel.danger .method{background:rgba(239,68,68,.06)}
+  .btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
 
   .scroll-x{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .scroll-x .q-table{min-width:600px}
@@ -520,7 +602,7 @@
       <div class="nav-group" data-group="insight">
         <div class="nav-label">วิเคราะห์และรายงาน</div>
         <button class="nav-item" data-page="ask" onclick="showPage('ask')">
-          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z"/></svg></span> ถาม AI <span class="nav-tag">AI</span>
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z"/></svg></span> ถามน้อง Order <span class="nav-tag">AI</span>
         </button>
         <button class="nav-item" data-page="forecast" onclick="showPage('forecast')">
           <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span> พยากรณ์ <span class="nav-tag">AI</span>
@@ -720,14 +802,15 @@
       <section id="page-ask" class="page-section hidden">
         <div class="card panel">
           <div class="between" style="margin-bottom:16px">
-            <div class="phead" style="margin:0"><span class="pico" style="background:rgba(139,92,246,.16);color:var(--violet)"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z"/></svg></span><h2>ถามข้อมูลด้วยภาษาธรรมชาติ</h2></div>
+            <div class="phead" style="margin:0"><span id="askAvatar" class="m-avatar" style="width:42px;height:42px"></span>
+              <h2>น้อง Order <span class="muted" style="font-weight:500;font-size:12.5px">· ผู้ช่วยวิเคราะห์วัตถุดิบ</span></h2></div>
             <button class="ghost sm" onclick="clearChat()">ล้างการสนทนา</button>
           </div>
 
           <div id="askChat" class="chat"></div>
 
           <div class="row" style="gap:8px;flex-wrap:nowrap">
-            <input id="askInput" placeholder="เช่น เดือนที่แล้วใช้แป้งสาลีไปเท่าไหร่" onkeydown="if(event.key==='Enter')sendAsk()">
+            <input id="askInput" placeholder="ถามน้อง Order เช่น เดือนที่แล้วใช้แป้งสาลีไปเท่าไหร่" onkeydown="if(event.key==='Enter')sendAsk()">
             <button class="btn sm" id="askBtn" style="flex:none" onclick="sendAsk()">ถาม</button>
           </div>
           <div id="askSuggest" class="sugg"></div>
@@ -992,6 +1075,36 @@
             </div>
           </div>
 
+        </div>
+
+        <!-- danger zone -->
+        <div id="dangerZone" class="card panel danger hidden">
+          <div class="phead"><span class="pico" style="background:rgba(239,68,68,.14);color:var(--red)"><svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span><h2 style="color:var(--red)">ล้างข้อมูลเพื่อเริ่มระบบใหม่</h2></div>
+
+          <p class="hint" style="margin-bottom:16px;line-height:1.8">
+            ใช้ตอนเปลี่ยนจากช่วงทดสอบไปใช้งานจริง <b>การลบไม่สามารถย้อนกลับได้</b>
+            และไม่มีการสำรองข้อมูลอัตโนมัติ — หากต้องการเก็บข้อมูลเดิมไว้
+            ให้ Export เป็น Excel ก่อน<br>
+            <b>ผู้ใช้งาน สิทธิ์ และการตั้งค่าจะไม่ถูกลบ</b> จึงไม่หลุดออกจากระบบ
+          </p>
+
+          <label>ขอบเขตการลบ</label>
+          <select id="flushScope" onchange="loadFlushPreview()">
+            <option value="mock">เฉพาะข้อมูลทดสอบ (ที่ระบบสร้างให้)</option>
+            <option value="all">ทั้งหมด — ใบสั่งผลิต คิว และรูปภาพ</option>
+          </select>
+
+          <label class="l-confirm" style="display:flex;align-items:center;gap:8px;margin-top:12px;cursor:pointer;font-size:13px">
+            <input type="checkbox" id="flushActivity" onchange="loadFlushPreview()"> ล้างประวัติการใช้งานด้วย
+          </label>
+
+          <div id="flushPreview" class="method" style="margin-top:14px">กำลังตรวจสอบ…</div>
+
+          <label style="margin-top:14px">พิมพ์คำว่า <b style="color:var(--red)">ล้างข้อมูล</b> เพื่อยืนยัน</label>
+          <input id="flushConfirm" placeholder="ล้างข้อมูล" autocomplete="off" oninput="flushGate()">
+          <button id="flushBtn" class="btn mt" style="background:var(--red);box-shadow:none" disabled onclick="doFlush()">
+            ล้างข้อมูลถาวร
+          </button>
         </div>
 
       </section>
@@ -1559,6 +1672,7 @@ window.showPage = (page) => {
   if(page==='ask') loadSuggestions();
   if(page==='forecast') loadForecast();
   if(page==='health') loadHealth();
+  if(page==='settings' && currentRole === 'admin') loadFlushPreview();
 };
 
 const notConfigured = FIREBASE_CONFIG.apiKey === "PASTE_API_KEY";
@@ -1622,6 +1736,8 @@ function applyRole(role, perms){
     const visible = [...g.querySelectorAll('.nav-item')].some(el => el.style.display !== "none");
     g.style.display = visible ? "" : "none";
   });
+  // The flush is admin-only on the server too; hiding it is convenience, not the gate.
+  $("dangerZone")?.classList.toggle("hidden", role !== "admin");
   // actions
   const approveBtn = $("approveBtn");
   if(approveBtn) approveBtn.classList.toggle("hidden", !hasPerm("approve"));
@@ -1979,6 +2095,59 @@ window.loadOrders = async (append) => {
       : '';
   }catch(e){ $("ordersList").innerHTML = '<span class="muted">โหลดไม่สำเร็จ</span>'; }
 };
+// ---- น้อง Order: the mascot -------------------------------------------------
+// A production order form wearing a chef's hat — the two things this system
+// sits between. Drawn inline so it themes with the page and needs no asset.
+const mascot = (cls = "") => `
+<svg class="mascot ${cls}" viewBox="0 0 64 64" role="img" aria-label="น้อง Order">
+  <g class="m-body">
+    <!-- chef hat -->
+    <path d="M18 17c-3.6 0-6.5-2.7-6.5-6s2.9-6 6.5-6c.6 0 1.2.1 1.7.3C21 3.3 23.9 1.7 27 1.7c2.4 0 4.6 1 6 2.6 1.4-1.6 3.6-2.6 6-2.6 3.1 0 6 1.6 7.3 3.6.5-.2 1.1-.3 1.7-.3 3.6 0 6.5 2.7 6.5 6s-2.9 6-6.5 6z"
+          fill="#fff" stroke="#c7c9f7" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M24 6.5c-1.4 2.8-1.6 6-.6 9M40 6.5c1.4 2.8 1.6 6 .6 9M32 4.6v10.4"
+          fill="none" stroke="#dcdcfb" stroke-width="1.3" stroke-linecap="round"/>
+    <rect x="17" y="15" width="30" height="6" rx="2.8" fill="#ede9fe" stroke="#c7c9f7" stroke-width="1.4"/>
+    <line x1="17.6" y1="18" x2="46.4" y2="18" stroke="#ddd6fe" stroke-width="1.2"/>
+
+    <!-- paper body with a folded corner -->
+    <path d="M14 22h29l7 7v27a4 4 0 0 1-4 4H18a4 4 0 0 1-4-4z"
+          fill="#fff" stroke="#8b5cf6" stroke-width="1.8" stroke-linejoin="round"/>
+    <path d="M43 22v7h7" fill="none" stroke="#8b5cf6" stroke-width="1.8" stroke-linejoin="round"/>
+
+    <!-- face -->
+    <ellipse class="m-eye" cx="26" cy="40" rx="2.5" ry="3.2" fill="#312e81"/>
+    <ellipse class="m-eye" cx="38" cy="40" rx="2.5" ry="3.2" fill="#312e81"/>
+    <circle cx="19.5" cy="44" r="2.6" fill="#fbcfe8"/>
+    <circle cx="44.5" cy="44" r="2.6" fill="#fbcfe8"/>
+    <path d="M28.5 46.5c1.2 1.6 5.8 1.6 7 0" fill="none" stroke="#312e81"
+          stroke-width="1.8" stroke-linecap="round"/>
+
+    <!-- ruled lines: it is still a form -->
+    <line x1="21" y1="54" x2="34" y2="54" stroke="#ddd6fe" stroke-width="2.2" stroke-linecap="round"/>
+    <line x1="38" y1="54" x2="43" y2="54" stroke="#ddd6fe" stroke-width="2.2" stroke-linecap="round"/>
+  </g>
+  <path class="m-spark" d="M55 20l1.1 2.7 2.7 1.1-2.7 1.1L55 27.6l-1.1-2.7-2.7-1.1 2.7-1.1z" fill="#fbbf24"/>
+  <path class="m-spark" d="M8 30l.8 2 2 .8-2 .8L8 35.6l-.8-2-2-.8 2-.8z" fill="#a78bfa"/>
+</svg>`;
+
+const GREETINGS = [
+  "อยากรู้เรื่องวัตถุดิบตัวไหน ถามน้องได้เลยค่ะ",
+  "น้องดูข้อมูลใบสั่งผลิตย้อนหลังให้ได้ทุกเดือนเลยค่ะ",
+  "ถามเป็นภาษาไทยธรรมดาได้เลย น้องแปลงเป็นตัวเลขให้เองค่ะ",
+];
+
+function askHero(){
+  const hint = GREETINGS[Math.floor(Math.random() * GREETINGS.length)];
+  return `<div class="ask-hero">
+    ${mascot()}
+    <h3>สวัสดีค่ะ น้อง Order เองนะคะ</h3>
+    <p>${esc(hint)}<br>
+      น้องดูให้ทั้งยอดใช้ การเปรียบเทียบระหว่างเดือน อันดับที่ใช้เยอะ
+      และรายการที่เบิกเกินแผน — <b style="color:var(--text)">ตัวเลขทุกตัวดึงจากฐานข้อมูลจริง</b>
+      น้องไม่ได้คิดเลขเองค่ะ</p>
+  </div>`;
+}
+
 // ---- Ask AI ----------------------------------------------------------------
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c =>
   ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -1994,6 +2163,10 @@ const th = (label, tip, attrs = "") =>
 let askBusy = false;
 
 window.loadSuggestions = async () => {
+  const av = $("askAvatar");
+  if(av && !av.innerHTML) av.innerHTML = mascot();
+  const chat = $("askChat");
+  if(chat && !chat.innerHTML.trim()) chat.innerHTML = askHero();
   const box = $("askSuggest");
   if(!box || box.dataset.done) return;
   try{
@@ -2004,48 +2177,174 @@ window.loadSuggestions = async () => {
   }catch(e){ /* suggestions are optional */ }
 };
 window.askThis = (q) => { $("askInput").value = q; sendAsk(); };
-window.clearChat = () => { $("askChat").innerHTML = ""; };
+window.clearChat = () => { $("askChat").innerHTML = askHero(); };
 
 function bubble(cls, html){
   const chat = $("askChat");
-  const el = document.createElement("div");
-  el.className = "bub " + cls;
+  const hero = chat.querySelector(".ask-hero");
+  if(hero) hero.remove();
+
+  const row = document.createElement("div");
+  row.className = "bub-row " + cls;
+  if(cls === "ai"){
+    row.innerHTML = `<div class="m-avatar">${mascot("think")}</div>
+      <div style="flex:1;min-width:0"><div class="bub-name">น้อง Order</div>
+      <div class="bub ai"></div></div>`;
+  } else {
+    row.innerHTML = `<div class="bub me"></div>`;
+  }
+  const el = row.querySelector(".bub");
   el.innerHTML = html;
-  chat.appendChild(el);
+  chat.appendChild(row);
   chat.scrollTop = chat.scrollHeight;
   return el;
 }
 
+// The avatar thinks while waiting and settles once the answer lands.
+function settleAvatar(el, mood = "happy"){
+  const svg = el.closest(".bub-row")?.querySelector(".mascot");
+  if(svg){ svg.classList.remove("think"); svg.classList.add(mood); }
+}
+
+const shortMonth = m => /^\d{4}-\d{2}$/.test(m)
+  ? `${TH_MONTH[Number(m.slice(5,7))-1]}${m.slice(2,4) !== String(new Date().getFullYear()).slice(2) ? " " + m.slice(2,4) : ""}`
+  : m;
+
+// A single figure: show it at a size that can be read across a desk.
+function vizNumber(j){
+  const r = j.rows[0] || {};
+  return `<div class="viz">
+    <div class="viz-cap">${esc(r.label && r.label !== "รวม" ? r.label : "ยอดรวม")}</div>
+    <div class="hero-num"><b>${fmt(j.total)}</b><span>${esc(j.unit || r.unit || "")}</span></div>
+    <div class="hero-sub">จาก ${fmt(j.n_orders)} ใบสั่งผลิต${
+      j.active_days ? ` · ${fmt(j.active_days)} วันที่มีการผลิต` : ""}</div>
+  </div>`;
+}
+
+// Ranking: horizontal bars read better than columns for Thai material names.
+function vizRank(rows, unit){
+  const max = Math.max(...rows.map(r => Math.abs(r.value) || 0)) || 1;
+  return `<div class="viz"><div class="viz-cap">เปรียบเทียบรายการ</div>
+    <div class="rank">${rows.map((r, i) => `
+      <div class="rank-row">
+        <span class="rank-no">${i + 1}</span>
+        <div>
+          <div class="rank-name" title="${esc(r.label)}">${esc(r.label)}</div>
+          <div class="rank-bar"><i style="width:${Math.abs(r.value)/max*100}%"></i></div>
+        </div>
+        <span class="rank-val">${fmt(r.value)}<em>${esc(r.unit || unit || "")}</em></span>
+      </div>`).join("")}</div></div>`;
+}
+
+// Time series: an area chart makes the direction obvious at a glance, which a
+// column of numbers never does.
+function vizTrend(rows, unit){
+  const n = rows.length;
+  if(n < 2) return "";
+  const W = 560, H = 190, padL = 8, padR = 8, padT = 30, padB = 26;
+  const vals = rows.map(r => r.value);
+  const max = Math.max(...vals), min = Math.min(...vals);
+  const span = (max - min) || Math.abs(max) || 1;
+  // Keep a floor under the lowest point so the line never hugs the axis.
+  const lo = min - span * 0.35, hi = max + span * 0.18;
+  const x = i => padL + (W - padL - padR) * (n === 1 ? .5 : i / (n - 1));
+  const y = v => padT + (H - padT - padB) * (1 - (v - lo) / ((hi - lo) || 1));
+
+  const pts = rows.map((r, i) => [x(i), y(r.value)]);
+  const line = pts.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
+  const area = `${line} L${pts[n-1][0].toFixed(1)},${H - padB} L${pts[0][0].toFixed(1)},${H - padB} Z`;
+
+  const first = vals[0], last = vals[n-1];
+  const change = first ? (last - first) / first * 100 : null;
+  const avg = vals.reduce((a, b) => a + b, 0) / n;
+
+  return `<div class="viz trend"><div class="viz-cap">แนวโน้ม ${n} ช่วงเวลา</div>
+    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img">
+      <defs><linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#6366f1" stop-opacity=".28"/>
+        <stop offset="100%" stop-color="#6366f1" stop-opacity="0"/>
+      </linearGradient></defs>
+      <line class="grid" x1="0" y1="${H - padB}" x2="${W}" y2="${H - padB}"/>
+      <path class="area" d="${area}"/>
+      <path class="line" d="${line}"/>
+      ${rows.map((r, i) => `
+        <circle class="dot ${i === n-1 ? "dot-last" : ""}" cx="${x(i)}" cy="${y(r.value)}" r="4">
+          <title>${esc(r.label)}: ${fmt(r.value)} ${esc(r.unit || unit || "")}</title></circle>
+        ${(i === 0 || i === n-1 || r.value === max || r.value === min)
+          ? `<text class="val" x="${x(i)}" y="${y(r.value) - 11}">${fmt(Math.round(r.value))}</text>` : ""}
+        <text class="lbl" x="${x(i)}" y="${H - padB + 15}">${esc(shortMonth(r.label))}</text>`).join("")}
+    </svg>
+    <div class="trend-legend">
+      <span>สูงสุด <b>${fmt(max)} ${esc(unit || "")}</b></span>
+      <span>ต่ำสุด <b>${fmt(min)} ${esc(unit || "")}</b></span>
+      <span>เฉลี่ย <b>${fmt(Math.round(avg * 100) / 100)} ${esc(unit || "")}</b></span>
+      ${change == null ? "" : `<span>ตลอดช่วง <b style="color:${change >= 0 ? "var(--emerald)" : "var(--rose)"}">${change >= 0 ? "▲" : "▼"} ${Math.abs(Math.round(change * 10) / 10)}%</b></span>`}
+    </div></div>`;
+}
+
+// Period against period, with the honest caveat when the windows differ.
+function vizCompare(j){
+  const c = j.comparison;
+  const mismatch = c.length_mismatch;
+  // With uneven windows the per-day rate is the comparable figure, so lead with it.
+  const now = mismatch ? c.per_day_now : j.total;
+  const before = mismatch ? c.per_day : c.total;
+  const pct = mismatch ? c.per_day_delta_pct : c.delta_pct;
+  const up = (pct ?? 0) >= 0;
+  const suffix = mismatch ? " / วัน" : "";
+  return `<div class="viz"><div class="viz-cap">${mismatch ? "เทียบอัตราต่อวัน" : "เปรียบเทียบช่วงเวลา"}</div>
+    <div class="cmp">
+      <div class="cmp-box"><small>ช่วงก่อนหน้า</small>
+        <b>${fmt(before)}</b> <span class="muted">${esc(j.unit || "")}${suffix}</span>
+        <i>${esc(c.date_from || "")} – ${esc(c.date_to || "")}${c.active_days ? ` · ${c.active_days} วัน` : ""}</i></div>
+      <div class="cmp-mid">
+        <span class="arrow" style="color:${up ? "var(--emerald)" : "var(--rose)"}">${up ? "▲" : "▼"}</span>
+        <span class="pct" style="color:${up ? "var(--emerald)" : "var(--rose)"}">${pct == null ? "—" : Math.abs(pct) + "%"}</span>
+      </div>
+      <div class="cmp-box" style="background:rgba(99,102,241,.09)"><small>ช่วงที่ถาม</small>
+        <b style="color:var(--indigo)">${fmt(now)}</b> <span class="muted">${esc(j.unit || "")}${suffix}</span>
+        <i>${j.active_days ? `${j.active_days} วันที่มีการผลิต` : ""}</i></div>
+    </div>
+    ${mismatch ? `<div class="warn">
+      <b>สองช่วงเวลามีจำนวนวันไม่เท่ากัน</b> (${j.active_days} วัน เทียบกับ ${c.active_days} วัน)
+      การเทียบยอดรวมตรง ๆ จะทำให้เข้าใจผิด — ตัวเลขข้างบนจึงเทียบเป็น<b>ค่าเฉลี่ยต่อวัน</b>แทน<br>
+      ยอดรวมจริง: ช่วงที่ถาม ${fmt(j.total)} ${esc(j.unit || "")} · ช่วงก่อนหน้า ${fmt(c.total)} ${esc(j.unit || "")}
+    </div>` : ""}
+  </div>`;
+}
+
+function answerTable(j){
+  const showBar = j.rows.length > 1;
+  let html = `<table class="q-table"><thead><tr>`
+    + th("รายการ", "สิ่งที่ระบบจัดกลุ่มให้ตามคำถาม เช่น รายเดือน รายวัตถุดิบ หรือรายผลิตภัณฑ์")
+    + th("ค่า", "ตัวเลขที่คำนวณจากฐานข้อมูลจริงด้วยโค้ด ไม่ได้ให้ AI บวกเอง", 'class="num"')
+    + `</tr></thead><tbody>`;
+  html += j.rows.map(r => `<tr>
+      <td>${esc(r.label)}${r.confidence ? ` <span class="conf ${r.confidence}">${CONF_TH[r.confidence]||r.confidence}</span>` : ""}</td>
+      <td class="num"><b>${fmt(r.value)}</b> <span class="muted">${esc(r.unit||"")}</span></td>
+    </tr>`).join("");
+  return html + `</tbody></table>`;
+}
+
 function renderAnswer(j){
   let html = `<div class="ans">${esc(j.answer || "")}</div>`;
+  const rows = j.rows || [];
+  const isTrend = j.spec && j.spec.group_by === "month";
 
-  if(j.rows && j.rows.length){
-    const max = Math.max(...j.rows.map(r => Math.abs(r.value) || 0)) || 1;
-    const showBar = j.rows.length > 1;
-    html += `<table class="q-table"><thead><tr>`
-          + th("รายการ", "สิ่งที่ระบบจัดกลุ่มให้ตามคำถาม เช่น รายเดือน รายวัตถุดิบ หรือรายผลิตภัณฑ์")
-          + th("ค่า", "ตัวเลขที่คำนวณจากฐานข้อมูลจริงด้วยโค้ด ไม่ได้ให้ AI บวกเอง กดดู “วิธีที่ระบบตีความคำถาม” ใต้คำตอบเพื่อตรวจเงื่อนไขที่ใช้ค้น", 'class="num"')
-          + (showBar ? th("", "แถบเปรียบเทียบสัดส่วนระหว่างแถว", 'style="width:34%"') : ``)
-          + `</tr></thead><tbody>`;
-    html += j.rows.map(r => `<tr>
-        <td>${esc(r.label)}${r.confidence ? ` <span class="conf ${r.confidence}">${CONF_TH[r.confidence]||r.confidence}</span>` : ""}</td>
-        <td class="num"><b>${fmt(r.value)}</b> <span class="muted">${esc(r.unit||"")}</span></td>
-        ${showBar ? `<td><div class="bar"><i style="width:${Math.abs(r.value)/max*100}%"></i></div></td>` : ""}
-      </tr>`).join("");
-    html += `</tbody></table>`;
+  if(j.comparison) html += vizCompare(j);
+  if(rows.length === 1 && !j.comparison) html += vizNumber(j);
+  else if(isTrend && rows.length > 1) html += vizTrend(rows, j.unit);
+  else if(rows.length > 1) html += vizRank(rows, j.unit);
+
+  if(rows.length){
+    html += `<details class="tbl-more"><summary>ดูตัวเลขทั้งหมดเป็นตาราง</summary>
+      <div class="scroll-x">${answerTable(j)}</div></details>`;
   }
 
-  if(j.kind === "aggregate" && j.rows && j.rows.length !== 1){
+  if(j.kind === "aggregate" && rows.length > 1){
     html += `<div class="muted" style="margin-top:10px;font-size:12.5px">
       รวมทั้งสิ้น <b style="color:var(--text)">${fmt(j.total)} ${esc(j.unit||"")}</b>
       จาก ${fmt(j.n_orders)} ใบสั่งผลิต</div>`;
-  }
-  if(j.comparison){
-    const c = j.comparison, up = (c.delta || 0) >= 0;
-    html += `<div class="muted" style="margin-top:6px;font-size:12.5px">
-      ช่วงเทียบ ${esc(c.date_from||"")} – ${esc(c.date_to||"")}: ${fmt(c.total)} ${esc(j.unit||"")}
-      · <b style="color:${up ? 'var(--emerald)' : 'var(--rose)'}">${up ? "▲" : "▼"}
-      ${c.delta_pct == null ? "—" : Math.abs(c.delta_pct) + "%"}</b></div>`;
   }
   if(j.excluded_outliers){
     html += `<div class="muted" style="margin-top:6px;font-size:12px">
@@ -2068,7 +2367,7 @@ window.sendAsk = async () => {
   $("askBtn").disabled = true;
   input.value = "";
   bubble("me", esc(q));
-  const pending = bubble("ai", '<span class="thinking"><i></i><i></i><i></i></span>');
+  const pending = bubble("ai", '<span class="thinking">กำลังดูข้อมูลให้ค่ะ <i></i><i></i><i></i></span>');
 
   try{
     const res = await api("/ask", {
@@ -2077,10 +2376,16 @@ window.sendAsk = async () => {
       body: JSON.stringify({question: q}),
     });
     const j = await res.json();
-    if(!res.ok){ pending.innerHTML = `<div class="ans">${esc(j.detail || "ถามไม่สำเร็จ")}</div>`; }
-    else { pending.innerHTML = renderAnswer(j); }
+    if(!res.ok){
+      pending.innerHTML = `<div class="ans">${esc(j.detail || "ขออภัยค่ะ น้องดึงข้อมูลไม่สำเร็จ")}</div>`;
+      settleAvatar(pending, "");
+    } else {
+      pending.innerHTML = renderAnswer(j);
+      settleAvatar(pending, j.kind === "aggregate" ? "happy" : "");
+    }
   }catch(e){
-    pending.innerHTML = '<div class="ans">เชื่อมต่อไม่สำเร็จ กรุณาลองใหม่</div>';
+    pending.innerHTML = '<div class="ans">เชื่อมต่อไม่สำเร็จค่ะ ลองใหม่อีกครั้งนะคะ</div>';
+    settleAvatar(pending, "");
   }finally{
     askBusy = false;
     $("askBtn").disabled = false;
@@ -2334,6 +2639,81 @@ window.renderForecast = () => {
       <b style="color:var(--text)">ข้อจำกัด</b> — ยังไม่ได้นำยอดสต็อกคงเหลือมาคิด ตัวเลขนี้คือ
       <i>ปริมาณที่จะใช้</i> ไม่ใช่ <i>ปริมาณที่ต้องสั่งซื้อ</i>
     </div>`;
+};
+
+// ---- Danger zone: flush data -----------------------------------------------
+let flushCounts = null;
+
+window.loadFlushPreview = async () => {
+  const box = $("flushPreview");
+  if(!box) return;
+  box.textContent = "กำลังตรวจสอบ…";
+  flushCounts = null;
+  flushGate();
+  try{
+    const scope = $("flushScope").value;
+    const act = $("flushActivity").checked;
+    const res = await api(`/admin/flush/preview?scope=${scope}&include_activity=${act}`);
+    const j = await res.json();
+    if(!res.ok){ box.textContent = j.detail || "ตรวจสอบไม่สำเร็จ"; return; }
+    const c = j.counts;
+    flushCounts = c;
+    const total = c.orders + c.pending + c.dead_letter + c.activity;
+    const line = (label, n) => n
+      ? `<div style="display:flex;justify-content:space-between"><span>${label}</span><b>${fmt(n)}</b></div>` : "";
+    box.innerHTML = total || c.images
+      ? `<b style="color:var(--red)">จะถูกลบถาวร ${fmt(total)} รายการ</b>
+         <div style="margin-top:8px;display:flex;flex-direction:column;gap:3px">
+           ${line("ใบสั่งผลิตที่สแกนแล้ว", c.orders)}
+           ${line("ไฟล์ที่รออยู่ในคิว", c.pending)}
+           ${line("รายการที่สแกนล้มเหลว", c.dead_letter)}
+           ${line("ประวัติการใช้งาน", c.activity)}
+           ${line("รูปภาพใน Storage", c.images)}
+         </div>`
+      : `<b>ไม่มีข้อมูลที่ตรงกับขอบเขตนี้</b> — ไม่มีอะไรถูกลบ`;
+  }catch(e){ box.textContent = "ตรวจสอบไม่สำเร็จ"; }
+  flushGate();
+};
+
+window.flushGate = () => {
+  const btn = $("flushBtn");
+  if(!btn) return;
+  const typed = ($("flushConfirm").value || "").trim() === "ล้างข้อมูล";
+  const something = flushCounts &&
+    (flushCounts.orders || flushCounts.pending || flushCounts.dead_letter ||
+     flushCounts.activity || flushCounts.images);
+  btn.disabled = !(typed && something);
+};
+
+window.doFlush = async () => {
+  const scope = $("flushScope").value;
+  const c = flushCounts || {};
+  const total = (c.orders||0) + (c.pending||0) + (c.dead_letter||0) + (c.activity||0);
+  const what = scope === "all" ? "ข้อมูลทั้งหมด" : "ข้อมูลทดสอบ";
+  // Second gate on top of the typed phrase: this cannot be undone.
+  if(!confirm(`ยืนยันลบ${what} ${total.toLocaleString()} รายการ และรูป ${(c.images||0).toLocaleString()} ไฟล์?\n\nการลบไม่สามารถย้อนกลับได้`)) return;
+
+  const btn = $("flushBtn");
+  btn.disabled = true;
+  btn.textContent = "กำลังลบ…";
+  try{
+    const res = await api("/admin/flush", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({scope, include_activity: $("flushActivity").checked,
+                            confirm: $("flushConfirm").value.trim()}),
+    });
+    const j = await res.json();
+    if(!res.ok){ toast(j.detail || "ลบไม่สำเร็จ"); return; }
+    const d = j.deleted;
+    toast(`ล้างข้อมูลแล้ว: ใบสั่งผลิต ${d.orders} · คิว ${d.pending} · รูป ${d.images}`);
+    $("flushConfirm").value = "";
+    await loadFlushPreview();
+    // Everything downstream reads from the collections that were just emptied.
+    ordersCursor = null; allOrders = []; fcData = null; hlData = null;
+    loadOrders(); loadPending(); loadReport();
+  }catch(e){ toast("ลบไม่สำเร็จ"); }
+  finally{ btn.textContent = "ล้างข้อมูลถาวร"; flushGate(); }
 };
 
 // ---- Production health -----------------------------------------------------

@@ -502,3 +502,97 @@ def cleanup_old_logs(days=None):
         batch.commit()
         deleted += len(docs)
     return deleted
+
+
+# ---------------------------------------------------------------------------
+# Flush: reset the working data before going live
+# ---------------------------------------------------------------------------
+FLUSH_BATCH = 400
+FLUSH_CONFIRM = "ล้างข้อมูล"
+
+
+def _flush_targets(mock_only):
+    """Which documents a flush would remove.
+
+    Users and settings are never included.  Wiping them would lock everyone
+    out of the very screen that triggered the flush, and they are not the
+    data anyone means by "start fresh".
+    """
+    orders = []
+    for d in db().collection(ORDERS).stream():
+        row = d.to_dict() or {}
+        if mock_only and not row.get("is_mock"):
+            continue
+        orders.append((d.id, row.get("source_image")))
+
+    if mock_only:
+        # Only scanned orders carry the mock tag; leave real queue items alone.
+        return {"orders": orders, "pending": [], "dead_letter": []}
+
+    pending = [(d.id, (d.to_dict() or {}).get("storage_path"))
+               for d in db().collection(PENDING).stream()]
+    dead = [(d.id, (d.to_dict() or {}).get("storage_path"))
+            for d in db().collection(DEAD_LETTER).stream()]
+    return {"orders": orders, "pending": pending, "dead_letter": dead}
+
+
+def flush_preview(mock_only=False, include_activity=False):
+    """Count what a flush would delete, without deleting anything."""
+    targets = _flush_targets(mock_only)
+    counts = {k: len(v) for k, v in targets.items()}
+    counts["images"] = sum(1 for v in targets.values() for _, path in v if path)
+    counts["activity"] = _count_collection(ACTIVITY) if include_activity else 0
+    return counts
+
+
+def _count_collection(name):
+    try:
+        from google.cloud.firestore_v1.aggregation import AggregationQuery
+        agg = AggregationQuery(db().collection(name)).count(alias="n")
+        return int(list(agg.get())[0][0].value)
+    except Exception:  # noqa: BLE001
+        return sum(1 for _ in db().collection(name).stream())
+
+
+def _delete_ids(collection, ids):
+    client = db()
+    col = client.collection(collection)
+    for start in range(0, len(ids), FLUSH_BATCH):
+        batch = client.batch()
+        for doc_id in ids[start:start + FLUSH_BATCH]:
+            batch.delete(col.document(doc_id))
+        batch.commit()
+    return len(ids)
+
+
+def flush_data(mock_only=False, include_activity=False):
+    """Delete scanned data so the system can start clean.
+
+    Irreversible.  Callers must have already obtained an explicit confirmation
+    from the operator; this function does not ask.
+    """
+    targets = _flush_targets(mock_only)
+    deleted = {}
+    images = 0
+
+    for collection, key in ((ORDERS, "orders"), (PENDING, "pending"),
+                            (DEAD_LETTER, "dead_letter")):
+        entries = targets.get(key) or []
+        for _, path in entries:
+            if not path:
+                continue
+            try:
+                bucket().blob(path).delete()
+                images += 1
+            except Exception:  # noqa: BLE001
+                pass          # already gone, or never uploaded
+        deleted[key] = _delete_ids(collection, [doc_id for doc_id, _ in entries])
+
+    if include_activity:
+        ids = [d.id for d in db().collection(ACTIVITY).stream()]
+        deleted["activity"] = _delete_ids(ACTIVITY, ids)
+    else:
+        deleted["activity"] = 0
+
+    deleted["images"] = images
+    return deleted

@@ -770,6 +770,45 @@ def cleanup_logs(user=Depends(admin_only)):
     return {"deleted": deleted, "retention_days": store.LOG_RETENTION_DAYS}
 
 
+class FlushIn(BaseModel):
+    scope: str = "mock"                 # "mock" = ข้อมูลทดสอบเท่านั้น, "all" = ทั้งหมด
+    include_activity: bool = False
+    confirm: str = ""
+
+
+@app.get("/api/admin/flush/preview")
+def flush_preview(scope: str = "mock", include_activity: bool = False,
+                  user=Depends(admin_only)):
+    """What a flush would remove. Always shown before the destructive call."""
+    return {
+        "scope": scope,
+        "counts": store.flush_preview(mock_only=(scope != "all"),
+                                      include_activity=include_activity),
+        "confirm_phrase": store.FLUSH_CONFIRM,
+    }
+
+
+@app.post("/api/admin/flush")
+def flush(body: FlushIn, user=Depends(admin_only)):
+    """Delete scanned data. Irreversible, admin only, and typed-confirmation gated."""
+    if body.confirm.strip() != store.FLUSH_CONFIRM:
+        raise HTTPException(400, f"กรุณาพิมพ์คำว่า “{store.FLUSH_CONFIRM}” "
+                                 "ให้ถูกต้องเพื่อยืนยันการลบ")
+    if body.scope not in ("mock", "all"):
+        raise HTTPException(400, "ขอบเขตการลบไม่ถูกต้อง")
+
+    mock_only = body.scope != "all"
+    deleted = store.flush_data(mock_only=mock_only,
+                               include_activity=body.include_activity)
+    analytics.invalidate_cache()
+    # Logged after the fact, so the audit trail survives even a full wipe.
+    store.log_activity("flush_data", user["email"], user["role"],
+                       f"ล้างข้อมูล ({'ทั้งหมด' if not mock_only else 'เฉพาะข้อมูลทดสอบ'}): "
+                       f"ใบสั่งผลิต {deleted['orders']} · คิว {deleted['pending']} · "
+                       f"ที่ล้มเหลว {deleted['dead_letter']} · รูป {deleted['images']}")
+    return {"deleted": deleted, "scope": body.scope}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))

@@ -219,6 +219,9 @@ def run_query(spec, orders=None):
         if matched_any:
             n_orders += 1
 
+    active_days = len({(o.get("document_date") or "")[:10] for o in scope
+                       if o.get("document_date")})
+
     rows = [{"key": k, "label": v[0], "value": round(v[1], 3),
              "unit": units.get(k, "")} for k, v in buckets.items()]
     if group_by == "month":
@@ -230,7 +233,7 @@ def run_query(spec, orders=None):
     total = round(sum(v[1] for v in buckets.values()), 3)
     unit = rows[0]["unit"] if rows else ""
     return {"rows": rows, "total": total, "unit": unit, "n_orders": n_orders,
-            "excluded_outliers": len(dropped)}
+            "active_days": active_days, "excluded_outliers": len(dropped)}
 
 
 def run_with_comparison(spec, orders=None):
@@ -247,6 +250,17 @@ def run_with_comparison(spec, orders=None):
     alt_spec["filters"] = alt_filters
     alt_spec.pop("compare_to", None)
     prev = run_query(alt_spec, orders)
+    # An in-progress month against a finished one is not a like-for-like
+    # comparison: four days of August against all of July reads as a 93% collapse
+    # when nothing has actually changed.  Report the per-day rate alongside, and
+    # say plainly when the two windows are not the same length.
+    days_now = main.get("active_days") or 0
+    days_prev = prev.get("active_days") or 0
+    rate_now = (main["total"] / days_now) if days_now else None
+    rate_prev = (prev["total"] / days_prev) if days_prev else None
+    ratio = (days_now / days_prev) if days_now and days_prev else 1.0
+    mismatch = bool(days_now and days_prev and not (0.7 <= ratio <= 1.43))
+
     main["comparison"] = {
         "total": prev["total"], "n_orders": prev["n_orders"],
         "date_from": alt_filters.get("date_from"),
@@ -254,6 +268,12 @@ def run_with_comparison(spec, orders=None):
         "delta": round(main["total"] - prev["total"], 3),
         "delta_pct": (round((main["total"] - prev["total"]) / prev["total"] * 100, 1)
                       if prev["total"] else None),
+        "active_days": days_prev,
+        "per_day": round(rate_prev, 3) if rate_prev is not None else None,
+        "per_day_now": round(rate_now, 3) if rate_now is not None else None,
+        "per_day_delta_pct": (round((rate_now - rate_prev) / rate_prev * 100, 1)
+                              if rate_prev else None),
+        "length_mismatch": mismatch,
     }
     return main
 
