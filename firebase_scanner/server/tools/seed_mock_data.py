@@ -36,7 +36,7 @@ SCANNERS = [
     "nattaya.k@nslfoods.com",
     "wichai.s@nslfoods.com",
 ]
-APPROVERS = ["supervisor@nslfoods.com", "arpaket@gmail.com"]
+APPROVERS = ["supervisor@nslfoods.com", "dssnslfoods@gmail.com"]
 PROVIDERS = ["claude", "claude", "claude", "gemini"]
 
 # ---------------------------------------------------------------------------
