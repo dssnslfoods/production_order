@@ -1254,11 +1254,15 @@
             <ol style="margin:10px 0 0;padding-left:20px;font-size:13.5px;line-height:2.2;color:var(--indigo)">
               <li><a href="#m-overview" style="text-decoration:none;color:inherit" onclick="event.preventDefault();document.getElementById('m-overview').scrollIntoView({behavior:'smooth'})">ภาพรวมระบบ</a></li>
               <li><a href="#m-roles" style="text-decoration:none;color:inherit" onclick="event.preventDefault();document.getElementById('m-roles').scrollIntoView({behavior:'smooth'})">บทบาทผู้ใช้งาน (Roles)</a></li>
+              <li><a href="#m-nav" style="text-decoration:none;color:inherit" onclick="event.preventDefault();document.getElementById('m-nav').scrollIntoView({behavior:'smooth'})">เมนูและการใช้งานบนมือถือ</a></li>
               <li><a href="#m-dashboard" style="text-decoration:none;color:inherit" onclick="event.preventDefault();document.getElementById('m-dashboard').scrollIntoView({behavior:'smooth'})">แดชบอร์ด</a></li>
               <li><a href="#m-scan" style="text-decoration:none;color:inherit" onclick="event.preventDefault();document.getElementById('m-scan').scrollIntoView({behavior:'smooth'})">การสแกนเอกสาร</a></li>
-              <li><a href="#m-orders" style="text-decoration:none;color:inherit" onclick="event.preventDefault();document.getElementById('m-orders').scrollIntoView({behavior:'smooth'})">รายการ &amp; การแก้ไข</a></li>
+              <li><a href="#m-orders" style="text-decoration:none;color:inherit" onclick="event.preventDefault();document.getElementById('m-orders').scrollIntoView({behavior:'smooth'})">รายการ ค้นหา และแก้ไข</a></li>
               <li><a href="#m-approval" style="text-decoration:none;color:inherit" onclick="event.preventDefault();document.getElementById('m-approval').scrollIntoView({behavior:'smooth'})">ขั้นตอนการอนุมัติ</a></li>
               <li><a href="#m-export" style="text-decoration:none;color:inherit" onclick="event.preventDefault();document.getElementById('m-export').scrollIntoView({behavior:'smooth'})">Export Excel</a></li>
+              <li><a href="#m-ask" style="text-decoration:none;color:inherit" onclick="event.preventDefault();document.getElementById('m-ask').scrollIntoView({behavior:'smooth'})">ถามน้อง Order (AI)</a></li>
+              <li><a href="#m-forecast" style="text-decoration:none;color:inherit" onclick="event.preventDefault();document.getElementById('m-forecast').scrollIntoView({behavior:'smooth'})">พยากรณ์ความต้องการวัตถุดิบ</a></li>
+              <li><a href="#m-health" style="text-decoration:none;color:inherit" onclick="event.preventDefault();document.getElementById('m-health').scrollIntoView({behavior:'smooth'})">สุขภาพการผลิต</a></li>
               <li><a href="#m-users" style="text-decoration:none;color:inherit" onclick="event.preventDefault();document.getElementById('m-users').scrollIntoView({behavior:'smooth'})">จัดการผู้ใช้งาน (Admin)</a></li>
               <li><a href="#m-settings" style="text-decoration:none;color:inherit" onclick="event.preventDefault();document.getElementById('m-settings').scrollIntoView({behavior:'smooth'})">ตั้งค่าระบบ (Admin)</a></li>
               <li><a href="#m-faq" style="text-decoration:none;color:inherit" onclick="event.preventDefault();document.getElementById('m-faq').scrollIntoView({behavior:'smooth'})">คำถามที่พบบ่อย (FAQ)</a></li>
@@ -1268,7 +1272,7 @@
           <!-- 1. Overview -->
           <div id="m-overview" class="m-section">
             <h3 class="m-title">1. ภาพรวมระบบ</h3>
-            <p>ระบบนี้ช่วยแปลงเอกสาร <b>"ใบเบิกวัตถุดิบ / Production Order"</b> จากกระดาษหรือไฟล์ภาพ ให้เป็นข้อมูลดิจิทัลโดยอัตโนมัติ ด้วย AI</p>
+            <p>ระบบนี้ทำสองอย่าง — <b>แปลงเอกสารกระดาษให้เป็นข้อมูล</b> และ <b>เปลี่ยนข้อมูลนั้นให้เป็นการตัดสินใจ</b></p>
             <div class="m-flow">
               <div class="m-step"><span class="m-num">1</span><b>อัปโหลด</b><br>ถ่ายรูป / เลือกไฟล์<br>เข้าคิวรอสแกน</div>
               <div class="m-arrow">→</div>
@@ -1276,10 +1280,19 @@
               <div class="m-arrow">→</div>
               <div class="m-step"><span class="m-num">3</span><b>ตรวจสอบ</b><br>แก้ไข / ยืนยัน<br>ค่าต่างในแต่ละแถว</div>
               <div class="m-arrow">→</div>
-              <div class="m-step"><span class="m-num">4</span><b>อนุมัติ</b><br>ยืนยันความถูกต้อง<br>ข้อมูลพร้อม Export</div>
+              <div class="m-step"><span class="m-num">4</span><b>อนุมัติ</b><br>ข้อมูลพร้อม Export<br>และนำไปวิเคราะห์</div>
             </div>
+            <p style="margin-top:16px">เมื่อมีข้อมูลสะสมพอ ระบบจะเปิดความสามารถอีกชุดให้เอง:</p>
+            <table class="m-table">
+              <tbody>
+                <tr><td style="width:190px"><b>ถามน้อง Order</b></td><td>ถามข้อมูลเป็นภาษาไทยธรรมดา ได้คำตอบพร้อมกราฟ</td></tr>
+                <tr><td><b>พยากรณ์</b></td><td>คาดการณ์ว่าเดือนหน้าต้องเตรียมวัตถุดิบ เครื่องจักร และแรงงานเท่าไหร่</td></tr>
+                <tr><td><b>สุขภาพการผลิต</b></td><td>เฝ้าดู Yield ส่วนเกินจากแผน ปริมาณงาน และจังหวะการผลิตรายสัปดาห์</td></tr>
+              </tbody>
+            </table>
             <div class="m-note">
-              <b>ขอบเขตการสแกน:</b> ระบบจะอ่านเฉพาะคอลัมน์ "ลำดับ" ถึง "หน่วย" เท่านั้น (ฝั่งซ้ายของเส้นปะ) — ข้อมูลหลังเส้นปะจะถูกข้ามทั้งหมดเพื่อความรวดเร็ว
+              <b>ขอบเขตการสแกน:</b> ระบบอ่านเฉพาะคอลัมน์ "ลำดับ" ถึง "หน่วย" (ฝั่งซ้ายของเส้นปะ) — ข้อมูลหลังเส้นปะจะถูกข้ามทั้งหมด
+              หากภาพเป็นฟอร์มเต็มแผ่น ระบบจะตัดภาพที่เส้นปะให้อัตโนมัติเพื่อลดค่าใช้จ่ายและเพิ่มความแม่นยำ
             </div>
           </div>
 
@@ -1293,7 +1306,7 @@
               <tbody>
                 <tr>
                   <td><span class="m-badge" style="background:rgba(244,63,94,.12);color:var(--rose)">Admin</span></td>
-                  <td>ใช้งานได้ทุกฟีเจอร์ — สแกน, อนุมัติ, จัดการผู้ใช้, ตั้งค่า AI, ตั้งเวลาสแกนอัตโนมัติ, Export, ดูประวัติ, ปรับ Permission Matrix</td>
+                  <td>ใช้งานได้ทุกฟีเจอร์ — สแกน, อนุมัติ, จัดการผู้ใช้, ตั้งค่า AI, ตั้งเวลาสแกนอัตโนมัติ, Export, ดูประวัติ, ปรับ Permission Matrix, <b>ล้างข้อมูลเพื่อเริ่มระบบใหม่</b></td>
                 </tr>
                 <tr>
                   <td><span class="m-badge" style="background:rgba(245,158,11,.12);color:var(--amber)">Supervisor</span></td>
@@ -1305,12 +1318,33 @@
                 </tr>
               </tbody>
             </table>
-            <p class="m-hint">Admin สามารถปรับสิทธิ์แต่ละ Role ได้ที่หน้า "ผู้ใช้งาน" → Permission Matrix</p>
+            <p class="m-hint">Admin ปรับสิทธิ์แต่ละ Role ได้ที่หน้า "ผู้ใช้งาน" → Permission Matrix</p>
+            <div class="m-note">หน้า <b>ถามน้อง Order</b>, <b>พยากรณ์</b> และ <b>สุขภาพการผลิต</b> เปิดให้ทุกบทบาทใช้ได้ เพราะเป็นการดูข้อมูลอย่างเดียว ไม่มีการแก้ไขใด ๆ</div>
           </div>
 
-          <!-- 3. Dashboard -->
+          <!-- 3. Navigation -->
+          <div id="m-nav" class="m-section">
+            <h3 class="m-title">3. เมนูและการใช้งานบนมือถือ</h3>
+            <p>เมนูด้านซ้ายแบ่งเป็น 3 กลุ่มตามลักษณะงาน:</p>
+            <table class="m-table">
+              <thead><tr><th style="width:190px">กลุ่ม</th><th>ใช้ทำอะไร</th></tr></thead>
+              <tbody>
+                <tr><td><b>งานประจำวัน</b></td><td>แดชบอร์ด · สแกน · รายการ — งานที่ทำทุกวันกับตัวเอกสาร</td></tr>
+                <tr><td><b>วิเคราะห์และรายงาน</b></td><td>ถามน้อง Order · พยากรณ์ · สุขภาพการผลิต · Export — ดูภาพรวมและตัดสินใจ</td></tr>
+                <tr><td><b>จัดการระบบ</b></td><td>ผู้ใช้งาน · ประวัติการใช้งาน · ตั้งค่า (เฉพาะผู้มีสิทธิ์)</td></tr>
+              </tbody>
+            </table>
+            <p class="m-hint">เมนูที่บทบาทของคุณไม่มีสิทธิ์จะถูกซ่อน หากทั้งกลุ่มถูกซ่อน หัวข้อกลุ่มจะหายไปด้วย</p>
+            <div class="m-note">
+              <b>บนมือถือ:</b> แตะปุ่ม <b>☰</b> มุมบนซ้ายเพื่อเปิดเมนูทั้งหมด แตะเมนูที่ต้องการหรือแตะพื้นที่นอกเมนูเพื่อปิด<br>
+              แถบด้านล่างเป็นทางลัดไปเมนูที่ใช้บ่อย (แดชบอร์ด สแกน รายการ ประวัติ) — เมนูอื่นเข้าผ่านปุ่ม ☰<br>
+              ตารางที่กว้างเกินหน้าจอสามารถ<b>เลื่อนซ้าย-ขวาภายในตารางเอง</b>ได้ โดยหน้าไม่เลื่อนตาม
+            </div>
+          </div>
+
+          <!-- 4. Dashboard -->
           <div id="m-dashboard" class="m-section">
-            <h3 class="m-title">3. แดชบอร์ด</h3>
+            <h3 class="m-title">4. แดชบอร์ด</h3>
             <p>หน้าแรกหลัง Login แสดงสถานะภาพรวม:</p>
             <table class="m-table">
               <thead><tr><th style="width:160px">ข้อมูล</th><th>คำอธิบาย</th></tr></thead>
@@ -1318,7 +1352,7 @@
                 <tr><td><b>สแกนสะสม</b></td><td>จำนวนใบสั่งผลิตที่สแกนสำเร็จทั้งหมด</td></tr>
                 <tr><td><b>วันนี้</b></td><td>จำนวนที่สแกนในวันนี้</td></tr>
                 <tr><td><b>คิวรอสแกน</b></td><td>ไฟล์ที่อัปโหลดแล้ว รอ AI ประมวลผล</td></tr>
-                <tr><td><b>รออนุมัติ</b></td><td>รายการที่สแกนสำเร็จ รอ Supervisor/Admin ตรวจสอบและอนุมัติ</td></tr>
+                <tr><td><b>รออนุมัติ</b></td><td>รายการที่สแกนสำเร็จ รอ Supervisor/Admin ตรวจสอบ</td></tr>
                 <tr><td><b>อนุมัติแล้ว</b></td><td>รายการที่ตรวจสอบผ่านแล้ว พร้อม Export</td></tr>
                 <tr><td><b>ประวัติรอบสแกน</b></td><td>บันทึกการสแกนแต่ละรอบ (manual หรืออัตโนมัติ)</td></tr>
                 <tr><td><b>นับถอยหลัง</b></td><td>เวลาจนถึงรอบสแกนอัตโนมัติถัดไป</td></tr>
@@ -1326,75 +1360,88 @@
             </table>
           </div>
 
-          <!-- 4. Scan -->
+          <!-- 5. Scan -->
           <div id="m-scan" class="m-section">
-            <h3 class="m-title">4. การสแกนเอกสาร</h3>
+            <h3 class="m-title">5. การสแกนเอกสาร</h3>
 
-            <h4 style="margin:16px 0 8px;font-size:14px">4.1 อัปโหลดไฟล์เข้าคิว</h4>
-            <p>มี 3 วิธี:</p>
+            <h4 style="margin:16px 0 8px;font-size:14px">5.1 อัปโหลดไฟล์เข้าคิว</h4>
             <table class="m-table">
               <tbody>
-                <tr><td style="width:160px"><b>ถ่ายด้วยกล้อง</b></td><td>เปิดกล้อง (webcam/มือถือ) ถ่ายเอกสารทีละแผ่น — ถ่ายได้หลายรูปต่อเนื่อง แต่ละรูปจะเข้าคิวทันที</td></tr>
+                <tr><td style="width:160px"><b>ถ่ายด้วยกล้อง</b></td><td>เปิดกล้อง (webcam/มือถือ) ถ่ายเอกสารทีละแผ่น — ถ่ายได้หลายรูปต่อเนื่อง แต่ละรูปเข้าคิวทันที</td></tr>
                 <tr><td><b>เลือกไฟล์</b></td><td>เลือกไฟล์ภาพ (JPG, PNG, WebP) หรือ PDF จากเครื่อง — เลือกได้หลายไฟล์พร้อมกัน</td></tr>
-                <tr><td><b>Google Drive</b></td><td>ตั้งค่าโฟลเดอร์ Drive ที่หน้า "ตั้งค่า" → ระบบดึงไฟล์จากโฟลเดอร์เข้าคิวอัตโนมัติทุกรอบสแกน</td></tr>
+                <tr><td><b>Google Drive</b></td><td>ตั้งค่าโฟลเดอร์ Drive ที่หน้า "ตั้งค่า" → ระบบดึงไฟล์เข้าคิวอัตโนมัติทุกรอบสแกน</td></tr>
               </tbody>
             </table>
 
-            <h4 style="margin:16px 0 8px;font-size:14px">4.2 คิวรอสแกน</h4>
-            <p>ไฟล์ที่อัปโหลดจะแสดงเป็นตารางด้านล่าง ประกอบด้วย:</p>
+            <h4 style="margin:16px 0 8px;font-size:14px">5.2 คิวรอสแกน</h4>
             <ul class="m-list">
-              <li><b>ชื่อไฟล์</b> — ชื่อไฟล์ต้นฉบับ (คลิก Preview ดูภาพได้)</li>
-              <li><b>สถานะ</b> — pending (รอ) / success (สำเร็จ) / failed (ล้มเหลว)</li>
-              <li><b>ดำเนินการ</b> — ปุ่ม Preview ดูภาพ หรือ ลบไฟล์ออกจากคิว</li>
+              <li><b>ชื่อไฟล์</b> — ชื่อไฟล์ต้นฉบับ (กด Preview ดูภาพได้)</li>
+              <li><b>สถานะ</b> — รอสแกน / สำเร็จ / ล้มเหลว</li>
+              <li><b>ดำเนินการ</b> — Preview ดูภาพ หรือลบไฟล์ออกจากคิว</li>
             </ul>
 
-            <h4 style="margin:16px 0 8px;font-size:14px">4.3 เริ่มสแกน</h4>
-            <p>กดปุ่ม <b>"สแกนทั้งหมด"</b> → ระบบจะประมวลผลไฟล์ทีละไฟล์ พร้อมแสดงความคืบหน้า เช่น "กำลังสแกน 2/5 — receipt.jpg"</p>
+            <h4 style="margin:16px 0 8px;font-size:14px">5.3 เริ่มสแกน</h4>
+            <p>กดปุ่ม <b>"สแกนทั้งหมด"</b> → ระบบประมวลผลทีละไฟล์ พร้อมแสดงความคืบหน้า</p>
             <div class="m-note">
-              <b>ระบบตรวจซ้ำ:</b> หาก Production Order เดียวกัน (เลขที่ซ้ำ) มีอยู่แล้ว ระบบจะข้ามไฟล์นั้นโดยอัตโนมัติ
+              <b>ระบบตรวจซ้ำ:</b> หากเลข Production Order ซ้ำกับที่มีอยู่แล้ว ระบบจะข้ามไฟล์นั้นอัตโนมัติ
             </div>
 
-            <h4 style="margin:16px 0 8px;font-size:14px">4.4 สแกนอัตโนมัติ</h4>
-            <p>Admin สามารถตั้งเวลาสแกนอัตโนมัติได้ที่หน้า "ตั้งค่า" — ระบบจะดึงไฟล์จาก Google Drive + ประมวลผลคิวตามเวลาที่กำหนด</p>
+            <h4 style="margin:16px 0 8px;font-size:14px">5.4 เมื่อสแกนล้มเหลว</h4>
+            <p>ระบบจะแสดง<b>เหตุผลเป็นภาษาไทยที่อ่านเข้าใจได้</b> ไม่ใช่ข้อความ error ทางเทคนิค เช่น</p>
+            <ul class="m-list">
+              <li>"ไฟล์ภาพเสียหายหรืออ่านไม่ได้ — ลองถ่ายรูปใหม่"</li>
+              <li>"ยังไม่ได้ตั้งค่า API Key — กรุณาตั้งค่าในหน้า Settings"</li>
+              <li>"AI ถูกเรียกถี่เกินไป — กรุณารอสักครู่แล้วลองใหม่"</li>
+            </ul>
+            <p class="m-hint">ไฟล์ที่ล้มเหลวซ้ำหลายครั้งจะถูกย้ายไปรายการ "สแกนล้มเหลว" ซึ่ง Admin สั่งลองใหม่หรือลบทิ้งได้</p>
+
+            <h4 style="margin:16px 0 8px;font-size:14px">5.5 สแกนอัตโนมัติ</h4>
+            <p>Admin ตั้งเวลาสแกนอัตโนมัติได้ที่หน้า "ตั้งค่า" — ระบบจะดึงไฟล์จาก Google Drive แล้วประมวลผลคิวตามเวลาที่กำหนด</p>
           </div>
 
-          <!-- 5. Orders -->
+          <!-- 6. Orders -->
           <div id="m-orders" class="m-section">
-            <h3 class="m-title">5. รายการ &amp; การแก้ไข</h3>
+            <h3 class="m-title">6. รายการ ค้นหา และแก้ไข</h3>
 
-            <h4 style="margin:16px 0 8px;font-size:14px">5.1 ดูรายการ</h4>
-            <p>หน้า "รายการ" แสดง Production Order ทั้งหมดเรียงจากใหม่สุด สามารถกรองด้วย Dropdown ด้านบน:</p>
-            <ul class="m-list">
-              <li><b>ทั้งหมด</b> — แสดงทุกสถานะ</li>
-              <li><b>รออนุมัติ</b> — เฉพาะรายการที่ยังไม่ได้อนุมัติ</li>
-              <li><b>อนุมัติแล้ว</b> — เฉพาะรายการที่อนุมัติแล้ว</li>
-            </ul>
+            <h4 style="margin:16px 0 8px;font-size:14px">6.1 ค้นหาและกรอง</h4>
+            <p>หน้า "รายการ" แสดง Production Order เรียงจากใหม่สุด มีตัวกรอง 4 แบบใช้ร่วมกันได้:</p>
+            <table class="m-table">
+              <tbody>
+                <tr><td style="width:150px"><b>ค้นหา</b></td><td>พิมพ์เลขที่ ชื่อสินค้า หรืออีเมลผู้อนุมัติ</td></tr>
+                <tr><td><b>สถานะ</b></td><td>ทั้งหมด / รออนุมัติ / Draft / อนุมัติแล้ว</td></tr>
+                <tr><td><b>ช่วงวันที่</b></td><td>ตั้งแต่วันที่ – ถึงวันที่ (อ้างอิงวันที่บนเอกสาร)</td></tr>
+                <tr><td><b>ปุ่มลัด</b></td><td>7 วัน · 30 วัน · เดือนนี้ · เดือนที่แล้ว · ทั้งหมด</td></tr>
+              </tbody>
+            </table>
+            <div class="m-note">
+              เมื่อใช้ตัวกรองวันที่หรือคำค้น ระบบจะ<b>โหลดรายการทั้งหมดให้ครบก่อนกรอง</b>โดยอัตโนมัติ
+              เพราะการกรองจากรายการที่โหลดมาเพียงบางส่วนจะให้ผลลัพธ์ที่ไม่ครบและทำให้เข้าใจผิด
+            </div>
 
-            <h4 style="margin:16px 0 8px;font-size:14px">5.2 แก้ไขรายการ</h4>
-            <p>คลิกปุ่ม <b>แก้ไข</b> ที่รายการนั้น → เปิดหน้าต่างแก้ไขที่แสดง:</p>
+            <h4 style="margin:16px 0 8px;font-size:14px">6.2 แก้ไขรายการ</h4>
+            <p>กดปุ่ม <b>แก้ไข</b> ที่รายการนั้น → หน้าต่างแก้ไขแสดง:</p>
             <ul class="m-list">
               <li><b>ส่วนหัว</b> — Production Order, วันที่, Series No., ชื่อผลิตภัณฑ์</li>
-              <li><b>ยอดผลิต</b> — Plan vs จริง (แสดง % เปรียบเทียบ)</li>
-              <li><b>ตารางรายการ (Lines)</b> — แต่ละแถวแสดง: ลำดับ, รหัส, รายการวัตถุดิบ, Type, Qty (ที่เขียนด้วยมือ), Plan, คลัง, หน่วย</li>
-              <li><b>ภาพต้นฉบับ</b> — คลิกดูภาพที่สแกนเข้ามา (ขยาย/ย่อได้)</li>
+              <li><b>ยอดผลิต</b> — Plan เทียบกับจริง (แสดง % เปรียบเทียบ)</li>
+              <li><b>ตารางรายการ</b> — ลำดับ, รหัส, รายการวัตถุดิบ, Type, Qty, Plan, คลัง, หน่วย</li>
+              <li><b>ภาพต้นฉบับ</b> — กดดูภาพที่สแกนเข้ามา (ขยาย/ย่อได้)</li>
             </ul>
-            <p>แก้ไขค่าใดก็ได้ตามต้องการ สามารถ <b>+ เพิ่มแถว</b> หรือ <b>ลบแถว</b> ได้</p>
+            <p>แก้ไขค่าใดก็ได้ สามารถ <b>+ เพิ่มแถว</b> หรือ <b>ลบแถว</b> ได้</p>
 
-            <h4 style="margin:16px 0 8px;font-size:14px">5.3 บันทึกฉบับร่าง (Draft)</h4>
-            <p>กดปุ่ม <b>"บันทึกฉบับร่าง (Draft)"</b> เพื่อบันทึกการแก้ไขไว้ก่อน โดยยังไม่อนุมัติ</p>
+            <h4 style="margin:16px 0 8px;font-size:14px">6.3 บันทึกฉบับร่าง (Draft)</h4>
             <ul class="m-list">
               <li>บันทึกทุกการเปลี่ยนแปลงรวมถึงการ Tick ยืนยันค่าต่าง</li>
-              <li>สถานะจะเปลี่ยนเป็น <span class="m-badge" style="background:rgba(99,102,241,.12);color:var(--indigo)">ฉบับร่าง</span></li>
-              <li>สามารถกลับมาแก้ไขเพิ่มเติมได้ในภายหลัง</li>
+              <li>สถานะเปลี่ยนเป็น <span class="m-badge" style="background:rgba(99,102,241,.12);color:var(--indigo)">ฉบับร่าง</span></li>
+              <li>กลับมาแก้ไขเพิ่มเติมได้ภายหลัง</li>
             </ul>
 
-            <h4 style="margin:16px 0 8px;font-size:14px">5.4 นำทาง (Navigation)</h4>
-            <p>ใช้ปุ่ม <b>◀ / ▶</b> มุมขวาบนของหน้าต่างแก้ไข เพื่อข้ามไปรายการก่อนหน้า/ถัดไป โดยไม่ต้องปิดหน้าต่าง</p>
+            <h4 style="margin:16px 0 8px;font-size:14px">6.4 นำทางระหว่างรายการ</h4>
+            <p>ใช้ปุ่ม <b>◀ / ▶</b> มุมขวาบนของหน้าต่างแก้ไข เพื่อข้ามไปรายการก่อนหน้า/ถัดไปโดยไม่ต้องปิดหน้าต่าง</p>
           </div>
 
-          <!-- 6. Approval -->
+          <!-- 7. Approval -->
           <div id="m-approval" class="m-section">
-            <h3 class="m-title">6. ขั้นตอนการอนุมัติ</h3>
+            <h3 class="m-title">7. ขั้นตอนการอนุมัติ</h3>
 
             <div class="m-flow" style="margin-bottom:16px">
               <div class="m-step" style="border-color:var(--amber)"><span class="m-num" style="background:var(--amber)">1</span><b>รออนุมัติ</b><br><span class="muted">สแกนเข้ามาใหม่</span></div>
@@ -1404,94 +1451,219 @@
               <div class="m-step" style="border-color:var(--emerald)"><span class="m-num" style="background:var(--emerald)">3</span><b>อนุมัติแล้ว</b><br><span class="muted">ข้อมูลพร้อมใช้งาน</span></div>
             </div>
 
-            <h4 style="margin:16px 0 8px;font-size:14px">6.1 ยืนยันค่าต่าง</h4>
-            <p>แต่ละแถวจะมี <b>checkbox "✓ ยืนยันค่าต่าง"</b> — ต้อง Tick ครบทุกแถวก่อนจึงจะอนุมัติได้</p>
+            <h4 style="margin:16px 0 8px;font-size:14px">7.1 ยืนยันค่าต่าง</h4>
+            <p>แต่ละแถวมี <b>checkbox "✓ ยืนยันค่าต่าง"</b> — ต้อง Tick ครบทุกแถวก่อนจึงอนุมัติได้</p>
             <ul class="m-list">
-              <li>เปรียบเทียบค่า <b>Qty</b> (ที่เขียนด้วยมือ) กับ <b>Plan</b> (ตามแผน)</li>
-              <li>หาก Qty ≠ Plan → แถวจะแสดง highlight สีเหลือง เพื่อเตือนให้ตรวจสอบ</li>
-              <li>Tick เพื่อยืนยันว่าตรวจสอบค่าต่างแล้ว ถูกต้อง</li>
+              <li>เปรียบเทียบ <b>Qty</b> (ที่เขียนด้วยมือ) กับ <b>Plan</b> (ตามแผน)</li>
+              <li>หาก Qty ≠ Plan แถวจะไฮไลต์สีเหลืองเพื่อเตือนให้ตรวจสอบ</li>
             </ul>
 
-            <h4 style="margin:16px 0 8px;font-size:14px">6.2 การอนุมัติ</h4>
-            <p>เมื่อ Tick ยืนยันครบทุกแถว → ปุ่ม <b>"✓ อนุมัติรายการนี้"</b> จะเปิดให้กดได้</p>
+            <h4 style="margin:16px 0 8px;font-size:14px">7.2 การอนุมัติ</h4>
             <div class="m-note">
               <b>เมื่ออนุมัติแล้ว:</b>
               <ul class="m-list" style="margin-bottom:0">
                 <li>ระบบบันทึกการแก้ไขล่าสุดทั้งหมดก่อนอนุมัติ</li>
                 <li>สถานะเปลี่ยนเป็น <span class="m-badge" style="background:rgba(16,185,129,.12);color:var(--emerald)">อนุมัติแล้ว</span></li>
-                <li>ภาพต้นฉบับจะถูกลบออกจากระบบเพื่อประหยัดพื้นที่</li>
-                <li>รายการจะเป็น <b>แบบอ่านอย่างเดียว</b> — ดูได้แต่แก้ไขไม่ได้</li>
-                <li>พร้อม Export เป็น Excel</li>
+                <li>ภาพต้นฉบับถูกลบเพื่อประหยัดพื้นที่</li>
+                <li>รายการเป็น <b>แบบอ่านอย่างเดียว</b> — ดูได้แต่แก้ไขไม่ได้</li>
               </ul>
             </div>
           </div>
 
-          <!-- 7. Export -->
+          <!-- 8. Export -->
           <div id="m-export" class="m-section">
-            <h3 class="m-title">7. Export Excel</h3>
-            <p>ไปที่หน้า <b>"รายการ"</b> → ส่วนด้านล่าง:</p>
+            <h3 class="m-title">8. Export Excel</h3>
+            <p>ไปที่เมนู <b>Export</b> (กลุ่มวิเคราะห์และรายงาน):</p>
             <ol class="m-list" style="padding-left:20px">
-              <li>เลือกช่วงวันที่ (ไม่บังคับ — เว้นว่าง = ทั้งหมด)</li>
+              <li>เลือกช่วงวันที่ (เว้นว่าง = ทั้งหมด)</li>
               <li>เลือกกรองตาม "วันที่บนเอกสาร" หรือ "วันที่สแกน"</li>
+              <li>เลือก<b>สถานะ</b>ที่ต้องการ Export</li>
               <li>กดปุ่ม <b>"Export เป็น Excel"</b></li>
             </ol>
             <div class="m-note">
-              <b>สำคัญ:</b> Export จะรวมเฉพาะรายการที่ <b>อนุมัติแล้ว</b> เท่านั้น — รายการที่ยังรออนุมัติจะไม่ถูกรวมในไฟล์ Excel
+              ค่าเริ่มต้นคือ <b>เฉพาะรายการที่อนุมัติแล้ว</b> หากต้องการรวมรายการที่ยังไม่อนุมัติ ให้เปลี่ยนตัวเลือกสถานะเป็น "ทั้งหมด"
             </div>
-            <p>ไฟล์ Excel ที่ได้:</p>
-            <ul class="m-list">
-              <li>มี Dropdown กรอง/เรียงลำดับในตัวทุกคอลัมน์</li>
-              <li>ตรึงหัวตาราง (Freeze Panes)</li>
-              <li>พร้อมเปิดใน Excel / Google Sheets</li>
-            </ul>
+            <p>ไฟล์ Excel ที่ได้มี Dropdown กรอง/เรียงลำดับทุกคอลัมน์ และตรึงหัวตาราง (Freeze Panes)</p>
           </div>
 
-          <!-- 8. Users -->
-          <div id="m-users" class="m-section">
-            <h3 class="m-title">8. จัดการผู้ใช้งาน (Admin)</h3>
-            <p>เฉพาะ <b>Admin</b> เท่านั้นที่เข้าถึงหน้านี้ได้:</p>
+          <!-- 9. Ask -->
+          <div id="m-ask" class="m-section">
+            <h3 class="m-title">9. ถามน้อง Order (AI)</h3>
+            <p><b>น้อง Order</b> คือผู้ช่วยที่ตอบคำถามเกี่ยวกับข้อมูลการผลิตเป็นภาษาไทยธรรมดา พิมพ์ถามได้เลย ไม่ต้องเรียนรู้คำสั่ง</p>
 
-            <h4 style="margin:16px 0 8px;font-size:14px">8.1 เพิ่มผู้ใช้ใหม่</h4>
+            <h4 style="margin:16px 0 8px;font-size:14px">9.1 ถามอะไรได้บ้าง</h4>
+            <table class="m-table">
+              <thead><tr><th style="width:150px">ประเภท</th><th>ตัวอย่างคำถาม</th></tr></thead>
+              <tbody>
+                <tr><td><b>ยอดรวม</b></td><td>"เดือนที่แล้วใช้แป้งสาลีไปเท่าไหร่"</td></tr>
+                <tr><td><b>จัดอันดับ</b></td><td>"วัตถุดิบ 10 อันดับที่ใช้เยอะที่สุดในไตรมาสนี้"</td></tr>
+                <tr><td><b>เปรียบเทียบ</b></td><td>"เทียบการใช้น้ำตาลทรายเดือนนี้กับเดือนที่แล้ว"</td></tr>
+                <tr><td><b>แนวโน้ม</b></td><td>"แนวโน้มการใช้มายองเนส 6 เดือนที่ผ่านมา"</td></tr>
+                <tr><td><b>ผลต่างจากแผน</b></td><td>"รายการไหนเบิกเกินแผนมากที่สุด"</td></tr>
+                <tr><td><b>การเตรียมของ</b></td><td>"เดือนหน้าต้องเตรียมวัตถุดิบอะไรบ้าง"</td></tr>
+              </tbody>
+            </table>
+
+            <h4 style="margin:16px 0 8px;font-size:14px">9.2 คำตอบแสดงเป็นภาพ</h4>
+            <ul class="m-list">
+              <li><b>กราฟแนวโน้ม</b> — เมื่อถามข้อมูลหลายเดือน พร้อมค่าสูงสุด ต่ำสุด เฉลี่ย และการเปลี่ยนแปลงตลอดช่วง</li>
+              <li><b>แถบจัดอันดับ</b> — เมื่อเปรียบเทียบหลายรายการ</li>
+              <li><b>ตัวเลขใหญ่</b> — เมื่อคำตอบมีค่าเดียว</li>
+              <li><b>การ์ดเปรียบเทียบ</b> — เมื่อเทียบสองช่วงเวลา</li>
+            </ul>
+            <p class="m-hint">กด "ดูตัวเลขทั้งหมดเป็นตาราง" ใต้กราฟ เพื่อดูตัวเลขดิบทุกแถว</p>
+
+            <h4 style="margin:16px 0 8px;font-size:14px">9.3 ทำไมตัวเลขถึงเชื่อถือได้</h4>
+            <div class="m-note">
+              AI ทำหน้าที่เพียง <b>แปลคำถามเป็นเงื่อนไขค้นหา</b> และ <b>เรียบเรียงคำตอบเป็นประโยค</b> เท่านั้น
+              ส่วนการคำนวณตัวเลขทั้งหมดทำโดยโปรแกรมจากฐานข้อมูลจริง<br>
+              เหตุผลคือ AI ที่ทั้งอ่านข้อมูลและบวกเลขเองจะตอบตัวเลขผิดเป็นครั้งคราวอย่างมั่นใจ
+              และยอดวัตถุดิบที่ผิดจะดูไม่ต่างจากยอดที่ถูกเลยสำหรับคนอ่าน<br>
+              กด <b>"วิธีที่ระบบตีความคำถาม"</b> ใต้คำตอบ เพื่อตรวจสอบเงื่อนไขที่ระบบใช้ค้นจริง
+            </div>
+
+            <h4 style="margin:16px 0 8px;font-size:14px">9.4 การเทียบเดือนที่ยังไม่จบ</h4>
+            <p>ถ้าถามเทียบ "เดือนนี้" กับ "เดือนที่แล้ว" ในขณะที่เดือนนี้ยังไม่จบ
+              ระบบจะ<b>เทียบเป็นค่าเฉลี่ยต่อวันแทนยอดรวม</b> พร้อมขึ้นกล่องเตือนสีเหลือง
+              เพราะการเทียบยอดรวมของ 4 วันกับ 30 วันจะทำให้ดูเหมือนยอดดิ่งลงทั้งที่ไม่มีอะไรเปลี่ยน</p>
+          </div>
+
+          <!-- 10. Forecast -->
+          <div id="m-forecast" class="m-section">
+            <h3 class="m-title">10. พยากรณ์ความต้องการวัตถุดิบ</h3>
+            <p>คาดการณ์ว่าช่วงถัดไปต้องเตรียมอะไรเท่าไหร่ — เลือกช่วงได้ตั้งแต่ 1 ถึง 6 เดือน</p>
+
+            <h4 style="margin:16px 0 8px;font-size:14px">10.1 วิธีคำนวณ</h4>
+            <div class="m-note">
+              ระบบ<b>ไม่ได้</b>ทำนายจากยอดใช้ในอดีตโดยตรง แต่ถอด <b>สูตรการใช้ต่อหน่วยผลิต</b>
+              ของแต่ละสินค้าจากใบเบิกจริง แล้วคูณกับยอดผลิตที่พยากรณ์ไว้ของสินค้านั้น<br>
+              เหตุผล: การใช้วัตถุดิบในโรงงานขึ้นกับ<b>ว่าจะผลิตอะไรเท่าไหร่</b> ไม่ใช่ขึ้นกับปฏิทิน
+              ผลลัพธ์จึงขยับตามสัดส่วนสินค้าที่จะผลิตจริง<br>
+              สูตรใช้<b>ค่ามัธยฐาน</b> จึงไม่เพี้ยนเพราะใบเดียวที่คีย์ผิด
+            </div>
+
+            <h4 style="margin:16px 0 8px;font-size:14px">10.2 ตัวกรอง</h4>
+            <ul class="m-list">
+              <li><b>ค้นหา</b> ชื่อวัตถุดิบหรือรหัส</li>
+              <li><b>ความเชื่อมั่น</b> เชื่อมั่นสูง / ปานกลาง / ผันผวน</li>
+              <li><b>ใช้ในผลิตภัณฑ์</b> — เลือกสินค้า แล้วดูว่าวัตถุดิบแต่ละตัวถูกใช้กับสินค้านั้นเท่าไหร่</li>
+              <li><b>ปุ่มลัด</b> — เฉพาะวัตถุดิบ / เครื่องจักร-แรงงาน / เพิ่มขึ้นจากปกติ / ต้องระวัง</li>
+            </ul>
+            <p class="m-hint">การ์ดตัวเลขด้านบนกดได้ — กดแล้วกรองตารางให้เหลือเฉพาะรายการนั้นทันที</p>
+
+            <h4 style="margin:16px 0 8px;font-size:14px">10.3 ส่วนต่าง ๆ ในหน้านี้</h4>
+            <table class="m-table">
+              <thead><tr><th style="width:210px">ส่วน</th><th>ใช้ทำอะไร</th></tr></thead>
+              <tbody>
+                <tr><td><b>ตารางวัตถุดิบ</b></td><td>ปริมาณที่ต้องเตรียม พร้อมช่วงที่เป็นไปได้และกราฟย้อนหลัง</td></tr>
+                <tr><td><b>กำลังการผลิต</b></td><td>ชั่วโมงเครื่องจักรและแรงงานที่ต้องใช้ แปลงเป็นต่อวันทำงานและจำนวนกะ (กะละ 8 ชม.)</td></tr>
+                <tr><td><b>ความต้องการแยกตามคลัง</b></td><td>แต่ละคลังต้องรับของเท่าไหร่ ใช้วางแผนพื้นที่จัดเก็บ</td></tr>
+                <tr><td><b>สัดส่วนการผลิต</b></td><td>สัดส่วนสินค้าที่จะผลิตและการเปลี่ยนแปลง — อธิบายว่าทำไมวัตถุดิบบางตัวถึงขยับ</td></tr>
+                <tr><td><b>แผนการผลิตรายผลิตภัณฑ์</b></td><td>ยอดผลิตที่พยากรณ์ของแต่ละสินค้า</td></tr>
+              </tbody>
+            </table>
+
+            <h4 style="margin:16px 0 8px;font-size:14px">10.4 ความเชื่อมั่นและข้อจำกัด</h4>
+            <table class="m-table">
+              <tbody>
+                <tr><td style="width:150px"><span class="m-badge" style="background:rgba(16,185,129,.12);color:var(--emerald)">เชื่อมั่นสูง</span></td><td>ใช้ตัวเลขวางแผนสั่งซื้อได้เลย</td></tr>
+                <tr><td><span class="m-badge" style="background:rgba(245,158,11,.14);color:var(--amber)">ปานกลาง</span></td><td>ใช้ได้ แต่ควรดูช่วงที่เป็นไปได้ประกอบ</td></tr>
+                <tr><td><span class="m-badge" style="background:rgba(148,163,184,.2);color:var(--muted)">ผันผวน</span></td><td>ยังไม่ควรใช้ตัวเลขกลางสั่งของโดยตรง ควรตรวจสอบก่อน</td></tr>
+              </tbody>
+            </table>
+            <div class="m-note">
+              <b>ข้อจำกัด:</b> ระบบยังไม่มีข้อมูลสต็อกคงเหลือ ตัวเลขที่แสดงคือ <i>ปริมาณที่จะใช้</i>
+              ไม่ใช่ <i>ปริมาณที่ต้องสั่งซื้อ</i> — ต้องหักของที่มีอยู่ในคลังออกเอง<br>
+              ต้องมีข้อมูลย้อนหลังอย่างน้อย 3 เดือนที่จบแล้ว ระบบจึงจะพยากรณ์ได้ และเดือนปัจจุบันที่ยังไม่จบจะไม่ถูกนับ
+            </div>
+          </div>
+
+          <!-- 11. Health -->
+          <div id="m-health" class="m-section">
+            <h3 class="m-title">11. สุขภาพการผลิต</h3>
+            <p>หน้านี้ตอบคำถามคนละแบบกับหน้าพยากรณ์ — ไม่ได้บอกว่าต้องเตรียมของเท่าไหร่ แต่บอกว่า<b>มีอะไรกำลังผิดปกติหรือไม่</b></p>
+
+            <h4 style="margin:16px 0 8px;font-size:14px">11.1 ผลผลิตจริงเทียบแผน (Yield)</h4>
+            <p>Yield = ยอดผลิตจริง ÷ ยอดผลิตตามแผน ของแต่ละเดือน</p>
+            <ul class="m-list">
+              <li>เทียบกับ<b>ค่าเฉลี่ยของผลิตภัณฑ์ตัวเอง</b> ไม่ได้เทียบข้ามสินค้า เพราะแต่ละสูตรมีอัตราสูญเสียปกติต่างกัน</li>
+              <li>สินค้าที่ Yield เดือนล่าสุดต่ำกว่าค่าเฉลี่ยตัวเองเกิน 2 จุด จะขึ้นสถานะ <b>"ต้องตรวจสอบ"</b></li>
+              <li>มักหมายถึงปัญหาที่ไลน์ผลิตหรือคุณภาพวัตถุดิบ ควรตรวจก่อนกลายเป็นต้นทุนสะสม</li>
+            </ul>
+
+            <h4 style="margin:16px 0 8px;font-size:14px">11.2 ส่วนเกินจากแผน</h4>
+            <p>เปรียบเทียบปริมาณที่เบิกจริงกับปริมาณตามแผน เพื่อหาว่าควรสั่งเผื่อเท่าไหร่</p>
+            <table class="m-table">
+              <thead><tr><th style="width:200px">คอลัมน์</th><th>ความหมาย</th></tr></thead>
+              <tbody>
+                <tr><td><b>ควรสั่งเผื่อ</b></td><td>ส่วนต่างที่เกิดเป็นประจำ เช่น +3% หมายถึงถ้าพยากรณ์ว่าใช้ 1,000 กก. ควรเตรียม 1,030 กก.</td></tr>
+                <tr><td><b>เกินมากที่สุดที่เคยเกิด</b></td><td>กรณีแย่ที่สุดที่เคยบันทึกไว้ — ใช้ดูความเสี่ยง ไม่ควรใช้ตั้ง buffer ประจำ</td></tr>
+                <tr><td><b>เกินแผนบ่อยแค่ไหน</b></td><td>เช่น 44 จาก 53 ครั้ง — ยิ่งบ่อยยิ่งแปลว่าเป็นรูปแบบที่เกิดซ้ำ ไม่ใช่ความบังเอิญ</td></tr>
+              </tbody>
+            </table>
+            <p class="m-hint">ใช้ค่ามัธยฐาน ไม่ใช่ค่าเฉลี่ย เพราะการคีย์จำนวนผิดครั้งเดียวไม่ควรกลายเป็นยอดสั่งเผื่อถาวร</p>
+
+            <h4 style="margin:16px 0 8px;font-size:14px">11.3 ปริมาณงานสแกนและต้นทุน AI</h4>
+            <ul class="m-list">
+              <li>จำนวนใบเดือนล่าสุด พยากรณ์เดือนหน้า และค่าเฉลี่ยต่อวันที่มีงาน</li>
+              <li>กราฟปริมาณงานรายวัน 30 วันล่าสุด</li>
+              <li>ช่องกรอก <b>ค่า AI ต่อการสแกน 1 ใบ</b> → ระบบคำนวณต้นทุนที่คาดว่าจะเกิดเดือนหน้าให้</li>
+            </ul>
+            <p class="m-hint">ระบบไม่เดาราคาต่อใบให้เอง เพราะแต่ละผู้ให้บริการและแต่ละรุ่นคิดไม่เท่ากัน ให้กรอกราคาจริงจากใบแจ้งหนี้ (ระบบจำค่าไว้ในเครื่องนี้)</p>
+
+            <h4 style="margin:16px 0 8px;font-size:14px">11.4 รูปแบบการผลิตรายวันในสัปดาห์</h4>
+            <div class="m-note">
+              ป้าย <b>"หนักสุด"</b> ตัดสินจาก<b>ชั่วโมงแรงงานและเครื่องจักร</b> ไม่ใช่จำนวนกิโลกรัม
+              เพราะสินค้าแต่ละตัวใช้แรงงานต่อกิโลไม่เท่ากัน — วันที่ผลิตของง่ายจำนวนมาก
+              อาจเบากว่าวันที่ผลิตของประกอบมือจำนวนน้อยกว่า<br>
+              หากใบสั่งผลิตไม่มีบรรทัด Type = Resource เลย ระบบจะถอยไปจัดอันดับด้วยปริมาณ KG พร้อมแจ้งให้ทราบ
+            </div>
+          </div>
+
+          <!-- 12. Users -->
+          <div id="m-users" class="m-section">
+            <h3 class="m-title">12. จัดการผู้ใช้งาน (Admin)</h3>
+
+            <h4 style="margin:16px 0 8px;font-size:14px">12.1 เพิ่มผู้ใช้ใหม่</h4>
             <ol class="m-list" style="padding-left:20px">
               <li>กรอก <b>อีเมล</b> ของผู้ใช้ใหม่</li>
               <li>ตั้ง <b>รหัสผ่าน</b> เริ่มต้น (อย่างน้อย 6 ตัวอักษร)</li>
               <li>กรอก <b>ชื่อ</b> (ไม่บังคับ)</li>
-              <li>เลือก <b>บทบาท (Role)</b> — Staff / Supervisor / Admin</li>
+              <li>เลือก <b>บทบาท</b> — Staff / Supervisor / Admin</li>
               <li>กดปุ่ม <b>"สร้างผู้ใช้"</b></li>
             </ol>
 
-            <h4 style="margin:16px 0 8px;font-size:14px">8.2 แก้ไข Role</h4>
-            <p>ในรายการผู้ใช้ คลิก Dropdown ข้าง Role เพื่อเปลี่ยนบทบาท → ระบบบันทึกทันที</p>
+            <h4 style="margin:16px 0 8px;font-size:14px">12.2 แก้ไข Role</h4>
+            <p>ในตารางผู้ใช้ กด Dropdown ข้าง Role เพื่อเปลี่ยนบทบาท → ระบบบันทึกทันที</p>
 
-            <h4 style="margin:16px 0 8px;font-size:14px">8.3 Permission Matrix</h4>
-            <p>ตาราง Checkbox แสดงสิทธิ์แต่ละ Role — Admin สามารถ Tick/Untick เพื่อปรับสิทธิ์ แล้วกด <b>"บันทึกสิทธิ์"</b></p>
-            <div class="m-note">Admin จะมีสิทธิ์ "ผู้ใช้งาน", "ตั้งค่า" และ "แดชบอร์ด" ติดตัวเสมอ ไม่สามารถยกเลิกได้ เพื่อป้องกันการล็อกตัวเอง</div>
+            <h4 style="margin:16px 0 8px;font-size:14px">12.3 Permission Matrix</h4>
+            <p>ตาราง Checkbox แสดงสิทธิ์แต่ละ Role — Tick/Untick แล้วกด <b>"บันทึกสิทธิ์"</b></p>
+            <div class="m-note">Admin จะมีสิทธิ์ "ผู้ใช้งาน", "ตั้งค่า" และ "แดชบอร์ด" ติดตัวเสมอ ยกเลิกไม่ได้ เพื่อป้องกันการล็อกตัวเองออกจากระบบ</div>
           </div>
 
-          <!-- 9. Settings -->
+          <!-- 13. Settings -->
           <div id="m-settings" class="m-section">
-            <h3 class="m-title">9. ตั้งค่าระบบ (Admin)</h3>
+            <h3 class="m-title">13. ตั้งค่าระบบ (Admin)</h3>
 
-            <h4 style="margin:16px 0 8px;font-size:14px">9.1 ตั้งเวลาสแกนอัตโนมัติ</h4>
+            <h4 style="margin:16px 0 8px;font-size:14px">13.1 ตั้งเวลาสแกนอัตโนมัติ</h4>
             <table class="m-table">
               <tbody>
                 <tr><td style="width:180px"><b>ทุกๆ N ชั่วโมง</b></td><td>สแกนคิวอัตโนมัติตามช่วงเวลาที่กำหนด (เช่น ทุก 3 ชม.)</td></tr>
                 <tr><td><b>ทุกๆ N นาที</b></td><td>สำหรับทดสอบ — สแกนถี่ขึ้น</td></tr>
-                <tr><td><b>เวลารายวัน</b></td><td>ระบุชั่วโมงที่ต้องการ เช่น 8,13,17 = สแกนวันละ 3 รอบ</td></tr>
+                <tr><td><b>เวลารายวัน</b></td><td>ระบุชั่วโมง เช่น 8,13,17 = สแกนวันละ 3 รอบ</td></tr>
                 <tr><td><b>ปิด</b></td><td>ปิดสแกนอัตโนมัติ — สแกน manual เท่านั้น</td></tr>
               </tbody>
             </table>
 
-            <h4 style="margin:16px 0 8px;font-size:14px">9.2 โฟลเดอร์ Google Drive</h4>
+            <h4 style="margin:16px 0 8px;font-size:14px">13.2 โฟลเดอร์ Google Drive</h4>
             <ol class="m-list" style="padding-left:20px">
               <li>สร้างโฟลเดอร์ใน Google Drive</li>
               <li>แชร์โฟลเดอร์ให้ Service Account Email (คัดลอกได้จากหน้าตั้งค่า) ด้วยสิทธิ์ <b>Editor</b></li>
               <li>วางลิงก์โฟลเดอร์ → กด <b>"บันทึก"</b></li>
-              <li>ระบบจะดึงไฟล์ใหม่เข้าคิวอัตโนมัติ แล้วย้ายไฟล์ที่ดึงแล้วไปโฟลเดอร์ย่อย "scanned"</li>
+              <li>ระบบดึงไฟล์ใหม่เข้าคิวอัตโนมัติ แล้วย้ายไฟล์ที่ดึงแล้วไปโฟลเดอร์ย่อย "scanned"</li>
             </ol>
 
-            <h4 style="margin:16px 0 8px;font-size:14px">9.3 ตั้งค่า AI</h4>
-            <p>เลือกผู้ให้บริการ AI สำหรับอ่านลายมือ:</p>
+            <h4 style="margin:16px 0 8px;font-size:14px">13.3 ตั้งค่า AI</h4>
             <table class="m-table">
               <tbody>
                 <tr><td style="width:180px"><b>Claude (Anthropic)</b></td><td>แม่นยำสูง เหมาะกับลายมือภาษาไทย</td></tr>
@@ -1499,40 +1671,81 @@
                 <tr><td><b>GPT (OpenAI)</b></td><td>ทางเลือกเพิ่มเติม</td></tr>
               </tbody>
             </table>
-            <p>กรอก API Key ของแต่ละผู้ให้บริการ → กด <b>"บันทึก"</b> — คีย์เก็บฝั่ง Server เข้ารหัสปลอดภัย ไม่แสดงคีย์เต็ม</p>
+            <p>กรอก API Key ของแต่ละผู้ให้บริการ → กด <b>"บันทึก"</b> — คีย์เก็บฝั่งเซิร์ฟเวอร์ ไม่แสดงคีย์เต็ม</p>
+            <p class="m-hint">ผู้ให้บริการที่เลือกไว้จะถูกใช้ทั้งการสแกนเอกสารและการตอบคำถามของน้อง Order</p>
+
+            <h4 style="margin:16px 0 8px;font-size:14px">13.4 ล้างข้อมูลเพื่อเริ่มระบบใหม่</h4>
+            <p>อยู่ในโซนสีแดงล่างสุดของหน้าตั้งค่า ใช้ตอนเปลี่ยนจากช่วงทดสอบไปใช้งานจริง</p>
+            <ol class="m-list" style="padding-left:20px">
+              <li>เลือกขอบเขต — <b>เฉพาะข้อมูลทดสอบ</b> (ที่ระบบสร้างให้) หรือ <b>ทั้งหมด</b></li>
+              <li>เลือกว่าจะล้างประวัติการใช้งานด้วยหรือไม่</li>
+              <li>ระบบแสดงจำนวนที่จะถูกลบให้ดูก่อน</li>
+              <li>พิมพ์คำว่า <b>ล้างข้อมูล</b> ให้ตรง ปุ่มจึงจะกดได้</li>
+              <li>กดปุ่ม แล้วยืนยันอีกครั้งในกล่องข้อความ</li>
+            </ol>
+            <div class="m-note" style="background:rgba(239,68,68,.07);border-color:rgba(239,68,68,.3)">
+              <b style="color:var(--red)">การลบไม่สามารถย้อนกลับได้</b> และไม่มีการสำรองข้อมูลอัตโนมัติ —
+              หากต้องการเก็บข้อมูลเดิม ให้ <b>Export เป็น Excel ก่อน</b><br>
+              <b>ผู้ใช้งาน สิทธิ์ และการตั้งค่าจะไม่ถูกลบ</b> จึงไม่มีใครหลุดออกจากระบบ<br>
+              การล้างข้อมูลจะถูกบันทึกไว้ในประวัติการใช้งานเสมอ ว่าใครทำเมื่อไหร่และลบไปเท่าไหร่
+            </div>
           </div>
 
-          <!-- 10. FAQ -->
+          <!-- 14. FAQ -->
           <div id="m-faq" class="m-section">
-            <h3 class="m-title">10. คำถามที่พบบ่อย (FAQ)</h3>
+            <h3 class="m-title">14. คำถามที่พบบ่อย (FAQ)</h3>
 
             <div class="m-faq">
               <div class="m-q">Q: สแกนแล้วชื่อผลิตภัณฑ์ผิด ทำอย่างไร?</div>
-              <div class="m-a">A: คลิกแก้ไขรายการ แล้วแก้ช่อง "ผลิตภัณฑ์" ด้วยมือ → บันทึก Draft หรืออนุมัติได้เลย ระบบอ่านชื่อจากแถวแรกของตาราง (คอลัมน์ สินค้า/รายการวัตถุดิบ)</div>
+              <div class="m-a">A: กดแก้ไขรายการ แล้วแก้ช่อง "ผลิตภัณฑ์" ด้วยมือ → บันทึก Draft หรืออนุมัติได้เลย</div>
             </div>
             <div class="m-faq">
               <div class="m-q">Q: Qty (ตัวเลขเขียนด้วยมือ) อ่านผิด?</div>
               <div class="m-a">A: เปิดภาพต้นฉบับเทียบ แล้วแก้ไขค่า Qty ในตารางรายการ → Tick ยืนยันค่าต่าง</div>
             </div>
             <div class="m-faq">
+              <div class="m-q">Q: สแกนล้มเหลว จะรู้สาเหตุได้อย่างไร?</div>
+              <div class="m-a">A: ระบบแสดงเหตุผลเป็นภาษาไทยที่อ่านเข้าใจได้ในคิว เช่น ไฟล์เสียหาย ยังไม่ตั้ง API Key หรือเรียก AI ถี่เกินไป — ทำตามที่ข้อความแนะนำได้เลย</div>
+            </div>
+            <div class="m-faq">
               <div class="m-q">Q: อัปโหลดไฟล์ซ้ำจะเกิดอะไรขึ้น?</div>
-              <div class="m-a">A: ระบบตรวจซ้ำด้วยเลข Production Order — หากซ้ำจะข้ามไฟล์นั้นโดยอัตโนมัติ</div>
+              <div class="m-a">A: ระบบตรวจซ้ำด้วยเลข Production Order — หากซ้ำจะข้ามไฟล์นั้นอัตโนมัติ</div>
             </div>
             <div class="m-faq">
               <div class="m-q">Q: อนุมัติแล้วแก้ไขได้ไหม?</div>
-              <div class="m-a">A: ไม่ได้ — รายการที่อนุมัติแล้วจะเป็นแบบ Preview เท่านั้น ไม่สามารถแก้ไขหรือลบได้ เพื่อความถูกต้องของข้อมูล</div>
+              <div class="m-a">A: ไม่ได้ — รายการที่อนุมัติแล้วเป็นแบบอ่านอย่างเดียว เพื่อความถูกต้องของข้อมูล</div>
             </div>
             <div class="m-faq">
-              <div class="m-q">Q: Export Excel ไม่เห็นบางรายการ?</div>
-              <div class="m-a">A: Export รวมเฉพาะรายการที่อนุมัติแล้ว — ตรวจสอบว่าอนุมัติครบหรือยัง</div>
+              <div class="m-q">Q: หารายการเก่าไม่เจอเพราะมีเยอะมาก?</div>
+              <div class="m-a">A: ใช้ช่องค้นหาและตัวกรองช่วงวันที่ในหน้ารายการ หรือกดปุ่มลัด "เดือนที่แล้ว" / "30 วัน" ระบบจะโหลดรายการทั้งหมดให้ครบก่อนกรองเอง</div>
             </div>
             <div class="m-faq">
-              <div class="m-q">Q: มือถือใช้ได้ไหม?</div>
-              <div class="m-a">A: ได้ — ระบบรองรับ Responsive Design มีแถบเมนูด้านล่างสำหรับมือถือ สามารถถ่ายรูปจากกล้องมือถือได้โดยตรง</div>
+              <div class="m-q">Q: ตัวเลขที่น้อง Order ตอบ เชื่อถือได้แค่ไหน?</div>
+              <div class="m-a">A: เชื่อถือได้เท่ากับข้อมูลในระบบ เพราะ AI ไม่ได้เป็นคนคำนวณ — มันแค่แปลคำถามเป็นเงื่อนไขค้นหาและเรียบเรียงคำตอบ ส่วนตัวเลขคำนวณโดยโปรแกรมจากฐานข้อมูลจริง กดดู "วิธีที่ระบบตีความคำถาม" ใต้คำตอบเพื่อตรวจสอบเงื่อนไขที่ใช้ค้นได้</div>
             </div>
             <div class="m-faq">
-              <div class="m-q">Q: ข้อมูลหลังเส้นปะ (column J เป็นต้นไป) จะถูกสแกนไหม?</div>
-              <div class="m-a">A: ไม่ — ระบบอ่านเฉพาะคอลัมน์ "ลำดับ" ถึง "หน่วย" (ฝั่งซ้ายของเส้นปะ) เพื่อความรวดเร็ว</div>
+              <div class="m-q">Q: ถามเทียบ "เดือนนี้" แล้วตัวเลขดูลดลงเยอะผิดปกติ?</div>
+              <div class="m-a">A: หากเดือนนี้ยังไม่จบ ระบบจะเทียบเป็นค่าเฉลี่ยต่อวันให้แทน พร้อมขึ้นกล่องเตือนสีเหลือง — ให้ดูตัวเลขต่อวันเป็นหลัก ไม่ใช่ยอดรวม</div>
+            </div>
+            <div class="m-faq">
+              <div class="m-q">Q: หน้าพยากรณ์บอกว่ายังพยากรณ์ไม่ได้?</div>
+              <div class="m-a">A: ต้องมีข้อมูลย้อนหลังอย่างน้อย 3 เดือนที่จบแล้ว เดือนปัจจุบันที่ยังไม่จบจะไม่ถูกนับ — สแกนเอกสารสะสมต่อไปอีกระยะแล้วลองใหม่</div>
+            </div>
+            <div class="m-faq">
+              <div class="m-q">Q: ตัวเลขพยากรณ์เอาไปสั่งซื้อได้เลยไหม?</div>
+              <div class="m-a">A: ยังไม่ได้ทั้งหมด — ตัวเลขคือ "ปริมาณที่จะใช้" ยังไม่ได้หักของที่มีในคลัง และควรบวกส่วนเกินจากแผน (ดูหน้าสุขภาพการผลิต) เข้าไปด้วย รายการที่ขึ้นว่า "ผันผวน" ควรตรวจสอบก่อนเสมอ</div>
+            </div>
+            <div class="m-faq">
+              <div class="m-q">Q: บนมือถือเข้าเมนู Export หรือ ตั้งค่า ไม่ได้?</div>
+              <div class="m-a">A: แตะปุ่ม ☰ มุมบนซ้ายเพื่อเปิดเมนูทั้งหมด — แถบด้านล่างเป็นทางลัดเฉพาะเมนูที่ใช้บ่อยเท่านั้น</div>
+            </div>
+            <div class="m-faq">
+              <div class="m-q">Q: อยากเริ่มระบบใหม่หมด ลบข้อมูลทดสอบทิ้ง?</div>
+              <div class="m-a">A: Admin ไปที่ ตั้งค่า → โซนสีแดงล่างสุด เลือกขอบเขต ดูจำนวนที่จะถูกลบ แล้วพิมพ์คำยืนยัน — ผู้ใช้และการตั้งค่าจะไม่ถูกลบ แต่ควร Export Excel เก็บไว้ก่อน เพราะย้อนกลับไม่ได้</div>
+            </div>
+            <div class="m-faq">
+              <div class="m-q">Q: ข้อมูลหลังเส้นปะจะถูกสแกนไหม?</div>
+              <div class="m-a">A: ไม่ — ระบบอ่านเฉพาะคอลัมน์ "ลำดับ" ถึง "หน่วย" (ฝั่งซ้ายของเส้นปะ) และจะตัดภาพที่เส้นปะให้อัตโนมัติหากถ่ายมาเต็มแผ่น</div>
             </div>
           </div>
 
