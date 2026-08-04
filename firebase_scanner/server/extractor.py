@@ -182,15 +182,15 @@ def images_from_upload(raw: bytes, content_type: str, filename: str = ""):
         for page in doc:
             images.append(("image/png", page.get_pixmap(dpi=200).tobytes("png")))
         doc.close()
-        return [_crop_at_dashed_line(m, b) for m, b in images]
+        return [_crop_at_dashed_line(b, m) for m, b in images]
     if ct.startswith("image/"):
-        fixed = _fix_exif(raw, ct)
-        return [_crop_at_dashed_line(*fixed)]
+        m, b = _fix_exif(raw, ct)
+        return [_crop_at_dashed_line(b, m)]
     ext_media = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "webp": "image/webp"}
     for ext, media in ext_media.items():
         if name.endswith("." + ext):
-            fixed = _fix_exif(raw, media)
-            return [_crop_at_dashed_line(*fixed)]
+            m, b = _fix_exif(raw, media)
+            return [_crop_at_dashed_line(b, m)]
     raise ValueError(f"ไม่รองรับไฟล์ประเภทนี้: {content_type or filename}")
 
 

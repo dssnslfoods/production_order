@@ -52,6 +52,38 @@ any_role = require_role("admin", "supervisor", "staff")
 _ENV_KEY = {"claude": "CLAUDE_API_KEY", "gemini": "GEMINI_API_KEY", "openai": "OPENAI_API_KEY"}
 
 
+_ERROR_MAP = [
+    ("ไม่รองรับไฟล์ประเภทนี้", "ไฟล์ประเภทนี้ไม่รองรับ — กรุณาใช้ไฟล์ JPG, PNG หรือ PDF"),
+    ("ไม่พบ JSON", "AI อ่านเอกสารไม่สำเร็จ — ลองถ่ายรูปใหม่ให้ชัดขึ้น"),
+    ("api key", "ยังไม่ได้ตั้งค่า API Key — กรุณาตั้งค่าในหน้า Settings"),
+    ("api_key", "ยังไม่ได้ตั้งค่า API Key — กรุณาตั้งค่าในหน้า Settings"),
+    ("rate limit", "AI ถูกเรียกถี่เกินไป — กรุณารอสักครู่แล้วลองใหม่"),
+    ("rate_limit", "AI ถูกเรียกถี่เกินไป — กรุณารอสักครู่แล้วลองใหม่"),
+    ("quota", "โควต้า AI หมด — ตรวจสอบยอดใช้งานกับผู้ให้บริการ"),
+    ("resource_exhausted", "โควต้า AI หมด — ตรวจสอบยอดใช้งานกับผู้ให้บริการ"),
+    ("timeout", "การเชื่อมต่อ AI หมดเวลา — กรุณาลองใหม่"),
+    ("connection", "เชื่อมต่อ AI ไม่ได้ — ตรวจสอบอินเทอร์เน็ต"),
+    ("401", "API Key ไม่ถูกต้องหรือหมดอายุ — กรุณาตรวจสอบใน Settings"),
+    ("403", "ไม่มีสิทธิ์เรียก AI — ตรวจสอบ API Key"),
+    ("invalid_api_key", "API Key ไม่ถูกต้อง — กรุณาตรวจสอบใน Settings"),
+    ("could not process", "AI ประมวลผลรูปไม่ได้ — ลองถ่ายใหม่ให้ชัดขึ้นหรือใช้ไฟล์ขนาดเล็กลง"),
+    ("image", "ไฟล์ภาพเสียหายหรืออ่านไม่ได้ — ลองถ่ายรูปใหม่"),
+    ("mime_type", "ไฟล์ภาพเสียหายหรือรูปแบบไม่ถูกต้อง — ลองถ่ายรูปใหม่"),
+    ("overloaded", "ระบบ AI มีภาระงานสูง — กรุณารอสักครู่แล้วลองใหม่"),
+    ("500", "ระบบ AI ขัดข้อง — กรุณาลองใหม่ภายหลัง"),
+    ("503", "ระบบ AI ไม่พร้อมให้บริการชั่วคราว — กรุณาลองใหม่"),
+]
+
+
+def _friendly_error(exc):
+    """Convert a raw Python exception into a user-readable Thai message."""
+    msg = str(exc).lower()
+    for keyword, friendly in _ERROR_MAP:
+        if keyword.lower() in msg:
+            return friendly
+    return f"เกิดข้อผิดพลาด: {str(exc)[:150]}"
+
+
 def _api_key(provider):
     """Prefer an admin-entered key (Firestore); fall back to the deploy-time env var."""
     keys = store.get_settings().get("api_keys") or {}
@@ -201,9 +233,9 @@ def _process_queue(trigger="manual"):
             item["detail"] = f"Order {data.get('order_no') or '-'} · {len(data.get('lines', []))} รายการ"
             result["succeeded"] += 1
         except Exception as e:  # noqa: BLE001
-            outcome = store.fail_pending(p["id"], e)
+            outcome = store.fail_pending(p["id"], _friendly_error(e))
             item["status"] = outcome
-            item["detail"] = str(e)[:200]
+            item["detail"] = _friendly_error(e)
             if outcome == "dead":
                 result["dead"] += 1
             else:
@@ -346,8 +378,8 @@ def process_one(pid: str, user=Depends(auth.verify_token)):
                            f"สแกน {p.get('filename')} → Order {data.get('order_no')}")
         return {"status": "success", "detail": f"Order {data.get('order_no') or '-'} · {len(data.get('lines', []))} รายการ"}
     except Exception as e:  # noqa: BLE001
-        store.fail_pending(pid, e)
-        return {"status": "failed", "detail": str(e)[:200]}
+        store.fail_pending(pid, _friendly_error(e))
+        return {"status": "failed", "detail": _friendly_error(e)}
 
 
 @app.post("/api/cron/process")
