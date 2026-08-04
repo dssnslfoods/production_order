@@ -18,6 +18,8 @@ Production Order Scanner digitizes handwritten material requisition forms (ใ�
 - **Excel Export** — Generates `.xlsx` files with auto-filters, frozen headers, and multi-sheet output matching the factory's existing template
 - **Natural-Language Q&A** — Ask questions in plain Thai ("how much flour did we use last month?"). The AI translates the question into a query spec and phrases the reply; every figure is computed in Python, so the model can never report a number that isn't in the database
 - **Material Demand Forecasting** — Derives each product's implied bill of materials from issued quantities, forecasts production volume per product, and multiplies the two — so the forecast tracks the product mix rather than the calendar. Reports a confidence band and flags OCR outliers instead of averaging them in
+- **Production Health** — Yield per product against its own historical average (the one measure that says something is going wrong, not just how much to buy), median over-issue against plan for purchase buffers, scan workload and AI cost projection, and the weekly production rhythm
+- **Capacity & Storeroom Planning** — Machine and labour hours from `Resource` lines, expressed per working day and per 8-hour shift; forecast demand split by warehouse; and the projected product mix that explains why a material moved
 - **Duplicate Detection** — Prevents duplicate entries by matching on Production Order number
 - **Queue System** — Upload-now, scan-later architecture with automatic retry and dead letter queue for persistent failures
 - **Google Drive Integration** — Optionally pulls new files from a shared Drive folder on each scan cycle
@@ -70,7 +72,7 @@ production_order/
 │   │   ├── Dockerfile         # Container definition
 │   │   ├── requirements.txt   # Python dependencies
 │   │   ├── tools/             # Mock data generator for development
-│   │   └── tests/             # Unit tests (172 tests)
+│   │   └── tests/             # Unit tests (192 tests)
 │   ├── firebase.json          # Firebase configuration
 │   ├── firestore.rules        # Security rules
 │   ├── storage.rules          # Storage security rules
@@ -118,7 +120,7 @@ pip install -r requirements.txt
 python -m pytest tests/ -v
 ```
 
-All 172 tests pass, covering API endpoints, data layer logic, extraction pipeline, image optimization, pagination, error handling, the dead letter queue, and the analytics and forecasting engines.
+All 192 tests pass, covering API endpoints, data layer logic, extraction pipeline, image optimization, pagination, error handling, the dead letter queue, and the analytics and forecasting engines.
 
 ### Updating
 
@@ -134,6 +136,7 @@ All 172 tests pass, covering API endpoints, data layer logic, extraction pipelin
 | Excel export schema | `server/excel_export.py` |
 | Data model | `server/firestore_store.py` |
 | Forecast tuning | `server/analytics.py` → `OUTLIER_FACTOR`, `FORECAST_TREND_WINDOW` |
+| Yield alert threshold | `server/analytics.py` → `YIELD_ALERT_DROP` |
 | Q&A prompts | `server/ask_ai.py` → `_PLAN_PROMPT`, `_NARRATE_PROMPT` |
 | Permission defaults | `server/firestore_store.py` → `DEFAULT_PERMISSIONS` |
 | UI / Frontend | `public/index.html` |

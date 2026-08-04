@@ -497,6 +497,9 @@
         <button class="nav-item" data-page="forecast" onclick="showPage('forecast')">
           <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span> พยากรณ์ <span class="nav-tag">AI</span>
         </button>
+        <button class="nav-item" data-page="health" onclick="showPage('health')">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span> สุขภาพการผลิต
+        </button>
         <button class="nav-item" data-page="export" onclick="showPage('export')">
           <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span> Export
         </button>
@@ -760,8 +763,56 @@
         </div>
 
         <div class="card panel">
+          <div class="phead"><span class="pico" style="background:rgba(16,185,129,.16);color:var(--emerald)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span><h2>กำลังการผลิตที่ต้องใช้ — เครื่องจักรและแรงงาน</h2></div>
+          <div id="fcResources"><span class="muted">กำลังคำนวณ…</span></div>
+        </div>
+
+        <div class="panels-grid" style="grid-template-columns:1fr 1fr">
+          <div class="card panel">
+            <div class="phead"><span class="pico" style="background:rgba(6,182,212,.16);color:var(--cyan)"><svg viewBox="0 0 24 24"><path d="M21 8v13H3V8"/><rect x="1" y="3" width="22" height="5" rx="1"/><line x1="10" y1="12" x2="14" y2="12"/></svg></span><h2>ความต้องการแยกตามคลัง</h2></div>
+            <div id="fcWarehouses"><span class="muted">กำลังคำนวณ…</span></div>
+          </div>
+
+          <div class="card panel">
+            <div class="phead"><span class="pico" style="background:rgba(139,92,246,.16);color:var(--violet)"><svg viewBox="0 0 24 24"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></span><h2>สัดส่วนการผลิตที่คาดการณ์</h2></div>
+            <div id="fcMix"><span class="muted">กำลังคำนวณ…</span></div>
+          </div>
+        </div>
+
+        <div class="card panel">
           <div class="phead"><span class="pico" style="background:rgba(245,158,11,.16);color:var(--amber)"><svg viewBox="0 0 24 24"><path d="M12 2 2 7l10 5 10-5z"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></span><h2>แผนการผลิตรายผลิตภัณฑ์</h2></div>
           <div id="fcProducts"><span class="muted">กำลังคำนวณ…</span></div>
+        </div>
+      </section>
+
+      <!-- ======== PAGE: Production health ======== -->
+      <section id="page-health" class="page-section hidden">
+        <div class="card panel">
+          <div class="between" style="margin-bottom:16px">
+            <div class="phead" style="margin:0"><span class="pico" style="background:rgba(244,63,94,.16);color:var(--rose)"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span><h2>ผลผลิตจริงเทียบแผน (Yield)</h2></div>
+            <button class="ghost sm" onclick="loadHealth()">คำนวณใหม่</button>
+          </div>
+          <div id="hlYield"><span class="muted">กำลังคำนวณ…</span></div>
+        </div>
+
+        <div class="card panel">
+          <div class="between" style="margin-bottom:16px">
+            <div class="phead" style="margin:0"><span class="pico" style="background:rgba(245,158,11,.16);color:var(--amber)"><svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span><h2>ส่วนเกินจากแผน — ใช้ตั้ง buffer การสั่งซื้อ</h2></div>
+            <input type="search" id="hlSearch" placeholder="ค้นหาวัตถุดิบ" style="max-width:260px;font-size:13px;padding:8px 11px" oninput="renderVariance()">
+          </div>
+          <div id="hlVariance"><span class="muted">กำลังคำนวณ…</span></div>
+        </div>
+
+        <div class="panels-grid" style="grid-template-columns:1fr 1fr">
+          <div class="card panel">
+            <div class="phead"><span class="pico" style="background:rgba(99,102,241,.16);color:var(--indigo)"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span><h2>ปริมาณงานสแกนและต้นทุน AI</h2></div>
+            <div id="hlWorkload"><span class="muted">กำลังคำนวณ…</span></div>
+          </div>
+
+          <div class="card panel">
+            <div class="phead"><span class="pico" style="background:rgba(14,165,233,.16);color:var(--sky)"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span><h2>รูปแบบการผลิตรายวันในสัปดาห์</h2></div>
+            <div id="hlWeekday"><span class="muted">กำลังคำนวณ…</span></div>
+          </div>
         </div>
       </section>
 
@@ -1479,6 +1530,7 @@ window.showPage = (page) => {
   if(page==='activity') loadActivity();
   if(page==='ask') loadSuggestions();
   if(page==='forecast') loadForecast();
+  if(page==='health') loadHealth();
 };
 
 const notConfigured = FIREBASE_CONFIG.apiKey === "PASTE_API_KEY";
@@ -2070,11 +2122,77 @@ window.loadForecast = async () => {
         <td><span class="conf ${p.confidence}">${CONF_TH[p.confidence]}</span></td>
       </tr>`).join("")}</tbody></table>`;
 
+    renderResources(f);
+    renderWarehouses(f);
+    renderMix(f);
     renderForecast();
   }catch(e){
     body.innerHTML = '<span class="muted">โหลดไม่สำเร็จ</span>';
   }
 };
+
+function renderResources(f){
+  const box = $("fcResources");
+  const rows = f.materials.filter(m => m.type === "Resource");
+  if(!rows.length){
+    box.innerHTML = '<span class="muted">ยังไม่พบรายการประเภท Resource (เครื่องจักร/แรงงาน) ในใบสั่งผลิต</span>';
+    return;
+  }
+  const days = f.avg_active_days;
+  box.innerHTML = `<table class="q-table">
+    <thead><tr><th>ทรัพยากร</th><th class="num">เฉลี่ย/เดือน</th><th class="num">ที่ต้องใช้</th>
+      <th class="num">ต่อวันทำงาน</th><th class="num">เทียบเท่ากะ 8 ชม.</th><th>ความเชื่อมั่น</th></tr></thead>
+    <tbody>${rows.map(m => {
+      const perDay = days ? m.forecast / (days * f.horizon_months) : null;
+      return `<tr>
+        <td><b>${esc(m.item_description)}</b><div class="muted" style="font-size:11.5px">${esc(m.item_no)}</div></td>
+        <td class="num">${fmt(m.avg_monthly)} <span class="muted">${esc(m.unit)}</span></td>
+        <td class="num"><b style="color:var(--indigo)">${fmt(m.forecast)}</b> <span class="muted">${esc(m.unit)}</span>
+          ${m.vs_avg_pct == null ? "" : `<div class="muted" style="font-size:11.5px">${m.vs_avg_pct >= 0 ? "▲" : "▼"} ${Math.abs(m.vs_avg_pct)}%</div>`}</td>
+        <td class="num">${perDay == null ? "—" : fmt(Math.round(perDay*10)/10) + " " + esc(m.unit)}</td>
+        <td class="num muted">${perDay == null ? "—" : (perDay/8).toFixed(2) + " กะ"}</td>
+        <td><span class="conf ${m.confidence}">${CONF_TH[m.confidence]}</span></td>
+      </tr>`;
+    }).join("")}</tbody></table>
+    <div class="method">
+      คำนวณจากรายการที่ระบุ <b style="color:var(--text)">Type = Resource</b> ในใบสั่งผลิต ด้วยวิธีเดียวกับวัตถุดิบ
+      คือถอดอัตราการใช้ต่อหน่วยผลิตแล้วคูณกับยอดผลิตที่พยากรณ์ไว้<br>
+      “ต่อวันทำงาน” หารด้วยจำนวนวันที่มีการผลิตจริงเฉลี่ย
+      <b style="color:var(--text)">${days ? fmt(days) : "—"} วัน/เดือน</b> (นับจากข้อมูลจริง ไม่ใช่ 30 วันตามปฏิทิน)
+      ส่วน “กะ” คิดที่ 8 ชั่วโมงต่อกะ ใช้ประเมินจำนวนคนและรอบเดินเครื่อง
+    </div>`;
+}
+
+function renderWarehouses(f){
+  const box = $("fcWarehouses");
+  const rows = f.warehouses || [];
+  if(!rows.length){ box.innerHTML = '<span class="muted">ไม่มีข้อมูลคลัง</span>'; return; }
+  const max = Math.max(...rows.map(r => r.forecast)) || 1;
+  box.innerHTML = `<table class="q-table">
+    <thead><tr><th>คลัง</th><th class="num">ปริมาณที่ต้องรับ</th><th style="width:38%"></th></tr></thead>
+    <tbody>${rows.map(r => `<tr>
+      <td><b>${esc(r.whse)}</b><div class="muted" style="font-size:11.5px">${r.items} รายการ</div></td>
+      <td class="num"><b>${fmt(r.forecast)}</b> <span class="muted">${esc(r.unit)}</span></td>
+      <td><div class="bar"><i style="width:${r.forecast/max*100}%"></i></div></td>
+    </tr>`).join("")}</tbody></table>
+    <div class="method">นับเฉพาะวัตถุดิบ (Type = Item) ไม่รวมเครื่องจักรและแรงงาน ใช้วางแผนพื้นที่จัดเก็บและรอบรับของ</div>`;
+}
+
+function renderMix(f){
+  const box = $("fcMix");
+  const rows = f.mix || [];
+  if(!rows.length){ box.innerHTML = '<span class="muted">ไม่มีข้อมูล</span>'; return; }
+  box.innerHTML = `<table class="q-table">
+    <thead><tr><th>ผลิตภัณฑ์</th><th class="num">สัดส่วน</th><th class="num">เปลี่ยนแปลง</th><th style="width:28%"></th></tr></thead>
+    <tbody>${rows.map(r => `<tr>
+      <td><b>${esc(r.product_name)}</b></td>
+      <td class="num"><b>${r.share}%</b><div class="muted" style="font-size:11.5px">เดือนก่อน ${r.share_last_month}%</div></td>
+      <td class="num" style="color:${r.delta > 0.5 ? 'var(--emerald)' : r.delta < -0.5 ? 'var(--rose)' : 'var(--muted)'}">
+        ${r.delta > 0 ? "+" : ""}${r.delta}</td>
+      <td><div class="bar"><i style="width:${r.share}%"></i></div></td>
+    </tr>`).join("")}</tbody></table>
+    <div class="method">สัดส่วนที่เปลี่ยนคือสาเหตุที่ทำให้ความต้องการวัตถุดิบบางตัวขยับ ทั้งที่ยอดผลิตรวมเท่าเดิม</div>`;
+}
 
 window.renderForecast = () => {
   const f = fcData;
@@ -2134,6 +2252,149 @@ window.renderForecast = () => {
       <i>ปริมาณที่จะใช้</i> ไม่ใช่ <i>ปริมาณที่ต้องสั่งซื้อ</i>
     </div>`;
 };
+
+// ---- Production health -----------------------------------------------------
+let hlData = null;
+const AI_COST_KEY = "nsl_ai_cost_per_scan";
+
+window.loadHealth = async () => {
+  const boxes = ["hlYield","hlVariance","hlWorkload","hlWeekday"];
+  boxes.forEach(id => $(id).innerHTML = '<span class="muted">กำลังคำนวณ…</span>');
+  try{
+    const res = await api("/analytics/health");
+    const j = await res.json();
+    if(!res.ok){
+      boxes.forEach(id => $(id).innerHTML = `<span class="muted">${esc(j.detail||"คำนวณไม่สำเร็จ")}</span>`);
+      return;
+    }
+    hlData = j;
+    renderYield(j.yield);
+    renderVariance();
+    renderWorkload(j.workload);
+    renderWeekday(j.weekday);
+  }catch(e){
+    boxes.forEach(id => $(id).innerHTML = '<span class="muted">โหลดไม่สำเร็จ</span>');
+  }
+};
+
+function yieldSpark(history){
+  if(!history || !history.length) return "";
+  // Yield sits in a narrow band near 100%, so scale to the observed range —
+  // a 0–100 axis would flatten every product into the same straight line.
+  const vals = history.map(h => h.value);
+  const lo = Math.min(...vals), hi = Math.max(...vals);
+  const span = (hi - lo) || 1;
+  return `<div class="spark" title="${history.map(h => h.month+': '+h.value+'%').join('\n')}">`
+    + history.map((h, i) => `<i class="${i === history.length-1 ? 'last' : ''}" style="height:${15 + (h.value-lo)/span*85}%"></i>`).join("")
+    + `</div>`;
+}
+
+function renderYield(y){
+  const box = $("hlYield");
+  if(!y || !y.ready){ box.innerHTML = '<span class="muted">ยังไม่มีข้อมูลยอดผลิตจริงเพียงพอ</span>'; return; }
+  box.innerHTML = `
+    ${y.alert_count ? `<div class="method" style="margin:0 0 16px;background:rgba(244,63,94,.08)">
+      <b style="color:var(--rose)">พบ ${y.alert_count} ผลิตภัณฑ์ที่ผลผลิตต่ำกว่าค่าเฉลี่ยของตัวเองเกิน 2%</b>
+      — ควรตรวจสอบไลน์ผลิตหรือคุณภาพวัตถุดิบก่อนที่จะกลายเป็นต้นทุนสะสม</div>` : ""}
+    <table class="q-table">
+      <thead><tr><th>ผลิตภัณฑ์</th><th class="num">เดือนล่าสุด</th><th class="num">เฉลี่ย</th>
+        <th class="num">ต่าง</th><th style="width:110px">แนวโน้ม</th><th>สถานะ</th></tr></thead>
+      <tbody>${y.products.map(p => `<tr>
+        <td><b>${esc(p.product_name)}</b><div class="muted" style="font-size:11.5px">${esc(p.series_no)} · ${p.months} เดือน</div></td>
+        <td class="num"><b style="color:${p.declining ? 'var(--rose)' : 'var(--text)'}">${p.latest}%</b></td>
+        <td class="num muted">${p.average}%</td>
+        <td class="num" style="color:${p.delta < 0 ? 'var(--rose)' : 'var(--emerald)'}">${p.delta > 0 ? "+" : ""}${p.delta}</td>
+        <td>${yieldSpark(p.history)}</td>
+        <td>${p.declining ? '<span class="conf low" style="background:rgba(244,63,94,.14);color:#e11d48">ต้องตรวจสอบ</span>'
+                          : '<span class="conf high">ปกติ</span>'}</td>
+      </tr>`).join("")}</tbody></table>
+    <div class="method">
+      <b style="color:var(--text)">Yield</b> = ยอดผลิตจริง ÷ ยอดผลิตตามแผน ของแต่ละเดือน
+      เทียบกับ<b>ค่าเฉลี่ยของผลิตภัณฑ์ตัวเอง</b> ไม่ใช่เทียบข้ามสินค้า เพราะแต่ละสูตรมีอัตราสูญเสียปกติต่างกันอยู่แล้ว<br>
+      นี่คือตัวเดียวในระบบที่บอกว่า<i>มีบางอย่างกำลังแย่ลง</i> ไม่ใช่แค่บอกว่าต้องเตรียมของเท่าไหร่
+    </div>`;
+}
+
+window.renderVariance = () => {
+  const box = $("hlVariance");
+  const v = hlData && hlData.variance;
+  if(!v || !v.ready){ box.innerHTML = '<span class="muted">ยังไม่มีข้อมูลเพียงพอ</span>'; return; }
+  const q = ($("hlSearch")?.value || "").trim().toLowerCase();
+  const rows = v.materials.filter(m => !q || `${m.item_description} ${m.item_no}`.toLowerCase().includes(q));
+  if(!rows.length){ box.innerHTML = '<span class="muted">ไม่พบรายการที่ค้นหา</span>'; return; }
+  box.innerHTML = `<table class="q-table">
+    <thead><tr><th>วัตถุดิบ</th><th class="num">เกินแผนปกติ</th><th class="num">เคยเกินสูงสุด</th>
+      <th class="num">เกินแผน</th><th class="num">จำนวนครั้ง</th></tr></thead>
+    <tbody>${rows.map(m => `<tr>
+      <td><b>${esc(m.item_description)}</b><div class="muted" style="font-size:11.5px">${esc(m.item_no)}
+        ${m.type === "Resource" ? ' · <span style="color:var(--amber)">Resource</span>' : ""}</div></td>
+      <td class="num"><b style="color:${m.over_pct > 0 ? 'var(--amber)' : 'var(--emerald)'}">${m.over_pct > 0 ? "+" : ""}${m.over_pct}%</b></td>
+      <td class="num muted">+${m.worst_pct}%</td>
+      <td class="num muted">${Math.round(m.over_count / m.samples * 100)}% ของครั้ง</td>
+      <td class="num muted">${fmt(m.samples)}</td>
+    </tr>`).join("")}</tbody></table>
+    <div class="method">
+      ใช้<b style="color:var(--text)">ค่ามัธยฐาน</b>ของส่วนต่าง (เบิกจริง − แผน) ไม่ใช่ค่าเฉลี่ย
+      เพราะการคีย์จำนวนผิดครั้งเดียวไม่ควรกลายเป็น buffer ของการสั่งซื้อเดือนถัดไป<br>
+      ตัวเลข “เกินแผนปกติ” เอาไปบวกเพิ่มจากปริมาณที่พยากรณ์ไว้ได้ตรง ๆ เช่น +2% หมายถึงสั่งเผื่อ 2%
+    </div>`;
+};
+
+function renderWorkload(w){
+  const box = $("hlWorkload");
+  if(!w || !w.ready){ box.innerHTML = '<span class="muted">ยังไม่มีข้อมูลการสแกน</span>'; return; }
+  const cost = Number(localStorage.getItem(AI_COST_KEY) || 0.35);
+  const maxDaily = Math.max(...w.daily.map(d => d.count), 1);
+  box.innerHTML = `
+    <div class="kpi3" style="grid-template-columns:1fr 1fr;margin-bottom:16px">
+      <div class="k"><span>เดือนล่าสุด</span><b>${fmt(w.last_month)} <small class="muted" style="font-size:12px">ใบ</small></b></div>
+      <div class="k"><span>พยากรณ์เดือนหน้า</span><b style="color:var(--indigo)">${fmt(w.forecast_next_month)} <small class="muted" style="font-size:12px">ใบ</small></b></div>
+      <div class="k"><span>เฉลี่ยต่อวันที่มีงาน</span><b>${w.avg_per_active_day} <small class="muted" style="font-size:12px">ใบ</small></b></div>
+      <div class="k"><span>สแกนสะสมทั้งหมด</span><b>${fmt(w.total)} <small class="muted" style="font-size:12px">ใบ</small></b></div>
+    </div>
+    <div class="muted" style="font-size:11.5px;font-weight:600;margin-bottom:6px">ปริมาณงานรายวัน 30 วันล่าสุด</div>
+    <div class="spark" style="height:44px;margin-bottom:16px">
+      ${w.daily.map(d => `<i title="${d.date}: ${d.count} ใบ" style="height:${Math.max(8, d.count/maxDaily*100)}%"></i>`).join("")}
+    </div>
+    <div class="row" style="align-items:center;gap:8px">
+      <span class="muted" style="font-size:12.5px">ค่า AI ต่อการสแกน 1 ใบ (บาท)</span>
+      <input type="number" id="aiCost" value="${cost}" step="0.05" min="0" style="width:90px;font-size:13px;padding:6px 9px" oninput="updateAiCost()">
+    </div>
+    <div id="aiCostOut" class="method" style="margin-top:12px"></div>`;
+  updateAiCost();
+}
+
+window.updateAiCost = () => {
+  const w = hlData && hlData.workload;
+  if(!w) return;
+  const cost = Number($("aiCost")?.value || 0);
+  localStorage.setItem(AI_COST_KEY, String(cost));
+  $("aiCostOut").innerHTML = `
+    <b style="color:var(--text)">ต้นทุน AI ที่คาดว่าจะเกิดเดือนหน้า
+      ≈ ${fmt(Math.round(w.forecast_next_month * cost))} บาท</b>
+    (${fmt(w.forecast_next_month)} ใบ × ${cost} บาท)<br>
+    ระบบไม่ได้เดาราคาต่อใบให้เอง เพราะแต่ละผู้ให้บริการและแต่ละรุ่นคิดไม่เท่ากัน
+    ให้กรอกราคาจริงจากใบแจ้งหนี้ ระบบจะจำค่าไว้ในเครื่องนี้
+  `;
+};
+
+function renderWeekday(p){
+  const box = $("hlWeekday");
+  if(!p || !p.ready){ box.innerHTML = '<span class="muted">ยังไม่มีข้อมูล</span>'; return; }
+  const max = Math.max(...p.days.map(d => d.avg_volume_per_day), 1);
+  box.innerHTML = `<table class="q-table">
+    <thead><tr><th>วัน</th><th class="num">ใบสั่งผลิต</th><th class="num">เฉลี่ย/วัน</th><th style="width:34%"></th></tr></thead>
+    <tbody>${p.days.map(d => `<tr style="${d.orders ? "" : "opacity:.45"}">
+      <td><b>${esc(d.name)}</b>${d.name === p.busiest ? ' <span class="conf high">หนักสุด</span>' : ""}</td>
+      <td class="num">${fmt(d.orders)}</td>
+      <td class="num">${fmt(d.avg_volume_per_day)} <span class="muted">KG</span></td>
+      <td><div class="bar"><i style="width:${d.avg_volume_per_day/max*100}%"></i></div></td>
+    </tr>`).join("")}</tbody></table>
+    <div class="method">
+      ${p.idle_days.length ? `ไม่มีการผลิตในวัน<b style="color:var(--text)">${p.idle_days.join(", ")}</b> — ` : ""}
+      ใช้เกลี่ยงานและจัดกะ วันที่ปริมาณสูงกว่าค่าเฉลี่ยมากคือจุดที่มักเกิดคอขวดและของขาด
+    </div>`;
+}
 
 // ---- webcam capture (PC webcam + mobile camera) ----
 let camStream = null, camShots = 0;

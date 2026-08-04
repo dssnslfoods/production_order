@@ -608,6 +608,18 @@ def analytics_bom(user=Depends(auth.verify_token)):
     return {"products": analytics.implied_bom()}
 
 
+@app.get("/api/analytics/health")
+def analytics_health(user=Depends(auth.verify_token)):
+    """Production health in one round trip — all four views share one order load."""
+    orders = analytics.load_orders()
+    return {
+        "yield": analytics.yield_trend(orders),
+        "variance": analytics.plan_variance(orders),
+        "workload": analytics.workload(orders),
+        "weekday": analytics.weekday_pattern(orders),
+    }
+
+
 @app.get("/api/permissions")
 def get_permissions(user=Depends(admin_only)):
     return {"permissions": store.get_permissions()}

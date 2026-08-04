@@ -267,3 +267,140 @@ class TestForecast(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def _health_dataset():
+    """Six months, two products, a declining yield on one of them."""
+    out = []
+    yields = {"2026-02": 1.00, "2026-03": 1.00, "2026-04": 0.99,
+              "2026-05": 0.97, "2026-06": 0.95, "2026-07": 0.93}
+    for i, (month, ratio) in enumerate(yields.items()):
+        for k in range(3):
+            o = _order(f"A{i}{k}", f"{month}-1{k}", "S1", "ขนมปัง", 100.0,
+                       [("M1", "แป้งสาลี", 33.0, 30.0),
+                        ("R1", "แรงงานฝ่ายผลิต", 0.9, 1.0)])
+            o["actual_total"] = 100.0 * ratio
+            o["lines"][1]["type"] = "Resource"
+            o["lines"][1]["unit"] = "Hour"
+            o["lines"][0]["whse"] = "P8-RM01"
+            o["lines"][1]["whse"] = "P8-PD05"
+            o["scanned_at"] = f"{month}-1{k}T09:00:00"
+            out.append(o)
+        o = _order(f"B{i}", f"{month}-20", "S2", "แซนวิช", 50.0,
+                   [("M1", "แป้งสาลี", 15.0, 15.0)])
+        o["actual_total"] = 50.0
+        o["scanned_at"] = f"{month}-20T09:00:00"
+        out.append(o)
+    return out
+
+
+class TestYieldTrend(unittest.TestCase):
+    def test_declining_product_is_flagged(self):
+        y = analytics.yield_trend(_health_dataset(), today=dt.date(2026, 8, 4))
+        rows = {r["series_no"]: r for r in y["products"]}
+        self.assertTrue(rows["S1"]["declining"])
+        self.assertFalse(rows["S2"]["declining"])
+        self.assertEqual(y["alert_count"], 1)
+
+    def test_worst_product_is_listed_first(self):
+        y = analytics.yield_trend(_health_dataset(), today=dt.date(2026, 8, 4))
+        self.assertEqual(y["products"][0]["series_no"], "S1")
+
+    def test_stable_product_reports_full_yield(self):
+        y = analytics.yield_trend(_health_dataset(), today=dt.date(2026, 8, 4))
+        rows = {r["series_no"]: r for r in y["products"]}
+        self.assertAlmostEqual(rows["S2"]["latest"], 100.0, places=1)
+
+    def test_orders_without_actual_are_skipped(self):
+        data = _health_dataset()
+        for o in data:
+            o["actual_total"] = None
+        y = analytics.yield_trend(data, today=dt.date(2026, 8, 4))
+        self.assertFalse(y["ready"])
+
+
+class TestPlanVariance(unittest.TestCase):
+    def test_median_over_issue(self):
+        v = analytics.plan_variance(_health_dataset())
+        rows = {r["item_no"]: r for r in v["materials"]}
+        self.assertAlmostEqual(rows["M1"]["over_pct"], 10.0, places=1)   # 33 vs 30
+
+    def test_under_issue_is_negative(self):
+        v = analytics.plan_variance(_health_dataset())
+        rows = {r["item_no"]: r for r in v["materials"]}
+        self.assertAlmostEqual(rows["R1"]["over_pct"], -10.0, places=1)  # 0.9 vs 1.0
+
+    def test_rare_materials_are_skipped(self):
+        data = _health_dataset()
+        data[0]["lines"].append({"row_no": 9, "item_no": "RARE",
+                                 "item_description": "ของหายาก", "type": "Item",
+                                 "quantity": 5.0, "plan": 1.0, "whse": "", "unit": "KG"})
+        v = analytics.plan_variance(data, min_orders=5)
+        self.assertNotIn("RARE", {r["item_no"] for r in v["materials"]})
+
+    def test_lines_without_a_plan_are_ignored(self):
+        data = [_order("Z", "2026-07-01", "S1", "x", 100.0,
+                       [("M9", "ไม่มีแผน", 5.0, 0.0)]) for _ in range(6)]
+        v = analytics.plan_variance(data, min_orders=5)
+        self.assertEqual(v["materials"], [])
+
+
+class TestWorkload(unittest.TestCase):
+    def test_counts_and_forecast(self):
+        w = analytics.workload(_health_dataset(), today=dt.date(2026, 8, 4))
+        self.assertTrue(w["ready"])
+        self.assertEqual(w["total"], 24)
+        self.assertEqual(w["last_month"], 4)
+        self.assertGreater(w["forecast_next_month"], 0)
+
+    def test_current_month_excluded_from_monthly_trend(self):
+        data = _health_dataset()
+        extra = _order("NOW", "2026-08-02", "S1", "ขนมปัง", 100.0,
+                       [("M1", "แป้งสาลี", 30.0, 30.0)])
+        extra["scanned_at"] = "2026-08-02T09:00:00"
+        w = analytics.workload(data + [extra], today=dt.date(2026, 8, 4))
+        self.assertNotIn("2026-08", [m["month"] for m in w["monthly"]])
+        self.assertEqual(w["total"], 25)   # still counted in the daily series
+
+    def test_empty_input(self):
+        w = analytics.workload([], today=dt.date(2026, 8, 4))
+        self.assertFalse(w["ready"])
+        self.assertEqual(w["total"], 0)
+
+
+class TestWeekdayPattern(unittest.TestCase):
+    def test_identifies_the_busiest_day(self):
+        data = [_order(f"M{i}", "2026-07-06", "S1", "x", 500.0,      # Monday
+                       [("M1", "แป้งสาลี", 30.0, 30.0)]) for i in range(3)]
+        data += [_order("T1", "2026-07-07", "S1", "x", 50.0,         # Tuesday
+                        [("M1", "แป้งสาลี", 30.0, 30.0)])]
+        p = analytics.weekday_pattern(data)
+        self.assertEqual(p["busiest"], "จันทร์")
+
+    def test_days_never_worked_are_reported(self):
+        data = [_order("M1", "2026-07-06", "S1", "x", 500.0,
+                       [("M1", "แป้งสาลี", 30.0, 30.0)])]
+        p = analytics.weekday_pattern(data)
+        self.assertIn("อาทิตย์", p["idle_days"])
+
+    def test_bad_dates_do_not_crash(self):
+        data = [_order("X", "ไม่ทราบ", "S1", "x", 100.0,
+                       [("M1", "แป้งสาลี", 30.0, 30.0)])]
+        p = analytics.weekday_pattern(data)
+        self.assertFalse(p["ready"])
+
+
+class TestForecastExtras(unittest.TestCase):
+    def test_warehouse_split_excludes_resources(self):
+        f = analytics.forecast(_health_dataset(), today=dt.date(2026, 8, 4))
+        names = {w["whse"] for w in f["warehouses"]}
+        self.assertIn("P8-RM01", names)
+        self.assertNotIn("P8-PD05", names)   # Resource rows are not stored goods
+
+    def test_product_mix_sums_to_100(self):
+        f = analytics.forecast(_health_dataset(), today=dt.date(2026, 8, 4))
+        self.assertAlmostEqual(sum(m["share"] for m in f["mix"]), 100.0, places=0)
+
+    def test_active_days_counts_distinct_dates(self):
+        f = analytics.forecast(_health_dataset(), today=dt.date(2026, 8, 4))
+        self.assertAlmostEqual(f["avg_active_days"], 4.0, places=1)

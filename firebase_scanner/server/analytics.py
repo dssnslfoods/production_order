@@ -363,6 +363,20 @@ def _fit_next(series, steps=1):
             for k in range(steps)]
 
 
+def _active_days_per_month(orders, exclude_month):
+    """Average number of distinct production days in a completed month."""
+    days = {}
+    for o in orders:
+        month = _month(o)
+        d = (o.get("document_date") or "")[:10]
+        if not month or not d or month >= exclude_month:
+            continue
+        days.setdefault(month, set()).add(d)
+    if not days:
+        return None
+    return sum(len(v) for v in days.values()) / len(days)
+
+
 def _monthly_production(orders, exclude_month):
     """Completed-month production volume per product."""
     per = {}
@@ -461,6 +475,7 @@ def forecast(orders=None, months=1, today=None):
                 "item_description": line["item_description"],
                 "unit": line["unit"],
                 "type": line.get("type", "Item"),
+                "whse": line.get("whse", ""),
                 "forecast": 0.0,
                 "used_in": {},
                 "_cv_weight": 0.0,
@@ -493,6 +508,7 @@ def forecast(orders=None, months=1, today=None):
             "item_description": row["item_description"],
             "unit": row["unit"],
             "type": row["type"],
+            "whse": row["whse"],
             "used_in": row["used_in"],
             "avg_monthly": round(avg, 2),
             "baseline": round(baseline, 2),
@@ -507,8 +523,45 @@ def forecast(orders=None, months=1, today=None):
 
     total_forecast = sum(forecast_volume.values())
     last_month_total = sum(per.get(all_months[-1], 0.0) for per in production.values())
+
+    # --- demand split by storeroom, for space and receiving planning --------
+    warehouses = {}
+    for m in out_materials:
+        if m["type"] != "Item":
+            continue
+        w = warehouses.setdefault(m["whse"] or "(ไม่ระบุ)",
+                                  {"whse": m["whse"] or "(ไม่ระบุ)", "forecast": 0.0,
+                                   "items": 0, "unit": m["unit"]})
+        w["forecast"] += m["forecast"]
+        w["items"] += 1
+    warehouse_rows = sorted(
+        ({**w, "forecast": round(w["forecast"], 1)} for w in warehouses.values()),
+        key=lambda r: -r["forecast"])
+
+    # --- product mix: what share of the line each product will take ---------
+    last_by_product = {s: per.get(all_months[-1], 0.0) for s, per in production.items()}
+    last_total = sum(last_by_product.values()) or 1.0
+    mix_rows = []
+    for p in product_rows:
+        share = (forecast_volume.get(p["series_no"], 0.0) / total_forecast * 100) \
+            if total_forecast else 0.0
+        was = last_by_product.get(p["series_no"], 0.0) / last_total * 100
+        mix_rows.append({
+            "series_no": p["series_no"],
+            "product_name": p["product_name"],
+            "share": round(share, 1),
+            "share_last_month": round(was, 1),
+            "delta": round(share - was, 1),
+        })
+
+    # Active days per month, so hours can be shown as a daily workload.
+    active_days = _active_days_per_month(orders, current_month)
+
     return {
         "ready": True,
+        "warehouses": warehouse_rows,
+        "mix": mix_rows,
+        "avg_active_days": round(active_days, 1) if active_days else None,
         "target_months": horizon,
         "horizon_months": months,
         "products_index": {p["series_no"]: p["product_name"] for p in product_rows},
@@ -521,3 +574,188 @@ def forecast(orders=None, months=1, today=None):
         "excluded_outliers": len(dropped),
         "generated_for": current_month,
     }
+
+
+# ---------------------------------------------------------------------------
+# Production health: yield, plan variance, workload, weekly rhythm
+# ---------------------------------------------------------------------------
+YIELD_ALERT_DROP = 0.02        # a 2-point fall against the product's own average
+
+
+def yield_trend(orders=None, today=None):
+    """Track actual output against planned output for each product.
+
+    This is the only measure here that says something is *going wrong* rather
+    than how much to buy, so a product whose recent yield sits below its own
+    historical average is flagged rather than left for the reader to spot.
+    """
+    orders = orders if orders is not None else load_orders()
+    orders, _ = clean_orders(orders)
+    today = today or dt.date.today()
+    current_month = _month_key(today.year, today.month)
+
+    per = {}    # series -> month -> [plan_sum, actual_sum]
+    names = {}
+    for o in orders:
+        month = _month(o)
+        series = o.get("series_no")
+        plan = _num(o.get("plan_total"))
+        actual = _num(o.get("actual_total"))
+        if not month or not series or plan <= 0 or actual <= 0 or month >= current_month:
+            continue
+        names[series] = o.get("product_name") or series
+        slot = per.setdefault(series, {}).setdefault(month, [0.0, 0.0])
+        slot[0] += plan
+        slot[1] += actual
+
+    months = sorted({m for v in per.values() for m in v})
+    rows = []
+    for series, by_month in per.items():
+        points = [{"month": m,
+                   "value": round(by_month[m][1] / by_month[m][0] * 100, 2)}
+                  for m in months if m in by_month and by_month[m][0] > 0]
+        if not points:
+            continue
+        values = [p["value"] for p in points]
+        latest = values[-1]
+        average = sum(values) / len(values)
+        rows.append({
+            "series_no": series,
+            "product_name": names.get(series, series),
+            "history": points,
+            "latest": round(latest, 2),
+            "average": round(average, 2),
+            "delta": round(latest - average, 2),
+            "declining": latest < average - YIELD_ALERT_DROP * 100,
+            "months": len(points),
+        })
+    rows.sort(key=lambda r: r["delta"])          # worst first — that is the point
+    return {"ready": bool(rows), "months_used": months, "products": rows,
+            "alert_count": sum(1 for r in rows if r["declining"])}
+
+
+def plan_variance(orders=None, today=None, min_orders=5):
+    """How much more (or less) than planned each material actually gets issued.
+
+    The buffer suggestion is the median over-issue, not the mean: a single
+    mis-keyed quantity should not become next month's purchase padding.
+    """
+    orders = orders if orders is not None else load_orders()
+    orders, _ = clean_orders(orders)
+
+    per = {}
+    names, units, kinds = {}, {}, {}
+    for o in orders:
+        for ln in o.get("lines") or []:
+            item_no = ln.get("item_no")
+            plan = _num(ln.get("plan"))
+            qty = _num(ln.get("quantity"))
+            if not item_no or plan <= 0 or qty <= 0:
+                continue
+            per.setdefault(item_no, []).append((qty - plan) / plan)
+            names.setdefault(item_no, ln.get("item_description") or item_no)
+            units.setdefault(item_no, ln.get("unit") or "KG")
+            kinds.setdefault(item_no, ln.get("type") or "Item")
+
+    rows = []
+    for item_no, ratios in per.items():
+        if len(ratios) < min_orders:
+            continue
+        median = statistics.median(ratios)
+        rows.append({
+            "item_no": item_no,
+            "item_description": names[item_no],
+            "unit": units[item_no],
+            "type": kinds[item_no],
+            "over_pct": round(median * 100, 2),
+            "worst_pct": round(max(ratios) * 100, 2),
+            "spread": round(statistics.pstdev(ratios) * 100, 2) if len(ratios) > 1 else 0.0,
+            "over_count": sum(1 for r in ratios if r > 0),
+            "samples": len(ratios),
+        })
+    rows.sort(key=lambda r: -r["over_pct"])
+    return {"ready": bool(rows), "materials": rows}
+
+
+def workload(orders=None, today=None, recent_days=30):
+    """Scan volume per day and per month, and what next month looks like.
+
+    Drives data-entry staffing and gives a scan count that a per-scan AI price
+    can be applied to — the price itself is the operator's to supply.
+    """
+    orders = orders if orders is not None else load_orders()
+    today = today or dt.date.today()
+    current_month = _month_key(today.year, today.month)
+
+    per_day, per_month = {}, {}
+    for o in orders:
+        stamp = (o.get("scanned_at") or o.get("document_date") or "")[:10]
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", stamp):
+            continue
+        per_day[stamp] = per_day.get(stamp, 0) + 1
+        month = stamp[:7]
+        if month < current_month:
+            per_month[month] = per_month.get(month, 0) + 1
+
+    months = sorted(per_month)
+    series = [(m, float(per_month[m])) for m in months]
+    predicted = _fit_next(series, 1)[0] if series else 0.0
+
+    cutoff = (today - dt.timedelta(days=recent_days)).isoformat()
+    recent = sorted((d, n) for d, n in per_day.items() if d >= cutoff)
+    active = [n for _, n in recent if n > 0]
+
+    return {
+        "ready": bool(per_day),
+        "daily": [{"date": d, "count": n} for d, n in recent],
+        "monthly": [{"month": m, "count": per_month[m]} for m in months],
+        "forecast_next_month": round(predicted),
+        "last_month": per_month[months[-1]] if months else 0,
+        "avg_per_active_day": round(sum(active) / len(active), 1) if active else 0.0,
+        "busiest_day": max(recent, key=lambda x: x[1])[0] if recent else None,
+        "total": sum(per_day.values()),
+    }
+
+
+WEEKDAY_TH = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"]
+
+
+def weekday_pattern(orders=None):
+    """Production rhythm across the week, for shift and workload levelling."""
+    orders = orders if orders is not None else load_orders()
+    orders, _ = clean_orders(orders)
+
+    counts = {i: 0 for i in range(7)}
+    volume = {i: 0.0 for i in range(7)}
+    dates = {i: set() for i in range(7)}
+    for o in orders:
+        d = (o.get("document_date") or "")[:10]
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", d):
+            continue
+        try:
+            day = dt.date.fromisoformat(d)
+        except ValueError:
+            continue
+        w = day.weekday()
+        counts[w] += 1
+        volume[w] += _num(o.get("plan_total"))
+        dates[w].add(d)
+
+    total_volume = sum(volume.values()) or 1.0
+    rows = []
+    for w in range(7):
+        n_days = len(dates[w])
+        rows.append({
+            "weekday": w,
+            "name": WEEKDAY_TH[w],
+            "orders": counts[w],
+            "volume": round(volume[w], 1),
+            "share": round(volume[w] / total_volume * 100, 1),
+            "avg_orders_per_day": round(counts[w] / n_days, 1) if n_days else 0.0,
+            "avg_volume_per_day": round(volume[w] / n_days, 1) if n_days else 0.0,
+            "days_observed": n_days,
+        })
+    busiest = max(rows, key=lambda r: r["avg_volume_per_day"])
+    idle = [r["name"] for r in rows if r["days_observed"] == 0 or r["orders"] == 0]
+    return {"ready": any(r["orders"] for r in rows), "days": rows,
+            "busiest": busiest["name"], "idle_days": idle}
