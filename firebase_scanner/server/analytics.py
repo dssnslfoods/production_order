@@ -275,6 +275,8 @@ def implied_bom(orders=None, min_orders=3):
     ratios = {}          # series_no -> item_no -> [ratio, ...]
     names = {}
     units = {}
+    kinds = {}
+    warehouses = {}
     for o in orders:
         volume = _num(o.get("plan_total"))
         series = o.get("series_no")
@@ -289,6 +291,8 @@ def implied_bom(orders=None, min_orders=3):
             ratios.setdefault(series, {}).setdefault(item_no, []).append(qty / volume)
             units.setdefault(item_no, ln.get("unit") or "KG")
             names.setdefault(item_no, ln.get("item_description") or item_no)
+            kinds.setdefault(item_no, ln.get("type") or "Item")
+            warehouses.setdefault(item_no, ln.get("whse") or "")
 
     out = {}
     for series, items in ratios.items():
@@ -304,6 +308,8 @@ def implied_bom(orders=None, min_orders=3):
                 "ratio": round(median, 6),
                 "cv": round(spread / median, 4) if median else None,
                 "unit": units.get(item_no, "KG"),
+                "type": kinds.get(item_no, "Item"),
+                "whse": warehouses.get(item_no, ""),
                 "samples": len(values),
             })
         rows.sort(key=lambda r: -r["ratio"])
@@ -329,19 +335,20 @@ def _next_months(last, count):
     return out
 
 
-def _fit_next(series):
-    """Predict the next value of a monthly series by least-squares trend.
+def _fit_next(series, steps=1):
+    """Predict the next `steps` values of a monthly series by least-squares trend.
 
-    Clamped to a sane band around the recent average, because a two-point
-    trend on noisy factory data will happily extrapolate to zero or double.
+    Each step is clamped to a sane band around the recent average, because a
+    short trend on noisy factory data will happily extrapolate to zero or to
+    double within a few months.
     """
     values = [v for _, v in series]
     if not values:
-        return 0.0
+        return [0.0] * steps
     recent = values[-3:] if len(values) >= 3 else values
     baseline = sum(recent) / len(recent)
     if len(values) < MIN_MONTHS_FOR_TREND:
-        return baseline
+        return [baseline] * steps
 
     window = series[-FORECAST_TREND_WINDOW:]
     n = len(window)
@@ -351,9 +358,9 @@ def _fit_next(series):
     my = sum(ys) / n
     denom = sum((x - mx) ** 2 for x in xs)
     slope = (sum((x - mx) * (y - my) for x, y in zip(xs, ys)) / denom) if denom else 0.0
-    predicted = my + slope * (n - mx)
     low, high = FORECAST_CLAMP
-    return max(baseline * low, min(baseline * high, predicted))
+    return [max(baseline * low, min(baseline * high, my + slope * (n - mx + k)))
+            for k in range(steps)]
 
 
 def _monthly_production(orders, exclude_month):
@@ -427,8 +434,8 @@ def forecast(orders=None, months=1, today=None):
     forecast_volume = {}
     for series, by_month in production.items():
         series_points = [(m, by_month.get(m, 0.0)) for m in all_months]
-        predicted = _fit_next(series_points)
-        forecast_volume[series] = predicted
+        predicted = _fit_next(series_points, months)
+        forecast_volume[series] = sum(predicted)
         values = [v for _, v in series_points if v > 0]
         mean = sum(values) / len(values) if values else 0.0
         cv = (statistics.pstdev(values) / mean) if len(values) > 1 and mean else None
@@ -436,8 +443,10 @@ def forecast(orders=None, months=1, today=None):
             "series_no": series,
             "product_name": bom.get(series, {}).get("product_name", series),
             "history": [{"month": m, "value": round(v, 1)} for m, v in series_points],
+            "by_month": [{"month": m, "value": round(v, 1)}
+                         for m, v in zip(horizon, predicted)],
             "avg_monthly": round(mean, 1),
-            "forecast": round(predicted, 1),
+            "forecast": round(sum(predicted), 1),
             "unit": "KG",
             "confidence": _confidence(cv, len(values)),
         })
@@ -451,12 +460,15 @@ def forecast(orders=None, months=1, today=None):
                 "item_no": line["item_no"],
                 "item_description": line["item_description"],
                 "unit": line["unit"],
+                "type": line.get("type", "Item"),
                 "forecast": 0.0,
+                "used_in": {},
                 "_cv_weight": 0.0,
                 "_cv_sum": 0.0,
             })
             contribution = volume * line["ratio"]
             row["forecast"] += contribution
+            row["used_in"][series] = round(contribution, 2)
             if line["cv"] is not None:
                 row["_cv_sum"] += line["cv"] * contribution
                 row["_cv_weight"] += contribution
@@ -473,15 +485,21 @@ def forecast(orders=None, months=1, today=None):
             if (recipe_cv is not None or monthly_cv is not None) else None
         value = row["forecast"]
         band = (cv or 0.25) * 1.5
+        # Over a multi-month horizon the fair comparison is the average per
+        # month times the number of months, not one month's average.
+        baseline = avg * months
         out_materials.append({
             "item_no": item_no,
             "item_description": row["item_description"],
             "unit": row["unit"],
+            "type": row["type"],
+            "used_in": row["used_in"],
             "avg_monthly": round(avg, 2),
+            "baseline": round(baseline, 2),
             "forecast": round(value, 2),
             "low": round(max(0.0, value * (1 - band)), 2),
             "high": round(value * (1 + band), 2),
-            "vs_avg_pct": round((value - avg) / avg * 100, 1) if avg else None,
+            "vs_avg_pct": round((value - baseline) / baseline * 100, 1) if baseline else None,
             "confidence": _confidence(cv, len(actual)),
             "history": [{"month": m, "value": round(v, 1)} for m, v in points],
         })
@@ -492,6 +510,8 @@ def forecast(orders=None, months=1, today=None):
     return {
         "ready": True,
         "target_months": horizon,
+        "horizon_months": months,
+        "products_index": {p["series_no"]: p["product_name"] for p in product_rows},
         "months_used": all_months,
         "months_available": len(all_months),
         "production_total_forecast": round(total_forecast, 1),

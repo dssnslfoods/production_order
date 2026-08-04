@@ -229,6 +229,31 @@ class TestForecast(unittest.TestCase):
         self.assertFalse(f["ready"])
         self.assertIn("reason", f)
 
+    def test_multi_month_horizon_scales_the_total(self):
+        # Three months of flat demand must forecast three months' worth, not one.
+        one = analytics.forecast(_dataset(), months=1, today=dt.date(2026, 8, 4))
+        three = analytics.forecast(_dataset(), months=3, today=dt.date(2026, 8, 4))
+        self.assertEqual(three["target_months"], ["2026-08", "2026-09", "2026-10"])
+        self.assertAlmostEqual(three["production_total_forecast"],
+                               one["production_total_forecast"] * 3, places=1)
+        m1 = {m["item_no"]: m for m in one["materials"]}["M1"]
+        m3 = {m["item_no"]: m for m in three["materials"]}["M1"]
+        self.assertAlmostEqual(m3["forecast"], m1["forecast"] * 3, places=1)
+
+    def test_multi_month_baseline_is_comparable(self):
+        # vs_avg_pct must compare like with like, or a 3-month horizon would
+        # always look like a 200% surge against a one-month average.
+        f = analytics.forecast(_dataset(), months=3, today=dt.date(2026, 8, 4))
+        m = {x["item_no"]: x for x in f["materials"]}["M1"]
+        self.assertAlmostEqual(m["baseline"], m["avg_monthly"] * 3, places=1)
+        self.assertLess(abs(m["vs_avg_pct"]), 5.0)
+
+    def test_material_reports_which_products_use_it(self):
+        f = analytics.forecast(_dataset(), today=dt.date(2026, 8, 4))
+        m = {x["item_no"]: x for x in f["materials"]}["M1"]
+        self.assertIn("S1", m["used_in"])
+        self.assertEqual(f["products_index"]["S1"], "ขนมปัง")
+
     def test_growing_history_forecasts_upward(self):
         data = []
         for idx, (month, volume) in enumerate(

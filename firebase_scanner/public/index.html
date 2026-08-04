@@ -718,6 +718,44 @@
           </div>
 
           <div id="fcKpi" class="kpi3"></div>
+
+          <div class="ord-filters" style="grid-template-columns:1.6fr .9fr 1.1fr .9fr">
+            <div>
+              <label for="fcSearch">ค้นหาวัตถุดิบ</label>
+              <input type="search" id="fcSearch" placeholder="ชื่อวัตถุดิบ หรือ รหัส" oninput="renderForecast()">
+            </div>
+            <div>
+              <label for="fcConf">ความเชื่อมั่น</label>
+              <select id="fcConf" onchange="renderForecast()">
+                <option value="all">ทั้งหมด</option>
+                <option value="high">เชื่อมั่นสูง</option>
+                <option value="medium">ปานกลาง</option>
+                <option value="low">ผันผวน</option>
+              </select>
+            </div>
+            <div>
+              <label for="fcProduct">ใช้ในผลิตภัณฑ์</label>
+              <select id="fcProduct" onchange="renderForecast()"><option value="all">ทุกผลิตภัณฑ์</option></select>
+            </div>
+            <div>
+              <label for="fcHorizon">ช่วงที่พยากรณ์</label>
+              <select id="fcHorizon" onchange="loadForecast()">
+                <option value="1">1 เดือน</option>
+                <option value="2">2 เดือน</option>
+                <option value="3">3 เดือน</option>
+                <option value="6">6 เดือน</option>
+              </select>
+            </div>
+          </div>
+          <div class="quick-range">
+            <button onclick="fcQuick('all',this)" class="on">ทั้งหมด</button>
+            <button onclick="fcQuick('item',this)">เฉพาะวัตถุดิบ</button>
+            <button onclick="fcQuick('resource',this)">เครื่องจักร/แรงงาน</button>
+            <button onclick="fcQuick('rising',this)">เพิ่มขึ้นจากปกติ</button>
+            <button onclick="fcQuick('risky',this)">ต้องระวัง</button>
+            <span id="fcNote" class="filter-note"></span>
+          </div>
+
           <div id="fcBody"><span class="muted">กำลังคำนวณ…</span></div>
         </div>
 
@@ -1972,13 +2010,27 @@ function sparkline(history){
     + `</div>`;
 }
 
+let fcData = null, fcKind = "all";
+
+const TH_MONTH = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+const monthTH = m => m ? `${TH_MONTH[Number(m.slice(5,7))-1]} ${m.slice(0,4)}` : "";
+
+window.fcQuick = (kind, btn) => {
+  document.querySelectorAll('#page-forecast .quick-range button').forEach(b => b.classList.remove('on'));
+  btn?.classList.add('on');
+  fcKind = kind;
+  renderForecast();
+};
+
 window.loadForecast = async () => {
   const body = $("fcBody"), kpi = $("fcKpi"), prod = $("fcProducts");
   body.innerHTML = '<span class="muted">กำลังคำนวณ…</span>';
   try{
-    const res = await api("/analytics/forecast");
+    const months = $("fcHorizon")?.value || 1;
+    const res = await api("/analytics/forecast?months=" + months);
     const f = await res.json();
     if(!res.ok){ body.innerHTML = `<span class="muted">${esc(f.detail||"คำนวณไม่สำเร็จ")}</span>`; return; }
+    fcData = f;
     if(!f.ready){
       kpi.innerHTML = "";
       body.innerHTML = `<span class="muted">${esc(f.reason || "ข้อมูลยังไม่พอสำหรับการพยากรณ์")}</span>`;
@@ -1986,38 +2038,26 @@ window.loadForecast = async () => {
       return;
     }
 
-    const growth = f.production_total_last_month
-      ? ((f.production_total_forecast - f.production_total_last_month) / f.production_total_last_month * 100) : null;
-    kpi.innerHTML = `
-      <div class="k"><span>เดือนที่พยากรณ์</span><b>${esc(f.target_months.join(", "))}</b></div>
-      <div class="k"><span>ยอดผลิตเดือนล่าสุด</span><b>${fmt(f.production_total_last_month)} <small class="muted" style="font-size:12px">KG</small></b></div>
-      <div class="k"><span>ยอดผลิตที่พยากรณ์</span><b style="color:var(--indigo)">${fmt(f.production_total_forecast)} <small class="muted" style="font-size:12px">KG</small></b>
-        ${growth == null ? "" : `<span class="muted" style="font-size:12px">${growth >= 0 ? "▲" : "▼"} ${Math.abs(growth).toFixed(1)}%</span>`}</div>
-      <div class="k"><span>ข้อมูลที่ใช้</span><b>${f.months_available} <small class="muted" style="font-size:12px">เดือน</small></b></div>`;
+    // product filter options come from the data, so they always match what is shown
+    const sel = $("fcProduct");
+    const keep = sel.value;
+    sel.innerHTML = '<option value="all">ทุกผลิตภัณฑ์</option>' +
+      f.products.map(p => `<option value="${esc(p.series_no)}">${esc(p.product_name)}</option>`).join("");
+    if([...sel.options].some(o => o.value === keep)) sel.value = keep;
 
-    body.innerHTML = `<table class="q-table">
-      <thead><tr><th>วัตถุดิบ</th><th class="num">เฉลี่ย/เดือน</th><th class="num">พยากรณ์</th>
-        <th class="num">ช่วงที่เป็นไปได้</th><th style="width:90px">ย้อนหลัง</th><th>ความเชื่อมั่น</th></tr></thead>
-      <tbody>${f.materials.map(m => `<tr>
-        <td><b>${esc(m.item_description)}</b><div class="muted" style="font-size:11.5px">${esc(m.item_no)}</div></td>
-        <td class="num">${fmt(m.avg_monthly)}</td>
-        <td class="num"><b style="color:var(--indigo)">${fmt(m.forecast)}</b> <span class="muted">${esc(m.unit)}</span>
-          ${m.vs_avg_pct == null ? "" : `<div class="muted" style="font-size:11.5px">${m.vs_avg_pct >= 0 ? "▲" : "▼"} ${Math.abs(m.vs_avg_pct)}%</div>`}</td>
-        <td class="num muted">${fmt(m.low)} – ${fmt(m.high)}</td>
-        <td>${sparkline(m.history)}</td>
-        <td><span class="conf ${m.confidence}">${CONF_TH[m.confidence]}</span></td>
-      </tr>`).join("")}</tbody></table>
-      ${f.excluded_outliers ? `<div class="muted" style="margin-top:10px;font-size:12.5px">
-        ตัดใบที่ยอดผลิตผิดปกติออกจากการคำนวณ ${f.excluded_outliers} ใบ (น่าจะเกิดจาก OCR อ่านตัวเลขผิด)</div>` : ""}
-      <div class="method">
-        <b style="color:var(--text)">วิธีคำนวณ</b> — ระบบไม่ได้ทำนายจากยอดใช้ในอดีตโดยตรง แต่ถอด
-        <b>สูตรการใช้ต่อหน่วยผลิต</b> ของแต่ละสินค้าจากใบเบิกจริง (ใช้ค่ามัธยฐาน จึงไม่เพี้ยนเพราะใบเดียว)
-        แล้วคูณกับยอดผลิตที่พยากรณ์ไว้ของสินค้านั้น ผลลัพธ์จึงขยับตามสัดส่วนสินค้าที่จะผลิตจริง<br>
-        <b style="color:var(--text)">ความเชื่อมั่น</b> — วัดจากความสม่ำเสมอของสูตรและยอดใช้รายเดือน
-        “ผันผวน” หมายถึงยังไม่ควรใช้ตัวเลขนี้สั่งซื้อโดยตรง ควรดูช่วงที่เป็นไปได้ประกอบ<br>
-        <b style="color:var(--text)">ข้อจำกัด</b> — ยังไม่ได้นำยอดสต็อกคงเหลือมาคิด ตัวเลขนี้คือ
-        <i>ปริมาณที่จะใช้</i> ไม่ใช่ <i>ปริมาณที่ต้องสั่งซื้อ</i>
-      </div>`;
+    const span = f.horizon_months > 1
+      ? `${monthTH(f.target_months[0])} – ${monthTH(f.target_months[f.target_months.length-1])}`
+      : monthTH(f.target_months[0]);
+    // Counts of things to act on beat a mixed-product KG total, which sums
+    // unlike goods and tells nobody what to do next.
+    const rising = f.materials.filter(m => m.vs_avg_pct > 10).length;
+    const risky = f.materials.filter(m => m.confidence === "low").length;
+
+    kpi.innerHTML = `
+      <div class="k"><span>ช่วงที่พยากรณ์</span><b>${esc(span)}</b></div>
+      <div class="k"><span>รายการที่ต้องเตรียม</span><b>${f.materials.length} <small class="muted" style="font-size:12px">รายการ</small></b></div>
+      <div class="k"><span>เพิ่มขึ้นจากปกติเกิน 10%</span><b style="color:${rising ? 'var(--amber)' : 'var(--text)'}">${rising} <small class="muted" style="font-size:12px">รายการ</small></b></div>
+      <div class="k"><span>ผันผวน ควรตรวจก่อนสั่ง</span><b style="color:${risky ? 'var(--rose)' : 'var(--text)'}">${risky} <small class="muted" style="font-size:12px">รายการ</small></b></div>`;
 
     prod.innerHTML = `<table class="q-table">
       <thead><tr><th>ผลิตภัณฑ์</th><th class="num">เฉลี่ย/เดือน</th><th class="num">พยากรณ์</th>
@@ -2029,9 +2069,70 @@ window.loadForecast = async () => {
         <td>${sparkline(p.history)}</td>
         <td><span class="conf ${p.confidence}">${CONF_TH[p.confidence]}</span></td>
       </tr>`).join("")}</tbody></table>`;
+
+    renderForecast();
   }catch(e){
     body.innerHTML = '<span class="muted">โหลดไม่สำเร็จ</span>';
   }
+};
+
+window.renderForecast = () => {
+  const f = fcData;
+  if(!f || !f.ready) return;
+  const body = $("fcBody");
+  const q = ($("fcSearch")?.value || "").trim().toLowerCase();
+  const conf = $("fcConf")?.value || "all";
+  const product = $("fcProduct")?.value || "all";
+
+  const rows = f.materials.filter(m => {
+    if(q && !(`${m.item_description} ${m.item_no}`.toLowerCase().includes(q))) return false;
+    if(conf !== "all" && m.confidence !== conf) return false;
+    if(product !== "all" && !(m.used_in && m.used_in[product] != null)) return false;
+    if(fcKind === "item" && m.type !== "Item") return false;
+    if(fcKind === "resource" && m.type !== "Resource") return false;
+    if(fcKind === "rising" && !(m.vs_avg_pct > 10)) return false;
+    if(fcKind === "risky" && m.confidence !== "low") return false;
+    return true;
+  });
+
+  const note = $("fcNote");
+  if(note) note.textContent = rows.length === f.materials.length
+    ? `ทั้งหมด ${f.materials.length} รายการ`
+    : `พบ ${rows.length} จาก ${f.materials.length} รายการ`;
+
+  if(!rows.length){
+    body.innerHTML = '<span class="muted">ไม่มีรายการที่ตรงกับตัวกรอง</span>';
+    return;
+  }
+
+  const productNames = f.products_index || {};
+  body.innerHTML = `<table class="q-table">
+    <thead><tr><th>วัตถุดิบ</th><th class="num">เฉลี่ย/เดือน</th><th class="num">พยากรณ์</th>
+      <th class="num">ช่วงที่เป็นไปได้</th><th style="width:90px">ย้อนหลัง</th><th>ความเชื่อมั่น</th></tr></thead>
+    <tbody>${rows.map(m => `<tr>
+      <td><b>${esc(m.item_description)}</b>
+        <div class="muted" style="font-size:11.5px">${esc(m.item_no)}
+          ${m.type === "Resource" ? ' · <span style="color:var(--amber)">Resource</span>' : ""}
+          ${product !== "all" ? ` · ใช้ในสินค้านี้ ${fmt(m.used_in[product])} ${esc(m.unit)}`
+            : ` · ใช้ใน ${Object.keys(m.used_in||{}).length} ผลิตภัณฑ์`}</div></td>
+      <td class="num">${fmt(m.avg_monthly)}</td>
+      <td class="num"><b style="color:var(--indigo)">${fmt(m.forecast)}</b> <span class="muted">${esc(m.unit)}</span>
+        ${m.vs_avg_pct == null ? "" : `<div class="muted" style="font-size:11.5px">${m.vs_avg_pct >= 0 ? "▲" : "▼"} ${Math.abs(m.vs_avg_pct)}%</div>`}</td>
+      <td class="num muted">${fmt(m.low)} – ${fmt(m.high)}</td>
+      <td>${sparkline(m.history)}</td>
+      <td><span class="conf ${m.confidence}">${CONF_TH[m.confidence]}</span></td>
+    </tr>`).join("")}</tbody></table>
+    ${f.excluded_outliers ? `<div class="muted" style="margin-top:10px;font-size:12.5px">
+      ตัดใบที่ยอดผลิตผิดปกติออกจากการคำนวณ ${f.excluded_outliers} ใบ (น่าจะเกิดจาก OCR อ่านตัวเลขผิด)</div>` : ""}
+    <div class="method">
+      <b style="color:var(--text)">วิธีคำนวณ</b> — ระบบไม่ได้ทำนายจากยอดใช้ในอดีตโดยตรง แต่ถอด
+      <b>สูตรการใช้ต่อหน่วยผลิต</b> ของแต่ละสินค้าจากใบเบิกจริง (ใช้ค่ามัธยฐาน จึงไม่เพี้ยนเพราะใบเดียว)
+      แล้วคูณกับยอดผลิตที่พยากรณ์ไว้ของสินค้านั้น ผลลัพธ์จึงขยับตามสัดส่วนสินค้าที่จะผลิตจริง<br>
+      <b style="color:var(--text)">ความเชื่อมั่น</b> — วัดจากความสม่ำเสมอของสูตรและยอดใช้รายเดือน
+      “ผันผวน” หมายถึงยังไม่ควรใช้ตัวเลขนี้สั่งซื้อโดยตรง ควรดูช่วงที่เป็นไปได้ประกอบ<br>
+      <b style="color:var(--text)">ข้อจำกัด</b> — ยังไม่ได้นำยอดสต็อกคงเหลือมาคิด ตัวเลขนี้คือ
+      <i>ปริมาณที่จะใช้</i> ไม่ใช่ <i>ปริมาณที่ต้องสั่งซื้อ</i>
+    </div>`;
 };
 
 // ---- webcam capture (PC webcam + mobile camera) ----
