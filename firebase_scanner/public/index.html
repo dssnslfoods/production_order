@@ -130,6 +130,9 @@
     opacity:0;transform:translateX(-4px);transition:opacity .14s,transform .14s;
     box-shadow:0 8px 24px rgba(15,23,42,.3)}
   .rail-tip.show{opacity:1;transform:translateX(0)}
+  .rail-tip.below{white-space:normal;max-width:min(300px,80vw);font-weight:400;
+    line-height:1.6;font-size:11.5px}
+  .rail-tip.below b{font-weight:700}
 
   /* ---- content area ---- */
   .main-content{
@@ -520,6 +523,61 @@
     left:auto;right:0;transform:none}
   .ttip:hover::after,.ttip:focus::after{opacity:1;visibility:visible}
 
+  /* ---- settings page ---- */
+  .set-hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-bottom:20px}
+  .set-stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;
+    padding:15px 17px;display:flex;gap:13px;align-items:flex-start;
+    box-shadow:0 1px 2px rgba(15,23,42,.04)}
+  .set-stat .si{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;flex:none}
+  .set-stat .si svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;
+    stroke-linecap:round;stroke-linejoin:round}
+  .set-stat small{font-size:11.5px;color:var(--muted);font-weight:600}
+  .set-stat b{font-size:14.5px;display:block;margin-top:3px;line-height:1.4}
+  .set-stat i{font-style:normal;font-size:11.5px;color:var(--faint);display:block;margin-top:2px}
+
+  .set-two{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+  .set-actions{display:flex;gap:10px;margin-top:14px}
+  .set-actions .btn,.set-actions .ghost{width:auto;flex:1;padding:11px 16px}
+  .set-actions .ghost{flex:none}
+  .set-preview{margin-top:12px;background:var(--surface2);border-radius:10px;
+    padding:10px 13px;font-size:12.5px;color:var(--muted);min-height:20px}
+  .set-steps{margin:8px 0 0;padding-left:20px;font-size:12.5px;color:var(--muted);line-height:2}
+  .set-steps li{padding-left:2px}
+
+  .prov-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+  .prov-card{border:1.5px solid var(--line2);border-radius:14px;padding:15px 16px;
+    cursor:pointer;transition:.18s;background:var(--surface)}
+  .prov-card:hover{border-color:var(--indigo)}
+  .prov-card.on{border-color:var(--indigo);background:rgba(99,102,241,.05);
+    box-shadow:0 0 0 3px rgba(99,102,241,.1)}
+  .prov-head{display:flex;align-items:flex-start;gap:11px}
+  .prov-radio{width:18px;height:18px;border-radius:50%;border:2px solid var(--line2);
+    flex:none;margin-top:2px;display:grid;place-items:center;transition:.18s}
+  .prov-card.on .prov-radio{border-color:var(--indigo)}
+  .prov-card.on .prov-radio::after{content:"";width:9px;height:9px;border-radius:50%;background:var(--indigo)}
+  .prov-name{font-weight:700;font-size:14px}
+  .prov-tag{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .prov-badge{margin-left:auto;font-size:10.5px;font-weight:700;padding:3px 9px;
+    border-radius:999px;white-space:nowrap;flex:none}
+  .prov-badge.ready{background:rgba(16,185,129,.14);color:#059669}
+  .prov-badge.empty{background:rgba(148,163,184,.2);color:var(--muted)}
+  .prov-key{margin-top:13px;display:flex;gap:8px}
+  .prov-key input{font-size:12.5px;padding:9px 11px}
+  .prov-key button{flex:none}
+
+  /* danger zone as a disclosure — rarely used, never undone */
+  details.danger > summary{display:flex;align-items:center;gap:12px;cursor:pointer;
+    list-style:none;padding:2px}
+  details.danger > summary::-webkit-details-marker{display:none}
+  details.danger > summary small{display:block;font-size:12px;color:var(--muted);
+    font-weight:400;margin-top:2px}
+  details.danger > summary::after{content:"▾";margin-left:auto;color:var(--muted);
+    transition:transform .2s}
+  details.danger[open] > summary::after{transform:rotate(180deg)}
+  .dz-body{margin-top:18px;padding-top:18px;border-top:1px solid rgba(239,68,68,.2)}
+
+  @media(max-width:1024px){.set-two{grid-template-columns:1fr}}
+
   .card.panel.danger{border:1px solid rgba(239,68,68,.35);background:rgba(239,68,68,.02)}
   .card.panel.danger .method{background:rgba(239,68,68,.06)}
   .btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
@@ -866,11 +924,11 @@
             </div>
           </div>
           <div class="quick-range">
-            <button onclick="quickRange(7,this)">7 วัน</button>
-            <button onclick="quickRange(30,this)">30 วัน</button>
-            <button onclick="quickRange('this',this)">เดือนนี้</button>
-            <button onclick="quickRange('last',this)">เดือนที่แล้ว</button>
-            <button onclick="quickRange('all',this)">ทั้งหมด</button>
+            <button onclick="quickRange(7,this)" data-hint="ใบสั่งผลิตย้อนหลัง 7 วันนับจากวันนี้ (อ้างอิงวันที่บนเอกสาร)">7 วัน</button>
+            <button onclick="quickRange(30,this)" data-hint="ใบสั่งผลิตย้อนหลัง 30 วันนับจากวันนี้">30 วัน</button>
+            <button onclick="quickRange('this',this)" data-hint="ตั้งแต่วันที่ 1 ของเดือนปัจจุบันถึงวันนี้ — ยังไม่ครบเดือน จึงไม่ควรนำยอดรวมไปเทียบกับเดือนที่จบแล้วโดยตรง">เดือนนี้</button>
+            <button onclick="quickRange('last',this)" data-hint="เดือนก่อนหน้าแบบเต็มเดือน ตั้งแต่วันที่ 1 ถึงวันสุดท้าย">เดือนที่แล้ว</button>
+            <button onclick="quickRange('all',this)" data-hint="ล้างตัวกรองทั้งหมด แสดงทุกใบที่โหลดมาแล้ว">ทั้งหมด</button>
             <span id="filterNote" class="filter-note"></span>
           </div>
           <div id="batchBar" class="batch-bar hidden">
@@ -949,11 +1007,11 @@
             </div>
           </div>
           <div class="quick-range">
-            <button onclick="fcQuick('all',this)" class="on">ทั้งหมด</button>
-            <button onclick="fcQuick('item',this)">เฉพาะวัตถุดิบ</button>
-            <button onclick="fcQuick('resource',this)">เครื่องจักร/แรงงาน</button>
-            <button onclick="fcQuick('rising',this)">เพิ่มขึ้นจากปกติ</button>
-            <button onclick="fcQuick('risky',this)">ต้องระวัง</button>
+            <button onclick="fcQuick('all',this)" class="on" data-hint="แสดงทุกรายการที่ระบบพยากรณ์ให้ ทั้งวัตถุดิบและทรัพยากร">ทั้งหมด</button>
+            <button onclick="fcQuick('item',this)" data-hint="เฉพาะของที่ต้องสั่งซื้อและเก็บในคลัง (Type = Item) ตัดเครื่องจักรและแรงงานออก">เฉพาะวัตถุดิบ</button>
+            <button onclick="fcQuick('resource',this)" data-hint="เฉพาะรายการ Type = Resource หน่วยเป็นชั่วโมง ใช้วางแผนกะและรอบเดินเครื่อง ไม่ใช่ของที่ต้องสั่งซื้อ">เครื่องจักร/แรงงาน</button>
+            <button onclick="fcQuick('rising',this)" data-hint="รายการที่คาดว่าจะใช้มากกว่าค่าเฉลี่ยเดิมเกิน 10% มักเกิดจากยอดผลิตโตขึ้นหรือสัดส่วนสินค้าเปลี่ยน — ควรเตรียมของเพิ่ม">เพิ่มขึ้นจากปกติ</button>
+            <button onclick="fcQuick('risky',this)" data-hint="<b>รายการที่ความเชื่อมั่น = ผันผวน</b><br>การใช้งานที่ผ่านมาไม่สม่ำเสมอเกิน 35% หรือมีข้อมูลน้อยกว่า 3 เดือน ช่วงที่เป็นไปได้จึงกว้างมาก<br><b>อย่าสั่งตามตัวเลขกลางตรง ๆ</b> ให้ดูช่วงที่เป็นไปได้ หรือเช็คแผนการผลิตจริงก่อน">ผันผวน (ต้องระวัง)</button>
             <span id="fcNote" class="filter-note"></span>
           </div>
 
@@ -1109,11 +1167,78 @@
       <!-- ======== PAGE: Settings ======== -->
       <section id="page-settings" class="page-section hidden">
 
-        <div class="panels-grid">
+        <!-- Status strip: the three things an admin actually checks first -->
+        <div class="set-hero">
+          <div class="set-stat">
+            <span class="si" style="background:rgba(251,113,133,.14);color:var(--rose)"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg></span>
+            <div><small>AI ที่ใช้อ่านเอกสาร</small><b id="stAi">—</b><i id="stAiSub"></i></div>
+          </div>
+          <div class="set-stat">
+            <span class="si" style="background:rgba(139,92,246,.14);color:var(--violet)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+            <div><small>สแกนอัตโนมัติ</small><b id="stSched">—</b><i id="stSchedSub"></i></div>
+          </div>
+          <div class="set-stat">
+            <span class="si" style="background:rgba(56,189,248,.14);color:var(--sky)"><svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span>
+            <div><small>Google Drive</small><b id="stDrive">—</b><i id="stDriveSub"></i></div>
+          </div>
+        </div>
 
+        <!-- AI providers -->
+        <div class="card panel">
+          <div class="phead"><span class="pico" style="background:rgba(251,113,133,.16);color:var(--rose)"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg></span>
+            <h2>ผู้ให้บริการ AI</h2></div>
+          <p class="hint" style="margin:-6px 0 16px">เลือกได้หนึ่งราย ใช้ทั้งการอ่านลายมือและการตอบคำถามของน้อง Order</p>
+
+          <select id="provider" class="hidden" onchange="saveProvider()">
+            <option value="claude">Claude (Anthropic)</option>
+            <option value="gemini">Gemini (Google)</option>
+            <option value="openai">GPT (OpenAI)</option>
+          </select>
+
+          <div class="prov-grid">
+            <div class="prov-card" data-p="claude" onclick="pickProvider('claude')">
+              <div class="prov-head">
+                <span class="prov-radio"></span>
+                <div><div class="prov-name">Claude</div><div class="prov-tag">Anthropic · แม่นลายมือไทยที่สุด</div></div>
+                <span class="prov-badge" data-badge="claude"></span>
+              </div>
+              <div class="prov-key" onclick="event.stopPropagation()">
+                <input id="key_claude" type="password" autocomplete="off" placeholder="API Key">
+                <button class="ghost sm" onclick="saveKey('claude')">บันทึก</button>
+              </div>
+            </div>
+            <div class="prov-card" data-p="gemini" onclick="pickProvider('gemini')">
+              <div class="prov-head">
+                <span class="prov-radio"></span>
+                <div><div class="prov-name">Gemini</div><div class="prov-tag">Google · ประหยัดที่สุด</div></div>
+                <span class="prov-badge" data-badge="gemini"></span>
+              </div>
+              <div class="prov-key" onclick="event.stopPropagation()">
+                <input id="key_gemini" type="password" autocomplete="off" placeholder="API Key">
+                <button class="ghost sm" onclick="saveKey('gemini')">บันทึก</button>
+              </div>
+            </div>
+            <div class="prov-card" data-p="openai" onclick="pickProvider('openai')">
+              <div class="prov-head">
+                <span class="prov-radio"></span>
+                <div><div class="prov-name">GPT</div><div class="prov-tag">OpenAI · ทางเลือกสำรอง</div></div>
+                <span class="prov-badge" data-badge="openai"></span>
+              </div>
+              <div class="prov-key" onclick="event.stopPropagation()">
+                <input id="key_openai" type="password" autocomplete="off" placeholder="API Key">
+                <button class="ghost sm" onclick="saveKey('openai')">บันทึก</button>
+              </div>
+            </div>
+          </div>
+          <p id="keyState" class="hint" style="margin-top:14px"></p>
+          <p class="hint">คีย์เก็บฝั่งเซิร์ฟเวอร์ ไม่แสดงเต็ม — เว้นช่องว่างไว้หมายถึงไม่เปลี่ยนคีย์เดิม</p>
+        </div>
+
+        <div class="set-two">
           <!-- schedule -->
           <div class="card panel">
             <div class="phead"><span class="pico" style="background:rgba(192,132,252,.16);color:var(--violet)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span><h2>ตั้งเวลาสแกนอัตโนมัติ</h2></div>
+
             <label>รูปแบบ</label>
             <select id="schedMode" onchange="schedModeChange()">
               <option value="interval">ทุกๆ N ชั่วโมง</option>
@@ -1133,83 +1258,73 @@
               <label>ชั่วโมงที่ให้สแกน (คั่นด้วย , เช่น 8,13,17)</label>
               <input id="dailyHours" placeholder="8,13,17" oninput="schedPreview()">
             </div>
-            <div id="schedPreviewText" class="hint"></div>
-            <div class="row mt" style="gap:8px">
-              <button class="btn" style="flex:1" onclick="saveSchedule()">บันทึกเวลา</button>
+            <div id="schedPreviewText" class="set-preview"></div>
+            <div class="set-actions">
+              <button class="btn" onclick="saveSchedule()">บันทึกเวลา</button>
               <button class="ghost" id="resetSchedBtn" onclick="resetSchedule()" title="เริ่มนับเวลาใหม่">Reset</button>
             </div>
           </div>
 
-          <!-- Google Drive folder -->
+          <!-- Google Drive -->
           <div class="card panel">
             <div class="phead"><span class="pico" style="background:rgba(56,189,248,.16);color:var(--sky)"><svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span><h2>โฟลเดอร์ Google Drive</h2></div>
-            <label>ลิงก์/ID โฟลเดอร์ที่ให้ระบบดึงไฟล์</label>
+
+            <label>ลิงก์หรือ ID โฟลเดอร์ที่ให้ระบบดึงไฟล์</label>
             <input id="driveFolder" placeholder="วางลิงก์โฟลเดอร์ Google Drive">
-            <button class="btn mt" onclick="saveDrive()">บันทึกโฟลเดอร์</button>
-            <button class="ghost mt" onclick="drivePull()">ดึงจาก Drive ตอนนี้</button>
+            <div class="set-actions">
+              <button class="btn" onclick="saveDrive()">บันทึกโฟลเดอร์</button>
+              <button class="ghost" onclick="drivePull()">ดึงตอนนี้</button>
+            </div>
             <div id="driveResult" class="hint"></div>
+
             <div class="divider"></div>
             <label>วิธีตั้งค่า</label>
-            <p class="hint" style="margin-top:0">1) สร้างโฟลเดอร์ใน Google Drive<br>2) แชร์ให้อีเมลนี้ (สิทธิ์ <b>Editor</b>):</p>
-            <div class="krow"><input id="driveSA" readonly style="font-size:11.5px"><button class="ghost sm" onclick="copySA()">คัดลอก</button></div>
-            <p class="hint">3) วางลิงก์โฟลเดอร์ด้านบน → บันทึก</p>
-            <p class="hint">ระบบดึงไฟล์ใหม่จากโฟลเดอร์นี้เข้าคิวอัตโนมัติทุกรอบสแกน แล้วย้ายไฟล์ที่ดึงแล้วไปโฟลเดอร์ย่อย "scanned"</p>
+            <ol class="set-steps">
+              <li>สร้างโฟลเดอร์ใน Google Drive</li>
+              <li>แชร์โฟลเดอร์ให้อีเมลนี้ ด้วยสิทธิ์ <b>Editor</b>
+                <div class="krow" style="margin-top:8px"><input id="driveSA" readonly style="font-size:11.5px"><button class="ghost sm" onclick="copySA()">คัดลอก</button></div>
+              </li>
+              <li>วางลิงก์โฟลเดอร์ในช่องด้านบน แล้วกดบันทึก</li>
+            </ol>
+            <p class="hint">ระบบดึงไฟล์ใหม่เข้าคิวอัตโนมัติทุกรอบสแกน แล้วย้ายไฟล์ที่ดึงแล้วไปโฟลเดอร์ย่อย “scanned”</p>
           </div>
+        </div>
 
-          <!-- AI -->
-          <div class="card panel" style="grid-column:span 2">
-            <div class="phead"><span class="pico" style="background:rgba(251,113,133,.16);color:var(--rose)"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg></span><h2>ตั้งค่า AI</h2></div>
-            <div class="two">
+        <!-- danger zone: collapsed, because it is rarely used and never undone -->
+        <details id="dangerZone" class="card panel danger hidden">
+          <summary>
+            <span class="pico" style="background:rgba(239,68,68,.14);color:var(--red)"><svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+            <span><b style="color:var(--red)">ล้างข้อมูลเพื่อเริ่มระบบใหม่</b>
+              <small>ใช้ตอนเปลี่ยนจากช่วงทดสอบไปใช้งานจริง · กดเพื่อเปิด</small></span>
+          </summary>
+
+          <div class="dz-body">
+            <div class="warn" style="margin-top:0">
+              <b>การลบไม่สามารถย้อนกลับได้</b> และไม่มีการสำรองข้อมูลอัตโนมัติ —
+              หากต้องการเก็บข้อมูลเดิมไว้ ให้ Export เป็น Excel ก่อน<br>
+              ผู้ใช้งาน สิทธิ์ และการตั้งค่าจะไม่ถูกลบ จึงไม่มีใครหลุดออกจากระบบ
+            </div>
+
+            <div class="set-two" style="margin-top:16px">
               <div>
-                <label>ผู้ให้บริการที่ใช้งาน (อ่านลายมือ)</label>
-                <select id="provider" onchange="saveProvider()">
-                  <option value="claude">Claude (Anthropic)</option>
-                  <option value="gemini">Gemini (Google)</option>
-                  <option value="openai">GPT (OpenAI)</option>
+                <label>ขอบเขตการลบ</label>
+                <select id="flushScope" onchange="loadFlushPreview()">
+                  <option value="mock">เฉพาะข้อมูลทดสอบ (ที่ระบบสร้างให้)</option>
+                  <option value="all">ทั้งหมด — ใบสั่งผลิต คิว และรูปภาพ</option>
                 </select>
-                <p id="keyState" class="hint"></p>
+                <label class="l-confirm" style="display:flex;align-items:center;gap:8px;margin-top:12px;cursor:pointer;font-size:13px">
+                  <input type="checkbox" id="flushActivity" onchange="loadFlushPreview()"> ล้างประวัติการใช้งานด้วย
+                </label>
+                <label style="margin-top:14px">พิมพ์คำว่า <b style="color:var(--red)">ล้างข้อมูล</b> เพื่อยืนยัน</label>
+                <input id="flushConfirm" placeholder="ล้างข้อมูล" autocomplete="off" oninput="flushGate()">
+                <button id="flushBtn" class="btn mt" style="background:var(--red);box-shadow:none" disabled onclick="doFlush()">
+                  ล้างข้อมูลถาวร
+                </button>
               </div>
-              <div>
-                <label>API Keys (สำหรับผู้ดูแล)</label>
-                <div class="krow"><span class="kname">Claude</span><input id="key_claude" type="password" autocomplete="off"><button class="ghost sm" onclick="saveKey('claude')">บันทึก</button></div>
-                <div class="krow"><span class="kname">Gemini</span><input id="key_gemini" type="password" autocomplete="off"><button class="ghost sm" onclick="saveKey('gemini')">บันทึก</button></div>
-                <div class="krow"><span class="kname">GPT</span><input id="key_openai" type="password" autocomplete="off"><button class="ghost sm" onclick="saveKey('openai')">บันทึก</button></div>
-                <p class="hint">เก็บฝั่งเซิร์ฟเวอร์ ไม่แสดงคีย์เต็ม</p>
-              </div>
+              <div id="flushPreview" class="method" style="margin:0">กำลังตรวจสอบ…</div>
             </div>
           </div>
-
-        </div>
-
-        <!-- danger zone -->
-        <div id="dangerZone" class="card panel danger hidden">
-          <div class="phead"><span class="pico" style="background:rgba(239,68,68,.14);color:var(--red)"><svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span><h2 style="color:var(--red)">ล้างข้อมูลเพื่อเริ่มระบบใหม่</h2></div>
-
-          <p class="hint" style="margin-bottom:16px;line-height:1.8">
-            ใช้ตอนเปลี่ยนจากช่วงทดสอบไปใช้งานจริง <b>การลบไม่สามารถย้อนกลับได้</b>
-            และไม่มีการสำรองข้อมูลอัตโนมัติ — หากต้องการเก็บข้อมูลเดิมไว้
-            ให้ Export เป็น Excel ก่อน<br>
-            <b>ผู้ใช้งาน สิทธิ์ และการตั้งค่าจะไม่ถูกลบ</b> จึงไม่หลุดออกจากระบบ
-          </p>
-
-          <label>ขอบเขตการลบ</label>
-          <select id="flushScope" onchange="loadFlushPreview()">
-            <option value="mock">เฉพาะข้อมูลทดสอบ (ที่ระบบสร้างให้)</option>
-            <option value="all">ทั้งหมด — ใบสั่งผลิต คิว และรูปภาพ</option>
-          </select>
-
-          <label class="l-confirm" style="display:flex;align-items:center;gap:8px;margin-top:12px;cursor:pointer;font-size:13px">
-            <input type="checkbox" id="flushActivity" onchange="loadFlushPreview()"> ล้างประวัติการใช้งานด้วย
-          </label>
-
-          <div id="flushPreview" class="method" style="margin-top:14px">กำลังตรวจสอบ…</div>
-
-          <label style="margin-top:14px">พิมพ์คำว่า <b style="color:var(--red)">ล้างข้อมูล</b> เพื่อยืนยัน</label>
-          <input id="flushConfirm" placeholder="ล้างข้อมูล" autocomplete="off" oninput="flushGate()">
-          <button id="flushBtn" class="btn mt" style="background:var(--red);box-shadow:none" disabled onclick="doFlush()">
-            ล้างข้อมูลถาวร
-          </button>
-        </div>
+        </details>
 
       </section>
 
@@ -1683,11 +1798,41 @@
               <li><b>ค้นหา</b> ชื่อวัตถุดิบหรือรหัส</li>
               <li><b>ความเชื่อมั่น</b> เชื่อมั่นสูง / ปานกลาง / ผันผวน</li>
               <li><b>ใช้ในผลิตภัณฑ์</b> — เลือกสินค้า แล้วดูว่าวัตถุดิบแต่ละตัวถูกใช้กับสินค้านั้นเท่าไหร่</li>
-              <li><b>ปุ่มลัด</b> — เฉพาะวัตถุดิบ / เครื่องจักร-แรงงาน / เพิ่มขึ้นจากปกติ / ต้องระวัง</li>
             </ul>
+            <table class="m-table">
+              <thead><tr><th style="width:190px">ปุ่มลัด</th><th>กรองอะไร และใช้ตอนไหน</th></tr></thead>
+              <tbody>
+                <tr><td><b>ทั้งหมด</b></td><td>ทุกรายการที่ระบบพยากรณ์ให้</td></tr>
+                <tr><td><b>เฉพาะวัตถุดิบ</b></td><td>เฉพาะของที่ต้องสั่งซื้อและเก็บในคลัง (Type = Item) — ใช้ตอนทำใบสั่งซื้อ</td></tr>
+                <tr><td><b>เครื่องจักร/แรงงาน</b></td><td>เฉพาะ Type = Resource หน่วยชั่วโมง — ใช้ตอนจัดกะและวางรอบเดินเครื่อง</td></tr>
+                <tr><td><b>เพิ่มขึ้นจากปกติ</b></td><td>รายการที่จะใช้มากกว่าค่าเฉลี่ยเดิมเกิน 10% — ต้องเตรียมของเพิ่ม</td></tr>
+                <tr><td><b>ผันผวน (ต้องระวัง)</b></td><td>รายการที่ความเชื่อมั่นอยู่ระดับ <b>ผันผวน</b> — ห้ามสั่งตามตัวเลขกลางตรง ๆ</td></tr>
+              </tbody>
+            </table>
+
+            <h4 style="margin:16px 0 8px;font-size:14px">10.3 "ผันผวน" หมายถึงอะไร</h4>
+            <p>ระบบวัดความไม่สม่ำเสมอ 2 ด้าน แล้วใช้ค่าที่แย่กว่าเป็นตัวตัดสิน:</p>
+            <ul class="m-list">
+              <li><b>สูตรไม่คงที่</b> — อัตราการใช้ต่อหน่วยผลิตของแต่ละใบต่างกันมาก</li>
+              <li><b>ยอดรายเดือนแกว่ง</b> — เดือนหนึ่งใช้น้อย อีกเดือนใช้มาก</li>
+            </ul>
+            <table class="m-table">
+              <tbody>
+                <tr><td style="width:190px">แกว่ง ≤ 15%</td><td><span class="m-badge" style="background:rgba(16,185,129,.12);color:var(--emerald)">เชื่อมั่นสูง</span></td></tr>
+                <tr><td>แกว่ง ≤ 35%</td><td><span class="m-badge" style="background:rgba(245,158,11,.14);color:var(--amber)">ปานกลาง</span></td></tr>
+                <tr><td>แกว่ง &gt; 35% หรือมีข้อมูลไม่ถึง 3 เดือน</td><td><span class="m-badge" style="background:rgba(148,163,184,.2);color:var(--muted)">ผันผวน</span></td></tr>
+              </tbody>
+            </table>
+            <div class="m-note">
+              ตัวอย่าง: <b>ครีมวานิลลา</b> พยากรณ์ 1,445 KG แต่ช่วงที่เป็นไปได้คือ 445–2,446 KG
+              เพราะถูกใช้ในสินค้าตัวเดียว พอสัดส่วนการผลิตสินค้านั้นขยับ ความต้องการก็เหวี่ยงตามทันที<br>
+              ต่างจาก<b>แป้งสาลี</b>ที่ใช้ในทุกสินค้า ความผันผวนของแต่ละตัวหักล้างกัน ตัวเลขจึงนิ่งกว่า<br>
+              <b style="color:var(--text)">แนะนำให้กดปุ่ม "ผันผวน (ต้องระวัง)" ทุกครั้งก่อนสั่งซื้อ</b>
+              รายการที่ขึ้นมาคือกลุ่มที่ต้องดูช่วงที่เป็นไปได้ประกอบ หรือเช็คแผนการผลิตจริงก่อน
+            </div>
             <p class="m-hint">การ์ดตัวเลขด้านบนกดได้ — กดแล้วกรองตารางให้เหลือเฉพาะรายการนั้นทันที</p>
 
-            <h4 style="margin:16px 0 8px;font-size:14px">10.3 ส่วนต่าง ๆ ในหน้านี้</h4>
+            <h4 style="margin:16px 0 8px;font-size:14px">10.4 ส่วนต่าง ๆ ในหน้านี้</h4>
             <table class="m-table">
               <thead><tr><th style="width:210px">ส่วน</th><th>ใช้ทำอะไร</th></tr></thead>
               <tbody>
@@ -1699,7 +1844,7 @@
               </tbody>
             </table>
 
-            <h4 style="margin:16px 0 8px;font-size:14px">10.4 ความเชื่อมั่นและข้อจำกัด</h4>
+            <h4 style="margin:16px 0 8px;font-size:14px">10.5 ความเชื่อมั่นและข้อจำกัด</h4>
             <table class="m-table">
               <tbody>
                 <tr><td style="width:150px"><span class="m-badge" style="background:rgba(16,185,129,.12);color:var(--emerald)">เชื่อมั่นสูง</span></td><td>ใช้ตัวเลขวางแผนสั่งซื้อได้เลย</td></tr>
@@ -1804,7 +1949,11 @@
               <li>ระบบดึงไฟล์ใหม่เข้าคิวอัตโนมัติ แล้วย้ายไฟล์ที่ดึงแล้วไปโฟลเดอร์ย่อย "scanned"</li>
             </ol>
 
+            <p class="m-hint">ด้านบนสุดของหน้ามีแถบสรุปสถานะ 3 ช่อง — AI ที่ใช้อยู่ · สแกนอัตโนมัติ · Google Drive
+              ดูได้ทันทีว่าอะไรพร้อมและอะไรยังไม่ได้ตั้งค่า</p>
+
             <h4 style="margin:16px 0 8px;font-size:14px">13.3 ตั้งค่า AI</h4>
+            <p>เลือกผู้ให้บริการโดยกดที่การ์ด แต่ละการ์ดมีช่องใส่ API Key ของตัวเองและป้ายบอกว่ามีคีย์แล้วหรือยัง</p>
             <table class="m-table">
               <tbody>
                 <tr><td style="width:180px"><b>Claude (Anthropic)</b></td><td>แม่นยำสูง เหมาะกับลายมือภาษาไทย</td></tr>
@@ -1816,7 +1965,8 @@
             <p class="m-hint">ผู้ให้บริการที่เลือกไว้จะถูกใช้ทั้งการสแกนเอกสารและการตอบคำถามของน้อง Order</p>
 
             <h4 style="margin:16px 0 8px;font-size:14px">13.4 ล้างข้อมูลเพื่อเริ่มระบบใหม่</h4>
-            <p>อยู่ในโซนสีแดงล่างสุดของหน้าตั้งค่า ใช้ตอนเปลี่ยนจากช่วงทดสอบไปใช้งานจริง</p>
+            <p>อยู่ในแถบสีแดงล่างสุดของหน้าตั้งค่า <b>กดที่แถบเพื่อเปิด</b> (ปิดไว้เป็นค่าเริ่มต้น
+              เพราะใช้นาน ๆ ครั้งและย้อนกลับไม่ได้) ใช้ตอนเปลี่ยนจากช่วงทดสอบไปใช้งานจริง</p>
             <ol class="m-list" style="padding-left:20px">
               <li>เลือกขอบเขต — <b>เฉพาะข้อมูลทดสอบ</b> (ที่ระบบสร้างให้) หรือ <b>ทั้งหมด</b></li>
               <li>เลือกว่าจะล้างประวัติการใช้งานด้วยหรือไม่</li>
@@ -2043,6 +2193,26 @@ function initRailTips(){
     railTip.classList.add("show");
   });
   bar.addEventListener("mouseleave", () => railTip.classList.remove("show"));
+
+  // Same tooltip, reused for any control that needs a sentence rather than a
+  // label — filter pills, mostly, where an inline "i" icon would crowd the row.
+  document.addEventListener("mouseover", e => {
+    const el = e.target.closest("[data-hint]");
+    if(!el) return;
+    const r = el.getBoundingClientRect();
+    railTip.innerHTML = el.dataset.hint;
+    railTip.classList.add("below");
+    railTip.style.transform = "none";
+    railTip.style.top = (r.bottom + 8) + "px";
+    railTip.style.left = Math.min(r.left, window.innerWidth - 320) + "px";
+    railTip.classList.add("show");
+  });
+  document.addEventListener("mouseout", e => {
+    if(e.target.closest("[data-hint]")){
+      railTip.classList.remove("show");
+      railTip.classList.remove("below");
+    }
+  });
 }
 
 function initNavMini(){
@@ -2178,8 +2348,57 @@ window.loadConfig = async () => {
     });
     if($("driveFolder")) $("driveFolder").value = c.drive_folder_id||"";
     if($("driveSA")) $("driveSA").value = c.drive_sa_email||"";
+    paintProviders(c.provider, c.keys_configured);
+    paintSettingsHero(c);
   }catch(e){}
 };
+window.pickProvider = (p) => {
+  const sel = $("provider");
+  if(!sel || sel.value === p) return;
+  sel.value = p;
+  paintProviders(p);
+  saveProvider();
+};
+
+function paintProviders(active, keys){
+  document.querySelectorAll(".prov-card").forEach(c => {
+    const p = c.dataset.p;
+    c.classList.toggle("on", p === active);
+    const badge = c.querySelector("[data-badge]");
+    if(badge && keys){
+      const ok = !!keys[p];
+      badge.textContent = ok ? "มีคีย์แล้ว" : "ยังไม่มีคีย์";
+      badge.className = "prov-badge " + (ok ? "ready" : "empty");
+    }
+  });
+}
+
+const PROVIDER_LABEL = {claude:"Claude", gemini:"Gemini", openai:"GPT"};
+
+function paintSettingsHero(c){
+  if(!$("stAi")) return;
+  const ok = c.keys_configured ? c.keys_configured[c.provider] : false;
+  $("stAi").textContent = PROVIDER_LABEL[c.provider] || c.provider || "—";
+  $("stAi").style.color = ok ? "" : "var(--amber)";
+  $("stAiSub").textContent = ok ? "พร้อมใช้งาน" : "ยังไม่ได้ตั้ง API Key";
+
+  const folder = c.drive_folder_id || "";
+  $("stDrive").textContent = folder ? "เชื่อมต่อแล้ว" : "ยังไม่ได้ตั้งค่า";
+  $("stDrive").style.color = folder ? "" : "var(--muted)";
+  $("stDriveSub").textContent = folder ? "ดึงไฟล์อัตโนมัติทุกรอบสแกน" : "ข้ามได้ถ้าอัปโหลดเอง";
+}
+
+// The schedule card owns the wording; the hero just mirrors it.
+window.paintScheduleHero = () => {
+  const el = $("stSched");
+  if(!el) return;
+  const mode = $("schedMode") ? $("schedMode").value : "off";
+  const txt = ($("schedPreviewText")?.textContent || "").replace(/^[^ก-๙A-Za-z]+/, "").trim();
+  el.textContent = mode === "off" ? "ปิดอยู่" : (txt || "เปิดอยู่");
+  el.style.color = mode === "off" ? "var(--muted)" : "";
+  $("stSchedSub").textContent = mode === "off" ? "สแกนด้วยปุ่มเท่านั้น" : "ทำงานตามเวลาที่ตั้งไว้";
+};
+
 window.saveDrive = async () => {
   const r = await api("/config", {method:"POST", headers:{"Content-Type":"application/json"},
     body: JSON.stringify({drive_folder_id: $("driveFolder").value.trim()})});
@@ -2886,7 +3105,7 @@ window.loadForecast = async () => {
       <div class="k tap" data-kind="rising" onclick="fcFromKpi('rising')"><span>เพิ่มขึ้นจากปกติเกิน 10%<i class="ttip" tabindex="0" data-tip="รายการที่คาดว่าจะใช้มากกว่าค่าเฉลี่ยเดิมเกิน 10% มักเกิดจากยอดผลิตโตขึ้นหรือสัดส่วนสินค้าเปลี่ยน กดเพื่อดูว่ามีตัวไหนบ้าง">i</i></span>
         <b style="color:${rising ? 'var(--amber)' : 'var(--text)'}">${rising} <small class="muted" style="font-size:12px">รายการ</small></b>
         <span class="hint">${rising ? "ดูว่ามีตัวไหนบ้าง →" : "ไม่มีรายการ"}</span></div>
-      <div class="k tap" data-kind="risky" onclick="fcFromKpi('risky')"><span>ผันผวน ควรตรวจก่อนสั่ง<i class="ttip" tabindex="0" data-tip="รายการที่การใช้งานที่ผ่านมาไม่สม่ำเสมอ ค่าพยากรณ์จึงมีช่วงกว้าง ไม่ควรใช้ตัวเลขกลางสั่งของโดยตรง ควรดูช่วงที่เป็นไปได้ประกอบ">i</i></span>
+      <div class="k tap" data-kind="risky" onclick="fcFromKpi('risky')"><span>ผันผวน (ต้องระวัง)<i class="ttip" tabindex="0" data-tip="รายการที่การใช้งานที่ผ่านมาไม่สม่ำเสมอ ค่าพยากรณ์จึงมีช่วงกว้าง ไม่ควรใช้ตัวเลขกลางสั่งของโดยตรง ควรดูช่วงที่เป็นไปได้ประกอบ">i</i></span>
         <b style="color:${risky ? 'var(--rose)' : 'var(--text)'}">${risky} <small class="muted" style="font-size:12px">รายการ</small></b>
         <span class="hint">${risky ? "ดูว่ามีตัวไหนบ้าง →" : "ไม่มีรายการ"}</span></div>`;
 
@@ -3932,16 +4151,16 @@ function buildCron(){
 window.schedPreview = () => {
   const m = $("schedMode").value;
   if(m==="off"){
-    $("schedPreviewText").textContent = "⏸ สแกนอัตโนมัติปิดอยู่";
+    $("schedPreviewText").textContent = "⏸ สแกนอัตโนมัติปิดอยู่"; paintScheduleHero();
     return;
   }
   const c = buildCron();
   if(m==="daily"){
-    $("schedPreviewText").textContent = c ? "✓ สแกนทุกวันเวลา "+$("dailyHours").value+" น." : "⚠️ ระบุชั่วโมง เช่น 8,13,17";
+    $("schedPreviewText").textContent = c ? "✓ สแกนทุกวันเวลา "+$("dailyHours").value+" น." : "⚠️ ระบุชั่วโมง เช่น 8,13,17"; paintScheduleHero();
   } else if(m==="minutes"){
-    $("schedPreviewText").textContent = "✓ สแกนทุกๆ "+(parseInt($("intervalMins").value)||5)+" นาที (โหมดทดสอบ)";
+    $("schedPreviewText").textContent = "✓ สแกนทุกๆ "+(parseInt($("intervalMins").value)||5)+" นาที (โหมดทดสอบ)"; paintScheduleHero();
   } else {
-    $("schedPreviewText").textContent = "✓ สแกนทุกๆ "+(parseInt($("intervalHours").value)||3)+" ชั่วโมง";
+    $("schedPreviewText").textContent = "✓ สแกนทุกๆ "+(parseInt($("intervalHours").value)||3)+" ชั่วโมง"; paintScheduleHero();
   }
 };
 function cronIntervalMs(){
