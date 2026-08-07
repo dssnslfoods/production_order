@@ -297,3 +297,39 @@ class TestPermissionMigration:
             perms = store.get_permissions()
         for must in ("dashboard", "users", "settings"):
             assert must in perms["admin"]
+
+
+# ---------------------------------------------------------------------------
+# Review flags: a scan that lost a column must not pass as complete
+# ---------------------------------------------------------------------------
+class TestReviewReasons:
+    def _lines(self, plan=1.5, unit="KG"):
+        return [{"item_no": "M1", "quantity": 3, "plan": plan, "unit": unit}
+                for _ in range(3)]
+
+    def test_complete_scan_has_no_reasons(self):
+        assert store._review_reasons({
+            "plan_total": 23400, "actual_total": 23393, "lines": self._lines()}) == []
+
+    def test_missing_header_totals_are_flagged(self):
+        reasons = store._review_reasons({
+            "plan_total": None, "actual_total": None, "lines": self._lines()})
+        assert any("ยอดผลิต Plan" in r for r in reasons)
+        assert any("ยอดผลิตจริง" in r for r in reasons)
+
+    def test_whole_column_missing_is_flagged(self):
+        # This is the signature of a crop that cut the right-hand columns away.
+        reasons = store._review_reasons({
+            "plan_total": 23400, "actual_total": 23393,
+            "lines": self._lines(plan=None, unit=None)})
+        assert any("ปริมาณที่ต้องใช้" in r for r in reasons)
+        assert any("หน่วย" in r for r in reasons)
+
+    def test_one_blank_line_is_not_a_missing_column(self):
+        lines = self._lines()
+        lines[0]["plan"] = None
+        assert store._review_reasons({
+            "plan_total": 1, "actual_total": 1, "lines": lines}) == []
+
+    def test_no_lines_means_nothing_to_judge(self):
+        assert store._review_reasons({"plan_total": None, "lines": []}) == []

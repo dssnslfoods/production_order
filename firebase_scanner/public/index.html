@@ -1044,6 +1044,7 @@
                 <option value="draft">Draft</option>
                 <option value="approved">อนุมัติแล้ว</option>
                 <option value="not_exported">อนุมัติแล้ว · ยังไม่ส่ง SAP</option>
+                <option value="needs_review">ต้องตรวจสอบ (ข้อมูลอาจไม่ครบ)</option>
               </select>
             </div>
             <div>
@@ -1419,6 +1420,21 @@
               <li>วางลิงก์โฟลเดอร์ในช่องด้านบน แล้วกดบันทึก</li>
             </ol>
             <p class="hint">ระบบดึงไฟล์ใหม่เข้าคิวอัตโนมัติทุกรอบสแกน แล้วย้ายไฟล์ที่ดึงแล้วไปโฟลเดอร์ย่อย “scanned”</p>
+          </div>
+        </div>
+
+        <div class="card panel">
+          <div class="phead"><span class="pico" style="background:rgba(245,158,11,.16);color:var(--amber)"><svg viewBox="0 0 24 24"><path d="M6.13 1 6 16a2 2 0 0 0 2 2h15"/><path d="M1 6.13 16 6a2 2 0 0 1 2 2v15"/></svg></span><h2>ตัดภาพอัตโนมัติที่เส้นปะ</h2></div>
+          <label class="l-confirm" style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13.5px;line-height:1.7">
+            <input type="checkbox" id="autoCrop" onchange="saveAutoCrop()" style="margin-top:3px">
+            <span>เปิดการตัดภาพที่เส้นปะก่อนส่งให้ AI<br>
+              <span class="muted" style="font-size:12.5px">ลดค่า AI ต่อใบ แต่ถ้าตัดผิดตำแหน่งจะทำให้ข้อมูลบางคอลัมน์หายโดยไม่มีการแจ้งเตือน</span></span>
+          </label>
+          <div class="method">
+            <b style="color:var(--text)">แนะนำให้ปิดไว้</b> — ระบบจะส่งภาพทั้งหน้าให้ AI อ่าน ได้ข้อมูลครบทุกคอลัมน์แน่นอน<br>
+            หากเปิด ระบบจะตัดเฉพาะเมื่อพบเส้นปะที่ขอบขวาจริง ๆ (ขีดสั้นเท่ากันและเว้นระยะสม่ำเสมอ)
+            และ<b style="color:var(--text)">จะไม่ตัดถ้าต้องตัดเนื้อหาทิ้งเกิน 15% ของความกว้าง</b>
+            พร้อมเก็บภาพที่ AI เห็นจริงไว้ให้ตรวจสอบย้อนหลังได้
           </div>
         </div>
 
@@ -2515,6 +2531,7 @@ window.loadConfig = async () => {
     });
     if($("driveFolder")) $("driveFolder").value = c.drive_folder_id||"";
     if($("driveSA")) $("driveSA").value = c.drive_sa_email||"";
+    if($("autoCrop")) $("autoCrop").checked = !!c.auto_crop;
     paintProviders(c.provider, c.keys_configured);
     paintSettingsHero(c);
   }catch(e){}
@@ -2564,6 +2581,13 @@ window.paintScheduleHero = () => {
   el.textContent = mode === "off" ? "ปิดอยู่" : (txt || "เปิดอยู่");
   el.style.color = mode === "off" ? "var(--muted)" : "";
   $("stSchedSub").textContent = mode === "off" ? "สแกนด้วยปุ่มเท่านั้น" : "ทำงานตามเวลาที่ตั้งไว้";
+};
+
+window.saveAutoCrop = async () => {
+  const on = $("autoCrop").checked;
+  const r = await api("/config", {method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({auto_crop: on})});
+  toast(r.ok ? (on ? "เปิดการตัดภาพอัตโนมัติแล้ว" : "ปิดการตัดภาพอัตโนมัติแล้ว") : "บันทึกไม่สำเร็จ");
 };
 
 window.saveDrive = async () => {
@@ -2713,6 +2737,9 @@ function renderOrderRow(o){
     const clr = diff>0.10 ? "color:#ef4444" : "color:#16a34a";
     planTag = ` · <span style="${clr};font-weight:500">${pct}%</span>`;
   }
+  const reviewBadge = o.needs_review
+    ? `<span class="pill" style="font-size:10px;padding:2px 7px;background:rgba(239,68,68,.14);color:var(--red)" title="${esc((o.review_reasons||[]).join(" · "))}">ต้องตรวจสอบ</span>`
+    : '';
   const sapBadge = o.exported_at
     ? '<span class="pill" style="font-size:10px;padding:2px 7px;background:rgba(14,165,233,.14);color:#0284c7" title="อยู่ในไฟล์ Export แล้ว">SAP ✓</span>'
     : approved
@@ -2720,7 +2747,7 @@ function renderOrderRow(o){
       : '';
   const borderClr = approved ? 'var(--emerald)' : isDraft ? 'var(--indigo)' : 'var(--amber)';
   const chk = hasPerm("delete") ? `<input type="checkbox" class="o-check" data-oid="${o.id}" data-label="${po.replace(/"/g,'')}" onchange="updateBatchBar()">` : '';
-  return `<div class="order orow" style="border-left-color:${borderClr}">${chk}<div class="obody"><b>${po} ${statusBadge} ${sapBadge} <span class="muted" style="font-weight:400">${dt?' · '+dt:''} ${o.product_name?' · '+o.product_name:''}</span></b>
+  return `<div class="order orow" style="border-left-color:${borderClr}">${chk}<div class="obody"><b>${po} ${statusBadge} ${reviewBadge} ${sapBadge} <span class="muted" style="font-weight:400">${dt?' · '+dt:''} ${o.product_name?' · '+o.product_name:''}</span></b>
     <div class="meta">${o.scanned_at ? o.scanned_at.slice(0,16).replace("T"," ") : ""}
     · ${(o.lines||[]).length} รายการ${planTag}${o.approved_by?' · อนุมัติโดย '+o.approved_by:''}</div></div>
     <button class="del" title="${approved?'ดู':'แก้ไข'}" onclick="openEdit('${o.id}')">${approved?'⌕':'✎'}</button>
@@ -2807,6 +2834,8 @@ window.applyOrderFilters = () => {
   const filtered = allOrders.filter(o => {
     if(status === "not_exported"){
       if(o.status !== "approved" || o.exported_at) return false;
+    } else if(status === "needs_review"){
+      if(!o.needs_review) return false;
     } else if(status !== "all"){
       const isDraft = o.edited && o.status !== "approved";
       if(status === "draft" ? !isDraft : (o.status !== status || isDraft)) return false;

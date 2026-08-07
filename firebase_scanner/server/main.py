@@ -111,9 +111,25 @@ def _masked_config(user_email=None):
         "keys_configured": {p: bool(_api_key(p)) for p in _ENV_KEY},
         "keys_masked": {p: masked(p) for p in _ENV_KEY},
         "drive_folder_id": s.get("drive_folder_id", ""),
+        "auto_crop": bool(s.get("auto_crop")),
         "drive_sa_email": drive_puller.sa_email(),
         "user": user_email,
     }
+
+
+def _prepare_images(raw, content_type, filename):
+    """Build the page images for the model, honouring the auto-crop setting.
+
+    Returns (images, ai_bytes) where ai_bytes is the first page as the model
+    will see it — kept only when cropping actually changed the picture, so a
+    misread can be checked against the real input rather than guessed at.
+    """
+    auto_crop = bool(store.get_settings().get("auto_crop"))
+    images = extractor.images_from_upload(raw, content_type, filename, auto_crop=auto_crop)
+    ai_bytes = None
+    if auto_crop and images and images[0][1] != raw:
+        ai_bytes = images[0]
+    return images, ai_bytes
 
 
 def _optimize_image(raw: bytes, content_type: str) -> tuple[bytes, str]:
@@ -156,6 +172,7 @@ class ConfigIn(BaseModel):
     models: Optional[dict] = None
     api_keys: Optional[dict] = None
     drive_folder_id: Optional[str] = None
+    auto_crop: Optional[bool] = None
 
 
 @app.post("/api/config")
@@ -184,7 +201,7 @@ async def scan(file: UploadFile = File(...), user=Depends(auth.verify_token)):
     raw = await file.read()
     optimized, opt_ct = _optimize_image(raw, file.content_type)
     try:
-        images = extractor.images_from_upload(optimized, opt_ct, file.filename)
+        images, ai_bytes = _prepare_images(optimized, opt_ct, file.filename)
         data = extractor.extract(images, provider, key, model)
     except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=422, detail=f"อ่านฟอร์มไม่สำเร็จ: {e}")
@@ -195,7 +212,10 @@ async def scan(file: UploadFile = File(...), user=Depends(auth.verify_token)):
                             detail=f"Order No. {dup['order_no']} มีในระบบแล้ว")
 
     blob_path = store.upload_image(optimized, opt_ct, file.filename)
-    order_id = store.add_order(data, blob_path, provider, user_email=user["email"])
+    ai_path = (store.upload_image(ai_bytes[1], ai_bytes[0], "ai_" + (file.filename or "page"))
+               if ai_bytes else None)
+    order_id = store.add_order(data, blob_path, provider, user_email=user["email"],
+                               ai_image=ai_path)
     analytics.invalidate_cache()
     store.log_activity("scan", user["email"], user["role"],
                        f"สแกนไฟล์ {file.filename} → Order {data.get('order_no') or '-'}", order_id)
@@ -218,7 +238,7 @@ def _process_queue(trigger="manual"):
         item = {"file": p.get("filename"), "status": "", "detail": ""}
         try:
             raw = store.download_bytes(p["storage_path"])
-            images = extractor.images_from_upload(raw, p.get("content_type") or "", p.get("filename") or "")
+            images, _ai = _prepare_images(raw, p.get("content_type") or "", p.get("filename") or "")
             data = extractor.extract(images, provider, key, model)
             dup = store.find_by_order_no(data.get("order_no"))
             if dup:
@@ -368,7 +388,7 @@ def process_one(pid: str, user=Depends(auth.verify_token)):
         raise HTTPException(status_code=400, detail=f"ยังไม่ได้ตั้งค่า API key ของ {provider}")
     try:
         raw = store.download_bytes(p["storage_path"])
-        images = extractor.images_from_upload(raw, p.get("content_type") or "", p.get("filename") or "")
+        images, _ai = _prepare_images(raw, p.get("content_type") or "", p.get("filename") or "")
         data = extractor.extract(images, provider, key, model)
         dup = store.find_by_order_no(data.get("order_no"))
         if dup:
@@ -470,12 +490,15 @@ def order_detail(order_id: str, user=Depends(auth.verify_token)):
 
 
 @app.get("/api/orders/{order_id}/image")
-def order_image(order_id: str, user=Depends(auth.verify_token)):
+def order_image(order_id: str, variant: str = "source",
+                user=Depends(auth.verify_token)):
+    """variant=ai returns the page as the model saw it, when cropping altered it."""
     o = store.get_order(order_id)
-    if not o or not o.get("source_image"):
+    field = "ai_image" if variant == "ai" else "source_image"
+    if not o or not o.get(field):
         raise HTTPException(status_code=404, detail="ไม่พบรูปภาพ")
     try:
-        raw = store.download_bytes(o["source_image"])
+        raw = store.download_bytes(o[field])
         return Response(content=raw, media_type="image/jpeg")
     except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=404, detail=f"โหลดรูปไม่ได้: {e}")

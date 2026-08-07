@@ -37,6 +37,9 @@ DEFAULT_SETTINGS = {
     "models": {"claude": "claude-opus-4-8", "gemini": "gemini-2.5-flash", "openai": "gpt-4o"},
     "api_keys": {"claude": "", "gemini": "", "openai": ""},
     "drive_folder_id": "",
+    # Off by default: a wrong crop deletes columns silently, which costs more
+    # than the tokens it saves.
+    "auto_crop": False,
     "role_permissions": dict(DEFAULT_PERMISSIONS),
 }
 
@@ -142,7 +145,27 @@ def upload_image(raw: bytes, content_type: str, filename: str):
 # ---------------------------------------------------------------------------
 # Orders
 # ---------------------------------------------------------------------------
-def add_order(data, source_image, provider, user_email=None, source_filename=None):
+def _review_reasons(data):
+    """Fields that being empty means the scan probably lost part of the page."""
+    reasons = []
+    lines = data.get("lines") or []
+    if lines:
+        if data.get("plan_total") in (None, ""):
+            reasons.append("ไม่พบยอดผลิต Plan")
+        if data.get("actual_total") in (None, ""):
+            reasons.append("ไม่พบยอดผลิตจริง")
+        blank_plan = sum(1 for ln in lines if ln.get("plan") in (None, ""))
+        blank_unit = sum(1 for ln in lines if not ln.get("unit"))
+        if blank_plan == len(lines):
+            reasons.append("ไม่พบคอลัมน์ปริมาณที่ต้องใช้ทั้งใบ")
+        if blank_unit == len(lines):
+            reasons.append("ไม่พบคอลัมน์หน่วยทั้งใบ")
+    return reasons
+
+
+def add_order(data, source_image, provider, user_email=None, source_filename=None,
+              ai_image=None):
+    reasons = _review_reasons(data)
     doc = {
         "order_no": data.get("order_no"),
         "document_date": data.get("document_date"),
@@ -153,7 +176,10 @@ def add_order(data, source_image, provider, user_email=None, source_filename=Non
         "plan_unit": data.get("plan_unit"),
         "lines": data.get("lines", []),
         "source_image": source_image,
+        "ai_image": ai_image,
         "source_filename": source_filename,
+        "needs_review": bool(reasons),
+        "review_reasons": reasons,
         "provider": provider,
         "scanned_by": user_email,
         "scanned_at": firestore.SERVER_TIMESTAMP,

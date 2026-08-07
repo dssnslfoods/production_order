@@ -21,9 +21,13 @@ EXTRACTION_PROMPT = r"""
 - วันที่              -> document_date (แปลงเป็น YYYY-MM-DD เช่น "2026-07-01")
 - Series No. / รหัส   -> series_no — อ่านจากรหัสตัวเลข 7–10 หลัก (เช่น "7010101004", "7010401001") ที่อยู่ในคอลัมน์ "รหัส" ของแถวแรกของตาราง (แถวเดียวกับชื่อผลิตภัณฑ์) ⚠️ ห้ามใช้เลข Production Order
 - ชื่อผลิตภัณฑ์        -> product_name — อ่านจากแถวแรกของตาราง (แถวเดียวกับ series_no) ในคอลัมน์ "สินค้า/รายการวัตถุดิบ" ซึ่งเป็นชื่อสินค้าหลัก เช่น "แซนวิชหมูหยองน้ำพริกเผา", "แซนวิชเดนิชคาโบว์นาร่า" — ⚠️ ห้ามใช้ชื่อแผนกหรือหัวเรื่องเอกสาร
-- ยอดผลิต Plan (ช่องสีเหลือง ด้านบนตาราง) -> plan_total (ตัวเลข เช่น 485.200)
-- ยอดผลิตจริง (ด้านล่างตาราง "ยอดผลิต")     -> actual_total (ตัวเลข เช่น 485.2)
-- หน่วยของยอดผลิต                          -> plan_unit (เช่น "KG")
+- ยอดผลิต Plan -> plan_total (ตัวเลข เช่น 485.200 หรือ 23400)
+  หาได้ 2 แบบ แล้วแต่ฟอร์ม:
+  (ก) ช่องสีเหลืองเหนือตาราง
+  (ข) อยู่ในหัวตารางฝั่งขวา ใต้หัวข้อ "ยอดผลิต (Plan)" ซึ่งอาจแบ่งเป็น "รอบที่ 1" / "รอบที่ 2" / "ยอดรวม"
+      → ให้ใช้ค่าจากช่อง "ยอดรวม" ถ้ามี ถ้าไม่มีให้ใช้ "รอบที่ 1"
+- ยอดผลิตจริง -> actual_total (ตัวเลข) — ช่องที่กำกับว่า "ยอดผลิต" ด้านล่างตาราง มักเขียนด้วยลายมือ
+- หน่วยของยอดผลิต -> plan_unit (เช่น "KG", "ชิ้น")
 
 ตาราง: แต่ละแถว = 1 รายการ (วัตถุดิบ/ทรัพยากร) -> lines[]
 - ลำดับ             -> row_no (ตัวเลข)
@@ -32,11 +36,16 @@ EXTRACTION_PROMPT = r"""
 - Type              -> type ("Item" หรือ "Resource")
 - Qty               -> quantity (ตัวเลข ที่เขียนด้วยมือ — ⚠️ ถ้าว่างหรือ "-" ให้ใส่ 0)
 - คลังสินค้า (Whse) -> whse (เช่น "P8-PD05")
-- ยอดผลิต (Plan)    -> plan (ตัวเลข ทศนิยม — ปริมาณที่ต้องใช้ตามแผน)
-- หน่วย             -> unit (เช่น "KG", "Hour", "Hr")
+- ปริมาณที่ต้องใช้  -> plan (ตัวเลข ทศนิยม — ปริมาณตามแผนของบรรทัดนั้น)
+  ⚠️ ถ้าใต้หัวข้อ "ยอดผลิต (Plan)" มี 2 คอลัมน์ย่อยคือ "Std ตามสูตร" กับ "ปริมาณที่ต้องใช้"
+     ให้ใช้ค่าจาก "ปริมาณที่ต้องใช้" เท่านั้น ห้ามใช้ "Std ตามสูตร" (ซึ่งเป็นอัตราส่วนต่อหน่วย)
+- หน่วย             -> unit (เช่น "KG", "Hour", "Hr", "ชิ้น", "ม้วน")
 
 กติกา:
-- อ่านเฉพาะคอลัมน์ "ลำดับ" ถึง "หน่วย" เท่านั้น (ถ้ามีเส้นปะแบ่ง ให้อ่านเฉพาะฝั่งซ้ายของเส้นปะ) — ⚠️ ข้อมูลหลังคอลัมน์ "หน่วย" หรือหลังเส้นปะ ให้ข้ามทั้งหมด
+- อ่านทุกคอลัมน์ตั้งแต่ "ลำดับ" จนถึง "หน่วย" ให้ครบ — คอลัมน์ ปริมาณที่ต้องใช้ และ หน่วย
+  มักอยู่ทางขวาของ Whse อย่าข้าม
+- ข้ามเฉพาะคอลัมน์ที่อยู่ถัดจาก "หน่วย" ไปทางขวา (เช่น ยอดรวม) และข้อมูลหลังเส้นปะแนวตั้ง
+- อ่านทุกแถวในตารางให้ครบ อย่าหยุดกลางคัน แม้บางแถวจะมีช่องว่างหรือขีด "-"
 - ตอบ JSON ล้วน ไม่มี markdown ; ช่องว่าง/อ่านไม่ได้ = null (ยกเว้น quantity ที่ว่างหรือ "-" = 0) ; ตัวเลขไม่ใส่ comma และไม่ใส่หน่วย
 
 รูปแบบ JSON:
@@ -55,46 +64,89 @@ EXTRACTION_PROMPT = r"""
 """.strip()
 
 
-CROP_SEARCH_LEFT = 0.45
-CROP_SEARCH_RIGHT = 0.85
+# --- auto-crop -------------------------------------------------------------
+# Cropping at the dashed separator saves tokens, but cutting in the wrong place
+# silently deletes columns the reader never learns were missing.  The rules
+# below are deliberately conservative: off unless switched on, never cuts far
+# into the page, and only accepts a line whose dashes are actually regular.
+CROP_SEARCH_LEFT = 0.55
+CROP_SEARCH_RIGHT = 0.995
+CROP_MIN_KEEP = 0.85       # refuse to discard more than 15% of the width
 CROP_DARK_THRESHOLD = 160
 CROP_PADDING = 20
+CROP_MIN_DASHES = 6
+CROP_MAX_DASH_FRACTION = 0.06   # one dash is short next to the page height
+CROP_MAX_CV = 0.45              # dashes and gaps must be evenly sized
+
+
+def _cv(values):
+    """Coefficient of variation — how irregular a set of run lengths is."""
+    if len(values) < 2:
+        return 999.0
+    mean = sum(values) / len(values)
+    if mean <= 0:
+        return 999.0
+    var = sum((v - mean) ** 2 for v in values) / len(values)
+    return (var ** 0.5) / mean
+
+
+def _runs(flags):
+    """Collapse a boolean column into (is_dark, length) runs."""
+    out = []
+    val, length = flags[0], 1
+    for f in flags[1:]:
+        if f == val:
+            length += 1
+        else:
+            out.append((val, length))
+            val, length = f, 1
+    out.append((val, length))
+    return out
 
 
 def _find_dashed_line_x(img):
-    """Detect the vertical dashed line and return its x-coordinate, or None."""
+    """Return the x of a genuine vertical dashed rule, or None.
+
+    A column of repeating table text alternates dark and light just as often as
+    a dashed line does, which is why counting alternations alone picked the Qty
+    column over the real separator.  A printed dash rule is also *regular*: the
+    dashes are short, all about the same length, and evenly spaced.  That
+    regularity is what this checks.
+    """
     gray = img.convert("L")
+    px = gray.load()
     w, h = gray.size
     x_start = int(w * CROP_SEARCH_LEFT)
-    x_end = int(w * CROP_SEARCH_RIGHT)
-    best_x, best_score = None, 0
-    for x in range(x_start, x_end, max(1, w // 400)):
-        col = [gray.getpixel((x, y)) for y in range(h)]
-        dark = [v < CROP_DARK_THRESHOLD for v in col]
-        n = len(dark)
-        dark_count = sum(dark)
-        dark_ratio = dark_count / n if n else 0
-        if dark_ratio < 0.05 or dark_ratio > 0.6:
+    x_end = max(x_start + 1, int(w * CROP_SEARCH_RIGHT))
+    max_dash = max(2, int(h * CROP_MAX_DASH_FRACTION))
+
+    # Every column is examined: a printed rule can be a single pixel wide, and
+    # sampling every few columns walks straight past it.  A cheap probe on one
+    # row in eight rejects the blank majority before the full read.
+    probe_step = max(1, h // 180)
+    best_x, best_cv = None, CROP_MAX_CV
+    for x in range(x_start, x_end):
+        probe = [px[x, y] < CROP_DARK_THRESHOLD for y in range(0, h, probe_step)]
+        probe_ratio = sum(probe) / len(probe)
+        if probe_ratio < 0.08 or probe_ratio > 0.85:
             continue
-        segments = []
-        run_val = dark[0]
-        run_len = 1
-        for i in range(1, n):
-            if dark[i] == run_val:
-                run_len += 1
-            else:
-                segments.append((run_val, run_len))
-                run_val = dark[i]
-                run_len = 1
-        segments.append((run_val, run_len))
-        dark_segs = [ln for is_dark, ln in segments if is_dark]
-        gap_segs = [ln for is_dark, ln in segments if not is_dark]
-        if len(dark_segs) < 4 or len(gap_segs) < 3:
+
+        dark = [px[x, y] < CROP_DARK_THRESHOLD for y in range(h)]
+        ratio = sum(dark) / h
+        if ratio < 0.15 or ratio > 0.75:          # too sparse to be a rule, or a solid line
             continue
-        score = len(dark_segs) * len(gap_segs)
-        if score > best_score:
-            best_score = score
-            best_x = x
+
+        runs = _runs(dark)
+        dashes = [ln for is_dark, ln in runs if is_dark]
+        gaps = [ln for is_dark, ln in runs[1:-1] if not is_dark]
+        if len(dashes) < CROP_MIN_DASHES or len(gaps) < CROP_MIN_DASHES - 1:
+            continue
+        if max(dashes) > max_dash:                 # a long stroke means text or a solid rule
+            continue
+
+        irregularity = max(_cv(dashes), _cv(gaps))
+        if irregularity < best_cv:
+            best_cv, best_x = irregularity, x
     return best_x
 
 
@@ -111,6 +163,9 @@ def _crop_at_dashed_line(raw: bytes, media_type: str) -> tuple[str, bytes]:
         if x is None:
             return media_type, raw
         crop_x = min(x + CROP_PADDING, w)
+        # Anything that would remove a real column is treated as a misdetection.
+        if crop_x < w * CROP_MIN_KEEP:
+            return media_type, raw
         cropped = img.crop((0, 0, crop_x, h))
         buf = io.BytesIO()
         fmt = {"image/jpeg": "JPEG", "image/png": "PNG", "image/webp": "WEBP"}.get(media_type, "PNG")
@@ -167,12 +222,15 @@ ORIENTATION_PROMPT = (
 )
 
 
-def images_from_upload(raw: bytes, content_type: str, filename: str = ""):
+def images_from_upload(raw: bytes, content_type: str, filename: str = "",
+                       auto_crop: bool = False):
     """Turn an uploaded file into a list of (media_type, bytes). PDFs → page images.
 
-    Automatically crops at the vertical dashed line (if detected) to keep
-    only the left portion with the essential data columns.
+    Cropping at the dashed rule is opt-in.  It removes tokens from the bill,
+    but a wrong cut removes data with no trace, so the default is to send the
+    whole page and pay for it.
     """
+    crop = _crop_at_dashed_line if auto_crop else (lambda b, m: (m, b))
     ct = (content_type or "").lower()
     name = (filename or "").lower()
     if ct == "application/pdf" or name.endswith(".pdf"):
@@ -182,15 +240,15 @@ def images_from_upload(raw: bytes, content_type: str, filename: str = ""):
         for page in doc:
             images.append(("image/png", page.get_pixmap(dpi=200).tobytes("png")))
         doc.close()
-        return [_crop_at_dashed_line(b, m) for m, b in images]
+        return [crop(b, m) for m, b in images]
     if ct.startswith("image/"):
         m, b = _fix_exif(raw, ct)
-        return [_crop_at_dashed_line(b, m)]
+        return [crop(b, m)]
     ext_media = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "webp": "image/webp"}
     for ext, media in ext_media.items():
         if name.endswith("." + ext):
             m, b = _fix_exif(raw, media)
-            return [_crop_at_dashed_line(b, m)]
+            return [crop(b, m)]
     raise ValueError(f"ไม่รองรับไฟล์ประเภทนี้: {content_type or filename}")
 
 

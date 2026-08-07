@@ -3,9 +3,10 @@ import io
 import json
 import pytest
 import sys, os
-from PIL import Image
+from PIL import Image, ImageDraw
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+import extractor
 from extractor import (normalize, _num, _s, _num_or_zero, _parse_json,
                        images_from_upload, _find_dashed_line_x, _crop_at_dashed_line)
 
@@ -252,14 +253,45 @@ class TestCropDashedLine:
         img = Image.new("L", (2000, 1500), 255)
         assert _find_dashed_line_x(img) is None
 
-    def test_crop_reduces_width(self):
-        img = self._make_dashed_image(line_x=1100)
+    def test_crop_applies_at_the_page_margin(self):
+        img = self._make_dashed_image(line_x=1900)      # 95% of the width
         buf = io.BytesIO()
         img.save(buf, format="PNG")
         _, cropped = _crop_at_dashed_line(buf.getvalue(), "image/png")
         result = Image.open(io.BytesIO(cropped))
         assert result.size[0] < 2000
-        assert result.size[0] <= 1100 + 30
+        assert result.size[0] <= 1900 + 30
+
+    def test_crop_refused_when_it_would_cut_into_the_table(self):
+        # A rule at 55% would take real columns with it. The reading of a form
+        # with columns removed is wrong in a way nobody can see, so a cut this
+        # deep is treated as a misdetection and the whole page is sent.
+        img = self._make_dashed_image(line_x=1100)
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        _, out = _crop_at_dashed_line(buf.getvalue(), "image/png")
+        assert Image.open(io.BytesIO(out)).size[0] == 2000
+
+    def test_text_column_is_not_mistaken_for_a_dashed_rule(self):
+        # Repeating table text alternates dark and light exactly as often as a
+        # dashed line; only the regularity of the runs tells them apart.
+        img = Image.new("L", (2000, 1500), 255)
+        d = ImageDraw.Draw(img)
+        for i in range(14):
+            y = 200 + i * 80
+            d.text((1180, y), "P8-PD02", fill=0)
+            d.text((1400, y), "12405", fill=0)
+        assert _find_dashed_line_x(img) is None
+
+    def test_auto_crop_is_opt_in(self):
+        img = self._make_dashed_image(line_x=1900)
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        raw = buf.getvalue()
+        untouched = extractor.images_from_upload(raw, "image/png", "f.png")
+        assert Image.open(io.BytesIO(untouched[0][1])).size[0] == 2000
+        cropped = extractor.images_from_upload(raw, "image/png", "f.png", auto_crop=True)
+        assert Image.open(io.BytesIO(cropped[0][1])).size[0] < 2000
 
     def test_small_image_not_cropped(self):
         img = Image.new("RGB", (400, 300), "white")
