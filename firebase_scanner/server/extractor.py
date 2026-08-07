@@ -34,9 +34,12 @@ EXTRACTION_PROMPT = r"""
 - รหัส              -> item_no (เช่น "10202004", "P8-MC-E001", "DL-217")
 - รายการวัตถุดิบ    -> item_description (ข้อความ ไทย/อังกฤษ)
 - Type              -> type ("Item" หรือ "Resource")
-- Qty               -> quantity (ตัวเลข ที่เขียนด้วยมือ — ⚠️ ถ้าว่างหรือ "-" ให้ใส่ 0)
+- Qty               -> quantity_raw (ข้อความ) = ตัวเลขลายมือ "ตามที่เห็นทุกตัวอักษร"
+  ⚠️ ห้ามแปลง ห้ามเติมหรือลบจุด/จุลภาคเอง — เห็น "12405" ให้ส่ง "12405", เห็น "12,405" ให้ส่ง "12,405"
+  ถ้าว่างหรือเป็น "-" ให้ส่ง "0" (ระบบจะตีความตัวคั่นเองจากหน่วยและปริมาณตามแผน)
 - คลังสินค้า (Whse) -> whse (เช่น "P8-PD05")
-- ปริมาณที่ต้องใช้  -> plan (ตัวเลข ทศนิยม — ปริมาณตามแผนของบรรทัดนั้น)
+- ปริมาณที่ต้องใช้  -> plan_raw (ข้อความ) = ตัวเลขตามที่พิมพ์ในฟอร์มทุกตัวอักษร
+  ⚠️ ห้ามแปลงหรือตัดจุด/จุลภาคเอง เห็น "23,400" ส่ง "23,400", เห็น "194.992" ส่ง "194.992"
   ⚠️ ถ้าใต้หัวข้อ "ยอดผลิต (Plan)" มี 2 คอลัมน์ย่อยคือ "Std ตามสูตร" กับ "ปริมาณที่ต้องใช้"
      ให้ใช้ค่าจาก "ปริมาณที่ต้องใช้" เท่านั้น ห้ามใช้ "Std ตามสูตร" (ซึ่งเป็นอัตราส่วนต่อหน่วย)
 - หน่วย             -> unit (เช่น "KG", "Hour", "Hr", "ชิ้น", "ม้วน")
@@ -58,7 +61,7 @@ EXTRACTION_PROMPT = r"""
   "actual_total": 485.2,
   "plan_unit": "KG",
   "lines": [
-    {"row_no":1,"item_no":"10202004","item_description":"น้ำมันถั่วเหลือง ตรา MEI (Lamsoon)","type":"Item","quantity":3.819,"whse":"P8-PD05","plan":2.961,"unit":"KG"}
+    {"row_no":1,"item_no":"10202004","item_description":"น้ำมันถั่วเหลือง ตรา MEI (Lamsoon)","type":"Item","quantity_raw":"3.819","whse":"P8-PD05","plan_raw":"2.961","unit":"KG"}
   ]
 }
 """.strip()
@@ -425,6 +428,85 @@ def extract(images, provider, api_key, model):
     return normalize(data)
 
 
+# --- number reading -------------------------------------------------------
+# Handwritten "12405" comes back from the model as "12.405" or "12,405" with no
+# way to tell a decimal point from a thousands separator by shape alone. The
+# form carries the answer in the neighbouring cells: the unit says whether
+# fractions are even possible, and the planned quantity says the order of
+# magnitude. Guessing wrong turns 12,405 pieces into 12.4 and nobody sees it.
+
+COUNT_UNITS = {
+    "ชิ้น", "อัน", "ม้วน", "ใบ", "ถุง", "กล่อง", "แผ่น", "หลอด", "ขวด", "ซอง",
+    "แพ็ค", "แพค", "pcs", "pc", "piece", "pieces", "ea", "roll", "sheet", "bag",
+    "box", "pack",
+}
+
+# 12.405 · 1,234,567 — every group after a separator is exactly three digits
+_GROUPED_RE = re.compile(r"^[-+]?\d{1,3}(?:[.,]\d{3})+$")
+
+
+def _is_count_unit(unit):
+    return str(unit or "").strip().lower() in COUNT_UNITS
+
+
+def _split_reading(text):
+    """Both readings of a grouped number, or None when it is not ambiguous."""
+    text = str(text).strip()
+    if not _GROUPED_RE.match(text):
+        return None
+    as_decimal = _num(text.replace(",", ""))
+    as_thousands = _num(re.sub(r"[.,]", "", text))
+    if as_decimal is None or as_thousands is None or as_decimal == as_thousands:
+        return None
+    return as_decimal, as_thousands
+
+
+def _ratio_to(value, anchor):
+    if not value or not anchor or value <= 0 or anchor <= 0:
+        return None
+    return max(value, anchor) / min(value, anchor)
+
+
+def _resolve(text, anchor, unit, label):
+    """Pick the reading of `text` that the surrounding numbers support.
+
+    Returns (value, reinterpreted, reason).  The anchor — the planned amount
+    for a quantity, the issued amount for a plan — decides, because a roll can
+    genuinely be half used and only the neighbouring figure can tell a real
+    fraction from a separator read as a decimal point.
+    """
+    if text is None or text == "":
+        return None, False, ""
+    readings = _split_reading(text)
+    if readings is None:
+        return _num(text), False, ""
+    as_decimal, as_thousands = readings
+
+    d_ratio = _ratio_to(as_decimal, anchor)
+    t_ratio = _ratio_to(as_thousands, anchor)
+    if d_ratio and t_ratio:
+        if t_ratio < 10 <= d_ratio:
+            return (as_thousands, True,
+                    f"อ่าน {text} เป็น {as_thousands:,} เพราะใกล้{label} {anchor:,} มากกว่า")
+        return as_decimal, False, ""
+
+    # Nothing to compare against; the unit is the only evidence left.
+    if _is_count_unit(unit):
+        return (as_thousands, True,
+                f"หน่วยเป็น “{unit}” นับเป็นจำนวนเต็ม จึงอ่าน {text} เป็น {as_thousands:,}")
+    return as_decimal, False, ""
+
+
+def read_quantity(raw, unit=None, plan=None):
+    """Interpret a written quantity against the planned amount."""
+    return _resolve(raw, _num(plan), unit, "ปริมาณตามแผน")
+
+
+def read_plan(raw, unit=None, quantity=None):
+    """Interpret a written planned amount against what was actually issued."""
+    return _resolve(raw, _num(quantity), unit, "ปริมาณที่เบิกจริง")
+
+
 def _num(v):
     if v is None or v == "":
         return None
@@ -468,14 +550,36 @@ def normalize(data):
         "lines": [],
     }
     for i, r in enumerate(data.get("lines") or [], 1):
-        out["lines"].append({
+        unit = _s(r.get("unit"))
+        raw = r.get("quantity_raw")
+        if raw in (None, ""):
+            raw = r.get("quantity")
+        plan_raw = r.get("plan_raw")
+        if plan_raw in (None, ""):
+            plan_raw = r.get("plan")
+
+        # Resolve the quantity against the plan as written, then re-read the
+        # plan against the settled quantity, so a separator misread on one side
+        # cannot drag the other side with it.
+        value, changed, reason = read_quantity(raw, unit, _num(plan_raw))
+        plan, plan_changed, plan_reason = read_plan(plan_raw, unit, value)
+        line = {
             "row_no": _num(r.get("row_no")) or i,
             "item_no": _s(r.get("item_no")),
             "item_description": _s(r.get("item_description")),
             "type": _s(r.get("type")) or "Item",
-            "quantity": _num_or_zero(r.get("quantity")),
+            "quantity": value if value is not None else 0,
+            "quantity_raw": _s(raw),
             "whse": _s(r.get("whse")),
-            "plan": _num(r.get("plan")),
-            "unit": _s(r.get("unit")),
-        })
+            "plan": plan,
+            "unit": unit,
+        }
+        line["plan_raw"] = _s(plan_raw)
+        if changed:
+            line["qty_reinterpreted"] = True
+            line["qty_note"] = reason
+        if plan_changed:
+            line["plan_reinterpreted"] = True
+            line["plan_note"] = plan_reason
+        out["lines"].append(line)
     return out

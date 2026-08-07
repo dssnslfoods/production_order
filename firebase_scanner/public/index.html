@@ -404,6 +404,10 @@
     align-items:center;gap:3px;padding:1px 0}
   .l-confirm.show{display:flex}
   .l-confirm input[type=checkbox]{accent-color:#ef4444;width:13px;height:13px;margin:0;cursor:pointer}
+  /* A quantity the system re-read says so on the row, with the original
+     digits, so the reviewer can disagree without opening the image. */
+  .qty-fix{display:block;margin-top:4px;font-size:10.5px;font-weight:600;
+    color:var(--amber);cursor:help;line-height:1.4}
   .l-confirm.acked{color:#16a34a}
   .l-confirm.acked input[type=checkbox]{accent-color:#16a34a}
 
@@ -3763,16 +3767,23 @@ let editIdx = -1;
 const num = v => { const t=String(v).trim(); if(t==="") return null; const n=Number(t); return isNaN(n)?t:n; };
 
 function lineRow(l={}){
-  return `<div class="lrow" data-acked="${l.acked?'1':''}">
+  const raw = l.quantity_raw != null ? String(l.quantity_raw) : "";
+  const planRaw = l.plan_raw != null ? String(l.plan_raw) : "";
+  const tag = l.qty_reinterpreted
+    ? `<span class="qty-fix" title="${esc(l.qty_note || "")}">อ่านใหม่จาก ${esc(raw)}</span>` : "";
+  const planTag = l.plan_reinterpreted
+    ? `<span class="qty-fix" title="${esc(l.plan_note || "")}">อ่านใหม่จาก ${esc(planRaw)}</span>` : "";
+  return `<div class="lrow" data-acked="${l.acked?'1':''}" data-raw="${esc(raw)}" data-planraw="${esc(planRaw)}">
     <input class="l-row" type="number" value="${esc(l.row_no)}">
     <input class="l-item" value="${esc(l.item_no)}">
     <input class="l-desc" value="${esc(l.item_description)}">
     <input class="l-type" value="${esc(l.type)}">
     <span class="qty-cell">
       <input class="l-qty" type="number" step="any" value="${esc(l.quantity)}" oninput="checkPlanQty(this)">
+      ${tag}
       <label class="l-confirm"><input type="checkbox" class="l-ack" onchange="onAck(this)"> ยืนยันค่าต่าง</label>
     </span>
-    <input class="l-plan" type="number" step="any" value="${esc(l.plan)}" oninput="checkPlanQty(this)">
+    <span class="qty-cell"><input class="l-plan" type="number" step="any" value="${esc(l.plan)}" oninput="checkPlanQty(this)">${planTag}</span>
     <input class="l-whse" value="${esc(l.whse)}">
     <input class="l-unit" value="${esc(l.unit)}">
     <button class="del" onclick="this.closest('.lrow').remove();updateSaveBtn()">×</button></div>`;
@@ -3973,6 +3984,8 @@ function collectFormData(){
       item_description: r.querySelector(".l-desc").value.trim()||null,
       type: r.querySelector(".l-type").value.trim()||null,
       quantity: num(r.querySelector(".l-qty").value)??0,
+      quantity_raw: r.dataset.raw || null,
+      plan_raw: r.dataset.planraw || null,
       whse: r.querySelector(".l-whse").value.trim()||null,
       plan: num(r.querySelector(".l-plan").value),
       unit: r.querySelector(".l-unit").value.trim()||null,

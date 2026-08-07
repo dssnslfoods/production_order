@@ -304,3 +304,99 @@ class TestCropDashedLine:
     def test_non_image_passthrough(self):
         _, out = _crop_at_dashed_line(b"pdf data", "application/pdf")
         assert out == b"pdf data"
+
+
+class TestReadQuantity:
+    """The separator can only be decided from the unit and the planned amount."""
+
+    def test_count_unit_forces_thousands(self):
+        # 12.405 pieces of bread to make 23,400 pieces is not a real reading.
+        value, changed, _ = extractor.read_quantity("12.405", "ชิ้น", 23400)
+        assert value == 12405
+        assert changed is True
+
+    def test_plan_decides_when_the_unit_allows_fractions(self):
+        value, changed, _ = extractor.read_quantity("12.405", "KG", 23400)
+        assert value == 12405
+        assert changed is True
+
+    def test_genuine_decimal_is_left_alone(self):
+        # Same shape, but the plan agrees with the decimal reading.
+        value, changed, _ = extractor.read_quantity("2.961", "KG", 2.961)
+        assert value == 2.961
+        assert changed is False
+
+    def test_two_decimal_places_are_never_touched(self):
+        for raw in ("5.44", "0.37", "1.5"):
+            value, changed, _ = extractor.read_quantity(raw, "KG", 1.4)
+            assert value == float(raw)
+            assert changed is False
+
+    def test_explicit_comma_needs_no_reinterpretation(self):
+        value, changed, _ = extractor.read_quantity("12,405", "ชิ้น", 23400)
+        assert value == 12405
+        assert changed is False
+
+    def test_plain_integer_passes_through(self):
+        value, changed, _ = extractor.read_quantity("36000", "ชิ้น", 23400)
+        assert value == 36000
+        assert changed is False
+
+    def test_no_plan_and_fraction_capable_unit_keeps_the_decimal(self):
+        # With nothing to check against, changing the number would be a guess.
+        value, changed, _ = extractor.read_quantity("12.405", "KG", None)
+        assert value == 12.405
+        assert changed is False
+
+    def test_blank_stays_blank(self):
+        assert extractor.read_quantity("", "KG", 1)[0] is None
+
+    def test_normalize_records_the_original_digits(self):
+        out = extractor.normalize({"lines": [
+            {"row_no": 1, "item_no": "M1", "quantity_raw": "12.405",
+             "unit": "ชิ้น", "plan": 23400},
+        ]})
+        line = out["lines"][0]
+        assert line["quantity"] == 12405
+        assert line["quantity_raw"] == "12.405"
+        assert line["qty_reinterpreted"] is True
+
+
+class TestReadPlan:
+    """The printed plan column suffers the same separator ambiguity."""
+
+    def test_plan_is_reread_against_the_issued_quantity(self):
+        # The form reads 11,700; the model returned it as 11.700.
+        value, changed, _ = extractor.read_plan("11.700", "ชิ้น", 23422)
+        assert value == 11700
+        assert changed is True
+
+    def test_real_decimal_plan_survives(self):
+        value, changed, _ = extractor.read_plan("194.992", "KG", 130)
+        assert value == 194.992
+        assert changed is False
+
+    def test_both_columns_resolve_independently(self):
+        out = extractor.normalize({"lines": [
+            {"row_no": 1, "item_no": "A", "unit": "ชิ้น",
+             "quantity_raw": "12.405", "plan_raw": "23,400"},
+            {"row_no": 2, "item_no": "B", "unit": "ชิ้น",
+             "quantity_raw": "23422", "plan_raw": "11.700"},
+        ]})
+        first, second = out["lines"]
+        assert (first["quantity"], first["plan"]) == (12405, 23400)
+        assert first["qty_reinterpreted"] is True
+        assert (second["quantity"], second["plan"]) == (23422, 11700)
+        assert second["plan_reinterpreted"] is True
+
+    def test_a_misread_plan_does_not_drag_the_quantity_with_it(self):
+        # Quantity settles against the plan as written, then the plan is
+        # re-read against the settled quantity — not the other way round.
+        out = extractor.normalize({"lines": [
+            {"row_no": 1, "item_no": "A", "unit": "KG",
+             "quantity_raw": "543", "plan_raw": "561.600"},
+        ]})
+        line = out["lines"][0]
+        assert line["quantity"] == 543
+        assert line["plan"] == 561.6
+        assert "qty_reinterpreted" not in line
