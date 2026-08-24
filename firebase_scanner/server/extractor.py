@@ -5,6 +5,7 @@ upload rather than a filesystem path. Providers: claude | gemini | openai.
 Auto-rotates images (EXIF + AI orientation detection) before extraction.
 """
 import base64
+import datetime
 import io
 import json
 import re
@@ -50,14 +51,13 @@ EXTRACTION_PROMPT = r"""
 ตาราง MFG/EXP (ถ้ามี): ฟอร์มบางแบบมีตาราง batch การผลิต อยู่ด้านขวาหรือด้านล่าง
 แต่ละ batch มี:
 - รหัสสินค้า  -> item_code (เช่น "PTGC01")
-- MFG         -> mfg_date (วันที่ผลิต แปลงเป็น YYYY-MM-DD เช่น "2024-04-01")
-              วันที่อาจเขียนเป็น DDMMYY เช่น "010424" = 01/04/2024
-- EXP         -> exp_date (วันหมดอายุ แปลงเป็น YYYY-MM-DD)
+- MFG         -> mfg_raw (ข้อความ) = ตัวเลขลายมือ "ตามที่เห็นทุกตัวอักษร" เช่นเห็น "110826" ให้ส่ง "110826"
+- EXP         -> exp_raw (ข้อความ) = ตัวเลขลายมือตามที่เห็นเช่นกัน
+  ⚠️ ห้ามแปลงเป็นรูปแบบวันที่ ห้ามสลับวัน/เดือน ห้ามเดาปี ห้ามแก้ให้ "ดูสมเหตุสมผล"
+     ระบบจะแปลงเป็นวันที่เอง (ฟอร์มเขียนแบบ DDMMYY เสมอ)
+     หน้าที่ของคุณคืออ่านตัวเลขให้ตรงตัวที่สุดเท่านั้น — โดยเฉพาะ "หลักเดือน" ที่มักเป็น 08/09
 - จำนวน       -> batch_qty (ตัวเลข)
 - หน่วย       -> batch_unit (เช่น "ชิ้น")
-⚠️ กฎสำคัญ: exp_date ต้องมาหลัง mfg_date เสมอ (วันหมดอายุต้องมากกว่าวันผลิต)
-  ถ้าอ่านวันที่แล้วได้ EXP < MFG แสดงว่าตีความรูปแบบวันที่ผิด — ลองสลับ DD กับ MM
-  เช่น "010924" อาจเป็น 01/09/2024 หรือ 09/01/2024 ให้เลือกแบบที่ทำให้ EXP > MFG
 ⚠️ ถ้าไม่มีตาราง MFG/EXP ในฟอร์ม ให้ส่ง batches เป็น [] (array ว่าง)
 
 กติกา:
@@ -81,7 +81,7 @@ EXTRACTION_PROMPT = r"""
     {"row_no":1,"item_no":"10202004","item_description":"น้ำมันถั่วเหลือง ตรา MEI (Lamsoon)","type":"Item","quantity_raw":"3.819","whse":"P8-PD05","plan_raw":"2.961","unit":"KG"}
   ],
   "batches": [
-    {"item_code":"PTGC01","mfg_date":"2024-04-01","exp_date":"2024-09-12","batch_qty":15046,"batch_unit":"ชิ้น"}
+    {"item_code":"PTGC01","mfg_raw":"010424","exp_raw":"120924","batch_qty":15046,"batch_unit":"ชิ้น"}
   ]
 }
 """.strip()
@@ -558,6 +558,31 @@ def _num_or_zero(v):
     return n if n is not None else 0
 
 
+def _batch_date(raw):
+    """Turn the digits written in an MFG/EXP box into a date.
+
+    The boxes are always filled in DDMMYY, so the day/month order is a property
+    of the form, not something to infer from the numbers.  Asking the model for
+    a finished date let it "correct" what it read into dates that ran backwards;
+    it now hands over the digits it sees and the reading happens here.
+
+    Anything that is not a whole, valid date is refused rather than patched, so
+    a misread digit shows up as a blank or an impossible shelf life instead of a
+    confident wrong date.
+    """
+    digits = re.sub(r"\D", "", "" if raw is None else str(raw))
+    if len(digits) == 6:
+        day, month, year = digits[:2], digits[2:4], 2000 + int(digits[4:])
+    elif len(digits) == 8:
+        day, month, year = digits[:2], digits[2:4], int(digits[4:])
+    else:
+        return None
+    try:
+        return datetime.date(year, int(month), int(day)).isoformat()
+    except ValueError:
+        return None
+
+
 def normalize(data):
     out = {
         "order_no": _s(data.get("order_no")),
@@ -608,8 +633,10 @@ def normalize(data):
     for b in data.get("batches") or []:
         batch = {
             "order_no": out["order_no"],
-            "mfg_date": _s(b.get("mfg_date")),
-            "exp_date": _s(b.get("exp_date")),
+            "mfg_raw": _s(b.get("mfg_raw")),
+            "exp_raw": _s(b.get("exp_raw")),
+            "mfg_date": _batch_date(b.get("mfg_raw")) or _s(b.get("mfg_date")),
+            "exp_date": _batch_date(b.get("exp_raw")) or _s(b.get("exp_date")),
             "actual_total": out["actual_total"],
             "batch_qty": _num(b.get("batch_qty")),
             "batch_unit": _s(b.get("batch_unit")),

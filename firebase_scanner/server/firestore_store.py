@@ -160,6 +160,14 @@ def _review_reasons(data):
             reasons.append("ไม่พบคอลัมน์ปริมาณที่ต้องใช้ทั้งใบ")
         if blank_unit == len(lines):
             reasons.append("ไม่พบคอลัมน์หน่วยทั้งใบ")
+    # A batch whose expiry precedes its manufacture cannot be right, and the
+    # handwritten month digit is where that goes wrong.  Flag the order rather
+    # than repairing the date, so someone checks it against the paper.
+    bad = sum(1 for b in data.get("batches") or []
+              if b.get("mfg_date") and b.get("exp_date")
+              and b["exp_date"] <= b["mfg_date"])
+    if bad:
+        reasons.append(f"วันหมดอายุมาก่อนวันผลิต {bad} batch — ตรวจสอบ MFG/EXP")
     return reasons
 
 

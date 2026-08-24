@@ -400,3 +400,60 @@ class TestReadPlan:
         assert line["quantity"] == 543
         assert line["plan"] == 561.6
         assert "qty_reinterpreted" not in line
+
+
+# ---------------------------------------------------------------------------
+# Batch dates: the form is always DDMMYY, so the code reads it, not the model
+# ---------------------------------------------------------------------------
+class TestBatchDates:
+    def _batch(self, **kw):
+        out = normalize({"batches": [dict(batch_qty=1, batch_unit="ชิ้น", **kw)]})
+        return out["batches"][0] if out["batches"] else None
+
+    def test_ddmmyy_is_read_as_written(self):
+        b = self._batch(mfg_raw="110826", exp_raw="170926")
+        assert b["mfg_date"] == "2026-08-11"
+        assert b["exp_date"] == "2026-09-17"
+
+    def test_separators_are_ignored(self):
+        assert self._batch(mfg_raw="12/08/26")["mfg_date"] == "2026-08-12"
+        assert self._batch(mfg_raw="19 08 26")["mfg_date"] == "2026-08-19"
+        assert self._batch(mfg_raw="19-08-26")["mfg_date"] == "2026-08-19"
+
+    def test_eight_digits_carry_a_full_year(self):
+        assert self._batch(mfg_raw="11082026")["mfg_date"] == "2026-08-11"
+
+    def test_the_day_is_never_swapped_into_the_month(self):
+        # 19/08 is unambiguous; 08/19 would be a "helpful" reinterpretation.
+        assert self._batch(mfg_raw="190826")["mfg_date"] == "2026-08-19"
+
+    def test_backwards_dates_are_kept_not_repaired(self):
+        # A misread month must surface as an impossible shelf life, because a
+        # silently corrected date is indistinguishable from a correct one.
+        b = self._batch(mfg_raw="110926", exp_raw="170726")
+        assert b["mfg_date"] == "2026-09-11"
+        assert b["exp_date"] == "2026-07-17"
+
+    def test_impossible_dates_are_refused(self):
+        assert self._batch(mfg_raw="320826", exp_raw="170926")["mfg_date"] is None
+        assert self._batch(mfg_raw="111326", exp_raw="170926")["mfg_date"] is None
+
+    def test_partial_digits_are_refused(self):
+        assert self._batch(mfg_raw="1108", exp_raw="170926")["mfg_date"] is None
+
+    def test_raw_text_is_kept_for_checking_against_the_paper(self):
+        b = self._batch(mfg_raw="110826", exp_raw="170926")
+        assert b["mfg_raw"] == "110826"
+        assert b["exp_raw"] == "170926"
+
+    def test_an_already_formatted_date_still_works(self):
+        # Older records and hand-edited payloads carry ISO dates, not raw digits.
+        b = self._batch(mfg_date="2026-08-11", exp_date="2026-09-17")
+        assert (b["mfg_date"], b["exp_date"]) == ("2026-08-11", "2026-09-17")
+
+    def test_raw_digits_win_over_a_model_supplied_date(self):
+        b = self._batch(mfg_raw="110826", mfg_date="2026-09-11")
+        assert b["mfg_date"] == "2026-08-11"
+
+    def test_a_batch_with_no_dates_is_dropped(self):
+        assert self._batch(mfg_raw="", exp_raw="") is None
