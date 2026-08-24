@@ -596,8 +596,19 @@ def export(from_date: Optional[str] = None, to_date: Optional[str] = None,
     if field not in ("document_date", "scanned_at"):
         field = "document_date"
     if from_date or to_date:
+        from datetime import datetime, timezone, timedelta
+        _bkk = timezone(timedelta(hours=7))
         def datekey(o):
-            return (o.get(field) or "")[:10]
+            v = o.get(field) or ""
+            if not v:
+                return ""
+            if field == "scanned_at" and "T" in v:
+                try:
+                    dt = datetime.fromisoformat(v)
+                    return dt.astimezone(_bkk).strftime("%Y-%m-%d")
+                except Exception:
+                    pass
+            return v[:10]
         data = [o for o in data if datekey(o)
                 and (not from_date or datekey(o) >= from_date)
                 and (not to_date or datekey(o) <= to_date)]
