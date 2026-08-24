@@ -2631,21 +2631,21 @@ window.saveKey = async (p) => {
 
 async function uploadToQueue(files){
   if(!files.length) return;
-  const CHUNK = 8;
-  let done = 0;
-  $("uploadStatus").innerHTML = '<span class="spin"></span> กำลังอัปโหลด '+files.length+' ไฟล์…';
-  try{
-    for(let i=0; i<files.length; i+=CHUNK){
+  let done = 0, fail = 0;
+  const total = files.length;
+  $("uploadStatus").innerHTML = '<span class="spin"></span> อัปโหลด 0/'+total+' ไฟล์…';
+  for(let i=0; i<total; i++){
+    try{
       const fd = new FormData();
-      files.slice(i, i+CHUNK).forEach(f => fd.append("files", f));
+      fd.append("files", files[i]);
       const r = await api("/queue", {method:"POST", body:fd});
-      const j = await r.json();
-      done += (j.count||0);
-      $("uploadStatus").innerHTML = '<span class="spin"></span> อัปโหลดแล้ว '+done+'/'+files.length+'…';
-    }
-    $("uploadStatus").textContent = "✓ เข้าคิวแล้ว "+done+" ไฟล์";
-    loadPending();
-  }catch(e){ $("uploadStatus").textContent = "❌ อัปโหลดไม่สำเร็จ (สำเร็จ "+done+" ไฟล์)"; loadPending(); }
+      if(!r.ok){ fail++; } else { const j=await r.json(); done+=(j.count||0); }
+    }catch(e){ fail++; }
+    $("uploadStatus").innerHTML = '<span class="spin"></span> อัปโหลด '+(done+fail)+'/'+total+' ไฟล์…';
+  }
+  if(fail===0) $("uploadStatus").textContent = "✓ เข้าคิวแล้ว "+done+" ไฟล์";
+  else $("uploadStatus").textContent = "✓ เข้าคิว "+done+" ไฟล์ (ไม่สำเร็จ "+fail+" ไฟล์)";
+  loadPending();
 }
 ["camInput","fileInput"].forEach(id => $(id) && $(id).addEventListener("change", e => {
   uploadToQueue([...e.target.files]); e.target.value = "";

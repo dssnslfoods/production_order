@@ -298,7 +298,6 @@ async def queue(files: List[UploadFile] = File(...), user=Depends(auth.verify_to
     for f in files:
         raw = await f.read()
         optimized, opt_ct = _optimize_image(raw, f.content_type or "")
-        opt_ct, optimized = _auto_orient(optimized, opt_ct)
         store.add_pending(optimized, opt_ct, f.filename, user["email"])
         saved.append(f.filename)
     store.log_activity("upload_queue", user["email"], user["role"],
