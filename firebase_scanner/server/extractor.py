@@ -21,6 +21,9 @@ EXTRACTION_PROMPT = r"""
 - วันที่              -> document_date (แปลงเป็น YYYY-MM-DD เช่น "2026-07-01")
 - Series No. / รหัส   -> series_no — อ่านจากรหัสตัวเลข 7–10 หลัก (เช่น "7010101004", "7010401001") ที่อยู่ในคอลัมน์ "รหัส" ของแถวแรกของตาราง (แถวเดียวกับชื่อผลิตภัณฑ์) ⚠️ ห้ามใช้เลข Production Order
 - ชื่อผลิตภัณฑ์        -> product_name — อ่านจากแถวแรกของตาราง (แถวเดียวกับ series_no) ในคอลัมน์ "สินค้า/รายการวัตถุดิบ" ซึ่งเป็นชื่อสินค้าหลัก เช่น "แซนวิชหมูหยองน้ำพริกเผา", "แซนวิชเดนิชคาโบว์นาร่า" — ⚠️ ห้ามใช้ชื่อแผนกหรือหัวเรื่องเอกสาร
+- คลังรับเข้า        -> product_whse — อ่านจากคอลัมน์ "Whse (คลัง)" ของ**แถวแรกของตาราง** (แถวเดียวกับ series_no และชื่อผลิตภัณฑ์) เช่น "DW-1001"
+  ⚠️ เป็นคลังของสินค้าสำเร็จรูป คนละตัวกับคลังในบรรทัดวัตถุดิบ (เช่น "P8-PD01", "P8-PD02") ห้ามใช้ค่าจากบรรทัดวัตถุดิบแทน
+  ⚠️ ถ้าช่องนี้ว่าง ให้ส่ง null ห้ามเดา
 - ยอดผลิต Plan -> plan_total (ตัวเลข เช่น 485.200 หรือ 23400)
   หาได้ 2 แบบ แล้วแต่ฟอร์ม:
   (ก) ช่องสีเหลืองเหนือตาราง
@@ -70,6 +73,7 @@ EXTRACTION_PROMPT = r"""
   "document_date": "2026-07-01",
   "series_no": "7010101004",
   "product_name": "แซนวิชหมูหยองน้ำพริกเผา",
+  "product_whse": "DW-1001",
   "plan_total": 485.200,
   "actual_total": 485.2,
   "plan_unit": "KG",
@@ -560,6 +564,7 @@ def normalize(data):
         "document_date": _s(data.get("document_date")),
         "series_no": _s(data.get("series_no")),
         "product_name": _s(data.get("product_name")),
+        "product_whse": _s(data.get("product_whse")),
         "plan_total": _num(data.get("plan_total")),
         "actual_total": _num(data.get("actual_total")),
         "plan_unit": _s(data.get("plan_unit")),

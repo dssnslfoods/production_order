@@ -532,6 +532,7 @@ class OrderIn(BaseModel):
     document_date: Optional[str] = None
     series_no: Optional[str] = None
     product_name: Optional[str] = None
+    product_whse: Optional[str] = None
     plan_total: Optional[float] = None
     actual_total: Optional[float] = None
     plan_unit: Optional[str] = None

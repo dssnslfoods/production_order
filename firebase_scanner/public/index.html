@@ -1811,7 +1811,7 @@
             <h4 style="margin:16px 0 8px;font-size:14px">6.2 แก้ไขรายการ</h4>
             <p>กดปุ่ม <b>แก้ไข</b> ที่รายการนั้น → หน้าต่างแก้ไขแสดง:</p>
             <ul class="m-list">
-              <li><b>ส่วนหัว</b> — Production Order, วันที่, Series No., ชื่อผลิตภัณฑ์</li>
+              <li><b>ส่วนหัว</b> — Production Order, วันที่, Series No., ชื่อผลิตภัณฑ์, คลังรับเข้า</li>
               <li><b>ยอดผลิต Plan</b> และหน่วยผลิต</li>
               <li><b>ตารางรายการ</b> — ลำดับ, รหัส, รายการวัตถุดิบ, Type, Qty, Plan, คลัง, หน่วย</li>
               <li><b>MFG / EXP Date</b> — ตาราง batch วันผลิต–วันหมดอายุ (ดูข้อ 6.5)</li>
@@ -1846,6 +1846,9 @@
                 <tr><td><b>หน่วย</b></td><td>หน่วยนับ เช่น ชิ้น</td></tr>
               </tbody>
             </table>
+            <p class="m-hint">ในไฟล์ Excel จะมีคอลัมน์ <b>คลัง</b> ต่อท้ายอีกหนึ่งคอลัมน์ —
+              ดึงจากช่อง "คลังรับเข้า" ในส่วนหัว (ช่อง Whse ของแถวผลิตภัณฑ์บนฟอร์ม เช่น DW-1001)
+              ฟอร์มรุ่นเก่าที่ยังไม่มีช่องนี้จะขึ้นเป็น <b>n/a</b> และกรอกเพิ่มเองได้ที่ส่วนหัวของหน้าต่างแก้ไข</p>
             <p>กด <b>+ เพิ่ม batch</b> เพื่อเพิ่มแถว หรือกด <b>×</b> ท้ายแถวเพื่อลบ — บันทึกแล้วข้อมูลจะเข้าไปอยู่ในไฟล์ Excel แผ่นที่สอง</p>
 
             <h4 style="margin:16px 0 8px;font-size:14px">6.6 การตรวจ Shelf Life</h4>
@@ -1926,7 +1929,7 @@
                 <tr>
                   <td><b>MFG_EXP</b></td>
                   <td>หนึ่งแถวต่อหนึ่ง batch — Production Order · วันที่เอกสาร · Item No. ·
-                    ผลิตภัณฑ์ · MFG Date · EXP Date · <b>Receive Qty.</b> · หน่วย</td>
+                    ผลิตภัณฑ์ · MFG Date · EXP Date · <b>Receive Qty.</b> · หน่วย · <b>คลัง</b></td>
                 </tr>
               </tbody>
             </table>
@@ -2347,6 +2350,7 @@
         <div><label>วันที่</label><input id="e_date" type="date"></div>
         <div><label>Series No.</label><input id="e_series"></div>
         <div><label>ผลิตภัณฑ์</label><input id="e_product"></div>
+        <div><label>คลังรับเข้า</label><input id="e_whse" placeholder="เช่น DW-1001"></div>
       </div>
       <div id="planCompare" class="plan-compare" style="margin:10px 0 4px;padding:10px 14px;border-radius:10px;display:none">
         <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
@@ -3978,6 +3982,7 @@ function loadEditForm(o){
   $("e_date").value = o.document_date||"";
   $("e_series").value = o.series_no||"";
   $("e_product").value = o.product_name||"";
+  $("e_whse").value = o.product_whse||"";
   $("e_plan_total").value = o.plan_total??"";
   $("e_actual_total").value = o.actual_total??"";
   $("e_plan_unit").value = o.plan_unit||"";
@@ -4113,6 +4118,7 @@ function collectFormData(){
     document_date: $("e_date").value.trim()||null,
     series_no: $("e_series").value.trim()||null,
     product_name: $("e_product").value.trim()||null,
+    product_whse: $("e_whse").value.trim()||null,
     plan_total: num($("e_plan_total").value),
     actual_total: num($("e_actual_total").value),
     plan_unit: $("e_plan_unit").value.trim()||null,

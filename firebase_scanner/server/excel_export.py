@@ -83,6 +83,7 @@ BATCH_COLUMNS = [
     ("EXP Date", 12, _ctr),
     ("Receive Qty.", 14, _rgt),
     ("หน่วย", 10, _ctr),
+    ("คลัง", 12, _ctr),
 ]
 
 
@@ -90,6 +91,11 @@ def _build_batch_sheet(wb, orders):
     """Add a MFG_EXP worksheet — one row per production batch."""
     rows = []
     for o in orders:
+        # The receiving warehouse sits on the product row of the form, not in
+        # the MFG/EXP block.  Older forms leave that cell empty, and a warehouse
+        # borrowed from the material lines would be the issuing one — wrong in a
+        # way nobody could spot downstream.  Say "n/a" instead of guessing.
+        whse = (o.get("product_whse") or "").strip() or "n/a"
         for b in o.get("batches") or []:
             rows.append((
                 o.get("order_no"),
@@ -100,6 +106,7 @@ def _build_batch_sheet(wb, orders):
                 b.get("exp_date"),
                 b.get("batch_qty"),
                 b.get("batch_unit"),
+                (b.get("whse") or "").strip() or whse,
             ))
     if not rows:
         return

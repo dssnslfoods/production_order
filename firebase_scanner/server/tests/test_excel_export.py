@@ -157,6 +157,41 @@ class TestBatchSheet:
         assert ws.cell(2, 7).value == 15046
         assert ws.cell(3, 7).value == 15316
 
+    def test_batch_whse_comes_from_the_product_row(self):
+        orders = [{
+            "order_no": "OD200",
+            "product_whse": "DW-1001",
+            "lines": [{"whse": "P8-PD01"}, {"whse": "P8-PD02"}],
+            "batches": [{"mfg_date": "2026-08-19", "exp_date": "2026-09-17",
+                         "batch_qty": 6002, "batch_unit": "ชิ้น"}],
+        }]
+        ws = _load(orders)["MFG_EXP"]
+        assert ws.cell(1, 9).value == "คลัง"
+        # the receiving warehouse, never one of the material lines' warehouses
+        assert ws.cell(2, 9).value == "DW-1001"
+
+    def test_batch_whse_says_na_when_the_form_left_it_empty(self):
+        orders = [{
+            "order_no": "OD201",
+            "lines": [{"whse": "P8-PD02"}, {"whse": "P8-PD02"}],
+            "batches": [{"mfg_date": "2026-08-12", "exp_date": "2026-08-19",
+                         "batch_qty": 4386, "batch_unit": "ชิ้น"}],
+        }]
+        ws = _load(orders)["MFG_EXP"]
+        # never borrowed from the material lines
+        assert ws.cell(2, 9).value == "n/a"
+
+    def test_batch_whse_says_na_when_blank_rather_than_missing(self):
+        orders = [{
+            "order_no": "OD202",
+            "product_whse": "   ",
+            "lines": [{}],
+            "batches": [{"mfg_date": "2026-08-12", "exp_date": "2026-08-19",
+                         "batch_qty": 1, "batch_unit": "ชิ้น"}],
+        }]
+        ws = _load(orders)["MFG_EXP"]
+        assert ws.cell(2, 9).value == "n/a"
+
     def test_batch_sheet_multiple_orders(self):
         orders = [
             {"order_no": "A", "actual_total": 100, "lines": [{}], "batches": [
