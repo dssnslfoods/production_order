@@ -44,6 +44,19 @@ EXTRACTION_PROMPT = r"""
      ให้ใช้ค่าจาก "ปริมาณที่ต้องใช้" เท่านั้น ห้ามใช้ "Std ตามสูตร" (ซึ่งเป็นอัตราส่วนต่อหน่วย)
 - หน่วย             -> unit (เช่น "KG", "Hour", "Hr", "ชิ้น", "ม้วน")
 
+ตาราง MFG/EXP (ถ้ามี): ฟอร์มบางแบบมีตาราง batch การผลิต อยู่ด้านขวาหรือด้านล่าง
+แต่ละ batch มี:
+- รหัสสินค้า  -> item_code (เช่น "PTGC01")
+- MFG         -> mfg_date (วันที่ผลิต แปลงเป็น YYYY-MM-DD เช่น "2024-04-01")
+              วันที่อาจเขียนเป็น DDMMYY เช่น "010424" = 01/04/2024
+- EXP         -> exp_date (วันหมดอายุ แปลงเป็น YYYY-MM-DD)
+- จำนวน       -> batch_qty (ตัวเลข)
+- หน่วย       -> batch_unit (เช่น "ชิ้น")
+⚠️ กฎสำคัญ: exp_date ต้องมาหลัง mfg_date เสมอ (วันหมดอายุต้องมากกว่าวันผลิต)
+  ถ้าอ่านวันที่แล้วได้ EXP < MFG แสดงว่าตีความรูปแบบวันที่ผิด — ลองสลับ DD กับ MM
+  เช่น "010924" อาจเป็น 01/09/2024 หรือ 09/01/2024 ให้เลือกแบบที่ทำให้ EXP > MFG
+⚠️ ถ้าไม่มีตาราง MFG/EXP ในฟอร์ม ให้ส่ง batches เป็น [] (array ว่าง)
+
 กติกา:
 - อ่านทุกคอลัมน์ตั้งแต่ "ลำดับ" จนถึง "หน่วย" ให้ครบ — คอลัมน์ ปริมาณที่ต้องใช้ และ หน่วย
   มักอยู่ทางขวาของ Whse อย่าข้าม
@@ -62,6 +75,9 @@ EXTRACTION_PROMPT = r"""
   "plan_unit": "KG",
   "lines": [
     {"row_no":1,"item_no":"10202004","item_description":"น้ำมันถั่วเหลือง ตรา MEI (Lamsoon)","type":"Item","quantity_raw":"3.819","whse":"P8-PD05","plan_raw":"2.961","unit":"KG"}
+  ],
+  "batches": [
+    {"item_code":"PTGC01","mfg_date":"2024-04-01","exp_date":"2024-09-12","batch_qty":15046,"batch_unit":"ชิ้น"}
   ]
 }
 """.strip()
@@ -582,4 +598,17 @@ def normalize(data):
             line["plan_reinterpreted"] = True
             line["plan_note"] = plan_reason
         out["lines"].append(line)
+
+    out["batches"] = []
+    for b in data.get("batches") or []:
+        batch = {
+            "order_no": out["order_no"],
+            "mfg_date": _s(b.get("mfg_date")),
+            "exp_date": _s(b.get("exp_date")),
+            "actual_total": out["actual_total"],
+            "batch_qty": _num(b.get("batch_qty")),
+            "batch_unit": _s(b.get("batch_unit")),
+        }
+        if batch["mfg_date"] or batch["exp_date"]:
+            out["batches"].append(batch)
     return out

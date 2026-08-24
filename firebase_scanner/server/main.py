@@ -537,6 +537,7 @@ class OrderIn(BaseModel):
     actual_total: Optional[float] = None
     plan_unit: Optional[str] = None
     lines: Optional[list] = None
+    batches: Optional[list] = None
 
 
 @app.put("/api/orders/{order_id}")

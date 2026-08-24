@@ -175,6 +175,7 @@ def add_order(data, source_image, provider, user_email=None, source_filename=Non
         "actual_total": data.get("actual_total"),
         "plan_unit": data.get("plan_unit"),
         "lines": data.get("lines", []),
+        "batches": data.get("batches", []),
         "source_image": source_image,
         "ai_image": ai_image,
         "source_filename": source_filename,
@@ -267,7 +268,7 @@ def get_order(order_id):
 def update_order(order_id, patch):
     """Save edits to a scanned order (used by the review/edit page before export)."""
     allowed = {"order_no", "document_date", "series_no", "product_name",
-                "plan_total", "actual_total", "plan_unit", "lines"}
+                "plan_total", "actual_total", "plan_unit", "lines", "batches"}
     upd = {k: v for k, v in patch.items() if k in allowed}
     upd["edited"] = True
     upd["edited_at"] = firestore.SERVER_TIMESTAMP

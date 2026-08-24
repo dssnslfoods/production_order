@@ -21,22 +21,20 @@ _hdr_fill = PatternFill("solid", fgColor="FFC000")
 COLUMNS = [
     ("Production Order", "order_no", 16, _ctr, None),
     ("วันที่", "document_date", 12, _ctr, None),
-    ("Series No.", "series_no", 12, _ctr, None),
+    ("Item No.", "series_no", 12, _ctr, None),
     ("ผลิตภัณฑ์", "product_name", 22, _lft, None),
-    ("ยอดผลิต Plan", "plan_total", 14, _rgt, "#,##0.000"),
-    ("ยอดผลิตจริง", "actual_total", 14, _rgt, "#,##0.000"),
     ("หน่วยผลิต", "plan_unit", 10, _ctr, None),
     ("ลำดับ", "row_no", 8, _ctr, "0"),
     ("รหัส", "item_no", 14, _ctr, None),
     ("รายการวัตถุดิบ", "item_description", 44, _lft, None),
     ("Type", "type", 11, _ctr, None),
-    ("Qty", "quantity", 12, _rgt, "#,##0.000"),
+    ("Issue Qty", "quantity", 12, _rgt, "#,##0.000"),
     ("คลังสินค้า", "whse", 11, _ctr, None),
     ("Plan", "plan", 12, _rgt, "#,##0.000"),
     ("หน่วย", "unit", 8, _ctr, None),
 ]
 _HEADER_KEYS = {"order_no", "document_date", "series_no", "product_name",
-                "plan_total", "actual_total", "plan_unit"}
+                "plan_unit"}
 
 
 def build_workbook(orders):
@@ -68,7 +66,61 @@ def build_workbook(orders):
     ws.freeze_panes = "A2"
     ws.auto_filter.ref = f"A1:{get_column_letter(len(COLUMNS))}{max(r - 1, 1)}"
 
+    _build_batch_sheet(wb, orders)
+
     buf = io.BytesIO()
     wb.save(buf)
     buf.seek(0)
     return buf.getvalue()
+
+
+BATCH_COLUMNS = [
+    ("Production Order", 16, _ctr),
+    ("วันที่เอกสาร", 12, _ctr),
+    ("Item No.", 14, _ctr),
+    ("ผลิตภัณฑ์", 22, _lft),
+    ("MFG Date", 12, _ctr),
+    ("EXP Date", 12, _ctr),
+    ("Receive Qty.", 14, _rgt),
+    ("หน่วย", 10, _ctr),
+]
+
+
+def _build_batch_sheet(wb, orders):
+    """Add a MFG_EXP worksheet — one row per production batch."""
+    rows = []
+    for o in orders:
+        for b in o.get("batches") or []:
+            rows.append((
+                o.get("order_no"),
+                o.get("document_date"),
+                o.get("series_no"),
+                o.get("product_name"),
+                b.get("mfg_date"),
+                b.get("exp_date"),
+                b.get("batch_qty"),
+                b.get("batch_unit"),
+            ))
+    if not rows:
+        return
+
+    ws = wb.create_sheet("MFG_EXP")
+    for c, (title, width, _) in enumerate(BATCH_COLUMNS, 1):
+        cell = ws.cell(row=1, column=c, value=title)
+        cell.font = _hdr
+        cell.fill = _hdr_fill
+        cell.border = _thin
+        cell.alignment = _ctr
+        ws.column_dimensions[get_column_letter(c)].width = width
+
+    for r_idx, row in enumerate(rows, 2):
+        for c, (_, _, align) in enumerate(BATCH_COLUMNS, 1):
+            cell = ws.cell(row=r_idx, column=c, value=row[c - 1])
+            cell.font = _nrm
+            cell.border = _thin
+            cell.alignment = align
+            if c == 7 and isinstance(row[c - 1], (int, float)):
+                cell.number_format = "#,##0"
+
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = f"A1:{get_column_letter(len(BATCH_COLUMNS))}{max(len(rows) + 1, 1)}"

@@ -2249,9 +2249,7 @@
           <label style="margin:0;font-size:13px">ยอดผลิต Plan
             <input id="e_plan_total" type="number" step="any" style="width:100px;margin-left:4px" oninput="updatePlanCompare()">
           </label>
-          <label style="margin:0;font-size:13px">ยอดผลิตจริง
-            <input id="e_actual_total" type="number" step="any" style="width:100px;margin-left:4px" oninput="updatePlanCompare()">
-          </label>
+          <input id="e_actual_total" type="hidden">
           <label style="margin:0;font-size:13px">หน่วย
             <input id="e_plan_unit" style="width:60px;margin-left:4px">
           </label>
@@ -2263,6 +2261,14 @@
       <div class="between esec"><label style="margin:0">รายการ (Lines)</label><button class="ghost sm" onclick="addLine()">+ เพิ่มแถว</button></div>
       <div id="e_lines" class="etable eline">
         <div class="lhead"><span>ลำดับ</span><span>รหัส</span><span>รายการวัตถุดิบ</span><span>Type</span><span>Qty</span><span>Plan</span><span>คลัง</span><span>หน่วย</span><span></span></div>
+      </div>
+
+      <div id="batchSection" class="hidden">
+        <div class="divider"></div>
+        <div class="between esec"><label style="margin:0">MFG / EXP Date</label><button class="ghost sm" id="addBatchBtn" onclick="addBatch()">+ เพิ่ม batch</button></div>
+        <div id="e_batches" class="etable">
+          <div class="lhead" style="display:grid;grid-template-columns:.9fr .7fr .9fr .9fr .5fr .7fr .5fr 36px;gap:6px;align-items:center;font-size:11px;color:var(--faint);padding:0 2px;text-transform:uppercase;letter-spacing:.5px"><span>Order No.</span><span>Item No.</span><span>MFG Date</span><span>EXP Date</span><span>Shelf Life</span><span>Receive Qty.</span><span>หน่วย</span><span></span></div>
+        </div>
       </div>
 
       <div class="divider"></div>
@@ -3845,21 +3851,13 @@ window.updateSaveBtn = () => {
 };
 window.updatePlanCompare = () => {
   const plan = parseFloat($("e_plan_total").value);
-  const actual = parseFloat($("e_actual_total").value);
   const unit = $("e_plan_unit").value||"";
   const el = $("planPct");
-  if(!isNaN(plan) && !isNaN(actual) && plan > 0){
-    const pct = (actual / plan * 100).toFixed(1);
-    const diff = Math.abs(plan - actual) / plan;
-    const color = diff > 0.10 ? "#ef4444" : "#16a34a";
-    el.style.color = color;
-    el.textContent = `${actual} / ${plan} ${unit} = ${pct}%`;
-    $("planCompare").style.background = diff > 0.10 ? "rgba(239,68,68,.06)" : "rgba(22,163,74,.06)";
-    $("planCompare").style.border = `1px solid ${diff > 0.10 ? "rgba(239,68,68,.2)" : "rgba(22,163,74,.2)"}`;
+  if(!isNaN(plan) && plan > 0){
+    el.textContent = `${plan.toLocaleString()} ${unit}`;
+    el.style.color = "var(--text)";
   } else {
     el.textContent = "";
-    $("planCompare").style.background = "var(--card)";
-    $("planCompare").style.border = "1px solid var(--border)";
   }
 };
 window.addLine = () => $("e_lines").insertAdjacentHTML("beforeend", lineRow());
@@ -3881,6 +3879,12 @@ function loadEditForm(o){
   $("e_lines").querySelectorAll(".l-qty").forEach(el=>checkPlanQty(el, true));
   updateSaveBtn();
   updateNav();
+  // batches (MFG/EXP)
+  const batches = o.batches || [];
+  const batchSec = $("batchSection");
+  $("e_batches").querySelectorAll(".brow").forEach(r=>r.remove());
+  batchSec.classList.remove("hidden");
+  batches.forEach(b=>$("e_batches").insertAdjacentHTML("beforeend", batchRow(b, o.order_no, o.series_no, o.plan_total)));
   // source image
   if(o.has_image){
     $("editImageWrap").classList.remove("hidden");
@@ -3921,6 +3925,8 @@ function loadEditForm(o){
   modal.querySelectorAll(".del").forEach(el => { if(el.textContent.trim()==="×") el.style.display = approved ? "none" : ""; });
   const addLineBtn = modal.querySelector('[onclick="addLine()"]');
   if(addLineBtn) addLineBtn.style.display = approved ? "none" : "";
+  const addBatchBtn = $("addBatchBtn");
+  if(addBatchBtn) addBatchBtn.style.display = approved ? "none" : "";
   // update title
   modal.querySelector(".phead h2").textContent = approved ? "ดูรายละเอียดใบสั่งผลิต" : "แก้ไข / จัดการใบสั่งผลิต";
   modal.querySelector(".phead .pico").innerHTML = approved ? '<svg viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
@@ -3932,6 +3938,7 @@ window.approveOrder = async () => {
     toast("กรุณายืนยันค่าต่างทั้งหมดก่อนอนุมัติ (เหลือ "+unacked.length+" รายการ)");
     return;
   }
+  if(!checkBatchShelf()) return;
   if(!confirm("ยืนยันอนุมัติรายการนี้?")) return;
   try{
     // save current form data first
@@ -4001,9 +4008,67 @@ function collectFormData(){
     actual_total: num($("e_actual_total").value),
     plan_unit: $("e_plan_unit").value.trim()||null,
     lines: lines,
+    batches: collectBatches(),
   };
 }
+function shelfDays(mfg, exp){
+  if(!mfg||!exp) return {text:"", days:null};
+  const d = Math.round((new Date(exp)-new Date(mfg))/(864e5));
+  if(d < 0) return {text:d+" วัน ⚠️", days:d, color:"var(--red)", level:"error"};
+  if(d > 7) return {text:d+" วัน", days:d, color:"#d97706", level:"warn"};
+  return {text:d+" วัน", days:d, color:"var(--emerald)", level:"ok"};
+}
+function batchRow(b={}, orderNo, seriesNo, planTotal){
+  const on = b.order_no || orderNo || $("e_order").value || "";
+  const sn = b.series_no || seriesNo || $("e_series").value || "";
+  const pt = b.plan_total ?? planTotal ?? $("e_plan_total").value ?? "";
+  const shelf = shelfDays(b.mfg_date, b.exp_date);
+  return `<div class="brow" style="display:grid;grid-template-columns:.9fr .7fr .9fr .9fr .5fr .7fr .5fr 36px;gap:6px;align-items:center;padding:4px 0" data-shelf-level="${shelf.level||''}">
+    <input class="b-orderno" value="${on}" style="font-size:12px;background:var(--bg2);color:var(--faint)" readonly>
+    <input class="b-series" value="${sn}" style="font-size:12px;background:var(--bg2);color:var(--faint)" readonly>
+    <input class="b-mfg" type="date" value="${b.mfg_date||''}" style="font-size:12px" onchange="updateShelf(this)">
+    <input class="b-exp" type="date" value="${b.exp_date||''}" style="font-size:12px" onchange="updateShelf(this)">
+    <span class="b-shelf" style="font-size:11px;text-align:center;font-weight:600;color:${shelf.color||'var(--faint)'}">${shelf.text}</span>
+    <input class="b-qty" type="number" step="any" value="${b.batch_qty??''}" placeholder="Qty" style="font-size:12px;text-align:right">
+    <input class="b-unit" value="${b.batch_unit||''}" placeholder="หน่วย" style="font-size:12px">
+    <button class="del" onclick="this.closest('.brow').remove()" style="width:28px;height:28px;font-size:14px;padding:0">×</button>
+  </div>`;
+}
+window.updateShelf = (el) => {
+  const row = el.closest(".brow");
+  const mfg = row.querySelector(".b-mfg").value;
+  const exp = row.querySelector(".b-exp").value;
+  const s = shelfDays(mfg, exp);
+  const span = row.querySelector(".b-shelf");
+  span.textContent = s.text;
+  span.style.color = s.color || "var(--faint)";
+  row.dataset.shelfLevel = s.level || "";
+};
+window.addBatch = () => { $("e_batches").insertAdjacentHTML("beforeend", batchRow({}, $("e_order").value, $("e_series").value, $("e_plan_total").value)); $("batchSection").classList.remove("hidden"); };
+function collectBatches(){
+  return [...$("e_batches").querySelectorAll(".brow")].map(r=>({
+    order_no: r.querySelector(".b-orderno").value.trim()||null,
+    mfg_date: r.querySelector(".b-mfg").value||null,
+    exp_date: r.querySelector(".b-exp").value||null,
+    batch_qty: num(r.querySelector(".b-qty").value),
+    batch_unit: r.querySelector(".b-unit").value.trim()||null,
+  })).filter(b=>b.mfg_date||b.exp_date);
+}
+
+function checkBatchShelf(){
+  const rows = [...$("e_batches").querySelectorAll(".brow")];
+  const errors = rows.filter(r=>r.dataset.shelfLevel==="error");
+  const warns = rows.filter(r=>r.dataset.shelfLevel==="warn");
+  if(errors.length > 0){
+    return confirm(`⚠️ พบ ${errors.length} batch ที่ EXP Date อยู่ก่อน MFG Date (Shelf Life ติดลบ)\nกรุณาตรวจสอบวันที่ให้ถูกต้อง\n\nต้องการบันทึกต่อหรือไม่?`);
+  }
+  if(warns.length > 0){
+    return confirm(`พบ ${warns.length} batch ที่ Shelf Life เกิน 7 วัน\nกรุณาตรวจสอบว่า MFG/EXP Date ถูกต้อง\n\nต้องการบันทึกต่อหรือไม่?`);
+  }
+  return true;
+}
 window.saveEdit = async () => {
+  if(!checkBatchShelf()) return;
   const body = collectFormData();
   try{
     const r = await api("/orders/"+editId, {method:"PUT", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)});
