@@ -826,10 +826,10 @@
             <div><h1>ใบเบิกวัตถุดิบ</h1><p>Production Order Scanner</p></div>
           </div>
           <label>อีเมล</label>
-          <input id="email" type="email" autocomplete="username" placeholder="you@company.com">
+          <input id="email" type="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="you@company.com" onkeydown="if(event.key==='Enter')doLogin()">
           <div class="mt"></div>
           <label>รหัสผ่าน</label>
-          <input id="password" type="password" autocomplete="current-password" placeholder="••••••••">
+          <input id="password" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
           <div class="mt"></div>
           <button class="btn" onclick="doLogin()">เข้าสู่ระบบ</button>
           <p class="hint" style="text-align:center">บัญชีสร้างโดยผู้ดูแลระบบ</p>
@@ -1502,11 +1502,11 @@
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:end">
               <div>
                 <label>อีเมล</label>
-                <input id="newUserEmail" type="email" placeholder="user@company.com">
+                <input id="newUserEmail" type="email" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="user@company.com">
               </div>
               <div>
                 <label>รหัสผ่าน</label>
-                <input id="newUserPw" type="text" placeholder="6+ ตัวอักษร">
+                <input id="newUserPw" type="text" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="อย่างน้อย 6 ตัวขึ้นไป">
               </div>
               <div>
                 <label>บทบาท (Role)</label>
@@ -2476,8 +2476,13 @@ if (notConfigured) {
 }
 
 window.doLogin = async () => {
-  try { await signInWithEmailAndPassword(auth, $("email").value.trim(), $("password").value); }
-  catch(e){ toast("เข้าสู่ระบบไม่สำเร็จ: "+(e.code||e.message)); }
+  const em=$("email").value.trim().toLowerCase(), pw=$("password").value.trim();
+  if(!em||!pw){ toast("กรุณากรอกอีเมลและรหัสผ่าน"); return; }
+  try { await signInWithEmailAndPassword(auth, em, pw); }
+  catch(e){
+    const msgs={"auth/user-not-found":"ไม่พบผู้ใช้นี้ในระบบ","auth/wrong-password":"รหัสผ่านไม่ถูกต้อง","auth/invalid-email":"รูปแบบอีเมลไม่ถูกต้อง","auth/user-disabled":"บัญชีนี้ถูกระงับ","auth/too-many-requests":"ลองมากเกินไป กรุณารอสักครู่","auth/invalid-credential":"อีเมลหรือรหัสผ่านไม่ถูกต้อง","auth/network-request-failed":"เชื่อมต่อเครือข่ายไม่ได้"};
+    toast(msgs[e.code]||("เข้าสู่ระบบไม่สำเร็จ: "+e.code));
+  }
 };
 window.doLogout = () => signOut(auth);
 
@@ -4243,16 +4248,19 @@ window.loadUsers = async () => {
   }catch(e){ $("usersList").innerHTML = '<tr><td colspan="4" class="muted" style="padding:16px">โหลดไม่สำเร็จ (ต้องเป็น Admin)</td></tr>'; }
 };
 window.createUser = async () => {
-  const email=$("newUserEmail").value.trim(), pw=$("newUserPw").value, name=$("newUserName").value.trim(), role=$("newUserRole").value;
+  // Trim both: a stray space from copy-paste or a tablet keyboard is the usual
+  // reason a brand-new account cannot log in afterwards.
+  const email=$("newUserEmail").value.trim().toLowerCase(), pw=$("newUserPw").value.trim(),
+        nameEl=$("newUserName"), name=nameEl?nameEl.value.trim():"", role=$("newUserRole").value;
   if(!email||!pw){ toast("กรุณากรอกอีเมลและรหัสผ่าน"); return; }
-  if(pw.length<6){ toast("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร"); return; }
+  if(pw.length<6){ toast("รหัสผ่านต้องมีอย่างน้อย 6 ตัวขึ้นไป"); return; }
   $("createUserResult").innerHTML = '<span class="spin"></span> กำลังสร้าง…';
   try{
     const r = await api("/users",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password:pw,role,display_name:name||null})});
     if(r.ok){
       toast("สร้างผู้ใช้ "+email+" สำเร็จ ✓");
-      $("newUserEmail").value=""; $("newUserPw").value=""; $("newUserName").value="";
-      $("createUserResult").textContent="";
+      $("createUserResult").innerHTML='✅ <b>'+email+'</b> เข้าสู่ระบบได้แล้ว · รหัสผ่าน: <b>'+pw+'</b>';
+      $("newUserEmail").value=""; $("newUserPw").value=""; if($("newUserName"))$("newUserName").value="";
       loadUsers();
     } else { const e=await r.json().catch(()=>({})); $("createUserResult").textContent="❌ "+(e.detail||"สร้างไม่สำเร็จ"); }
   }catch(e){ $("createUserResult").textContent="❌ เชื่อมต่อไม่สำเร็จ"; }
@@ -4273,9 +4281,9 @@ window.deleteUser = async (uid,email) => {
   }catch(e){ toast("เชื่อมต่อไม่สำเร็จ"); }
 };
 window.resetUserPw = async (uid,email) => {
-  const pw = prompt("ตั้งรหัสผ่านใหม่ให้ "+email+" (อย่างน้อย 6 ตัว):");
+  const pw = prompt("ตั้งรหัสผ่านใหม่ให้ "+email+" (อย่างน้อย 6 ตัวขึ้นไป):");
   if(!pw) return;
-  if(pw.length<6){ toast("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร"); return; }
+  if(pw.length<6){ toast("รหัสผ่านต้องมีอย่างน้อย 6 ตัวขึ้นไป"); return; }
   try{
     const r = await api("/users/"+uid+"/reset-password",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:pw})});
     if(r.ok) toast("รีเซ็ตรหัสผ่าน "+email+" แล้ว ✓");

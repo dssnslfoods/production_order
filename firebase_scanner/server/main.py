@@ -721,24 +721,78 @@ class UserCreate(BaseModel):
     display_name: Optional[str] = None
 
 
+MIN_PASSWORD = 6
+# Public web API key (same one the login page ships) — used to prove the new
+# credential really signs in before we tell the admin the account is ready.
+WEB_API_KEY = os.environ.get("FIREBASE_WEB_API_KEY",
+                             "AIzaSyASI7mYDFFM96FYF6PaAEU3yjX1TuCDccM")
+
+
+def _can_sign_in(email, password):
+    """Sign in as the new user once. Returns None on success, else the reason."""
+    import json as _json
+    import urllib.error
+    import urllib.request
+    url = ("https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword"
+           f"?key={WEB_API_KEY}")
+    payload = _json.dumps({"email": email, "password": password,
+                           "returnSecureToken": True}).encode()
+    req = urllib.request.Request(url, data=payload,
+                                 headers={"Content-Type": "application/json"})
+    try:
+        urllib.request.urlopen(req, timeout=10).read()
+        return None
+    except urllib.error.HTTPError as e:
+        try:
+            return (_json.loads(e.read())["error"]["message"])
+        except Exception:  # noqa: BLE001
+            return f"HTTP {e.code}"
+    except Exception:  # noqa: BLE001
+        return None  # network hiccup on our side — don't fail the creation
+
+
 @app.post("/api/users")
 def create_user(body: UserCreate, user=Depends(admin_only)):
+    # Whitespace around either field is always a typo, and it is the usual
+    # reason a freshly created account cannot log in.
+    email = (body.email or "").strip().lower()
+    password = (body.password or "").strip()
     if body.role not in store.VALID_ROLES:
         raise HTTPException(status_code=400, detail=f"role ต้องเป็น {store.VALID_ROLES}")
+    if "@" not in email:
+        raise HTTPException(status_code=400, detail="รูปแบบอีเมลไม่ถูกต้อง")
+    if len(password) < MIN_PASSWORD:
+        raise HTTPException(status_code=400,
+                            detail=f"รหัสผ่านต้องมีอย่างน้อย {MIN_PASSWORD} ตัวขึ้นไป")
+
+    from firebase_admin import auth as fb_auth
+    store._init()
+    name = (body.display_name or "").strip() or email.split("@")[0]
     try:
-        from firebase_admin import auth as fb_auth
-        store._init()
-        fb_user = fb_auth.create_user(
-            email=body.email,
-            password=body.password,
-            display_name=body.display_name or body.email.split("@")[0],
-        )
-        store._create_user_doc(fb_user.uid, body.email, body.role, user["email"])
-        store.log_activity("create_user", user["email"], user["role"],
-                           f"สร้างผู้ใช้ {body.email} (role: {body.role})")
-        return {"uid": fb_user.uid, "email": body.email, "role": body.role}
-    except Exception as e:
+        fb_user = fb_auth.create_user(email=email, password=password,
+                                      display_name=name)
+        uid = fb_user.uid
+    except fb_auth.EmailAlreadyExistsError:
+        # A half-finished attempt (auth account made, Firestore row missing)
+        # must not become a dead end — adopt the account and set it up fully.
+        existing = fb_auth.get_user_by_email(email)
+        uid = existing.uid
+        fb_auth.update_user(uid, password=password, display_name=name,
+                            disabled=False)
+    except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=400, detail=f"สร้างผู้ใช้ไม่สำเร็จ: {e}")
+
+    store._create_user_doc(uid, email, body.role, user["email"])
+    store.log_activity("create_user", user["email"], user["role"],
+                       f"สร้างผู้ใช้ {email} (role: {body.role})")
+
+    problem = _can_sign_in(email, password)
+    if problem:
+        raise HTTPException(
+            status_code=400,
+            detail=f"สร้างบัญชีแล้ว แต่ยังเข้าสู่ระบบไม่ได้ ({problem}) — "
+                   "ลองตั้งรหัสผ่านใหม่จากปุ่มกุญแจในตาราง")
+    return {"uid": uid, "email": email, "role": body.role, "verified": True}
 
 
 class UserUpdate(BaseModel):
@@ -787,15 +841,24 @@ def reset_user_pw(uid: str, body: ResetPwIn, user=Depends(admin_only)):
     existing = store.get_user_doc(uid)
     if not existing:
         raise HTTPException(status_code=404, detail="ไม่พบผู้ใช้")
+    password = (body.password or "").strip()
+    if len(password) < MIN_PASSWORD:
+        raise HTTPException(status_code=400,
+                            detail=f"รหัสผ่านต้องมีอย่างน้อย {MIN_PASSWORD} ตัวขึ้นไป")
     try:
         from firebase_admin import auth as fb_auth
         store._init()
-        fb_auth.update_user(uid, password=body.password)
+        fb_auth.update_user(uid, password=password, disabled=False)
         store.log_activity("reset_password", user["email"], user["role"],
                            f"รีเซ็ตรหัสผ่าน {existing['email']}")
-        return {"ok": True}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"รีเซ็ตรหัสผ่านไม่สำเร็จ: {e}")
+
+    problem = _can_sign_in((existing.get("email") or "").strip().lower(), password)
+    if problem:
+        raise HTTPException(status_code=400,
+                            detail=f"ตั้งรหัสผ่านแล้ว แต่ยังเข้าสู่ระบบไม่ได้ ({problem})")
+    return {"ok": True, "verified": True}
 
 
 # ---------------------------------------------------------------------------
