@@ -398,6 +398,10 @@
   .eline .lhead{font-size:11px;color:var(--faint);padding:0 2px;text-transform:uppercase;letter-spacing:.5px}
   .eline .lrow input{padding:8px 8px;font-size:13px;border-radius:8px}
   .eline .lrow .del{padding:6px 7px;font-size:13px}
+  /* a batch whose expiry runs before its manufacture — blocks saving */
+  .brow-bad{background:rgba(239,68,68,.07);border-radius:8px;
+    box-shadow:inset 0 0 0 1px rgba(239,68,68,.35)}
+  .brow-bad .b-mfg,.brow-bad .b-exp{border-color:var(--red)}
   .qty-cell{display:flex;flex-direction:column;gap:3px}
   .qty-cell input{width:100%}
   .l-confirm{display:none;font-size:10px;color:#ef4444;cursor:pointer;user-select:none;
@@ -1857,7 +1861,7 @@
               <tbody>
                 <tr><td style="width:190px"><span class="m-badge" style="background:rgba(16,185,129,.12);color:var(--emerald)">0–7 วัน</span></td><td>ปกติ บันทึกได้เลย</td></tr>
                 <tr><td><span class="m-badge" style="background:rgba(245,158,11,.14);color:var(--amber)">เกิน 7 วัน</span></td><td>ผิดปกติ — ระบบถามยืนยันก่อนบันทึกหรืออนุมัติ</td></tr>
-                <tr><td><span class="m-badge" style="background:rgba(239,68,68,.12);color:var(--red)">ติดลบ ⚠️</span></td><td>EXP อยู่ก่อน MFG ซึ่งเป็นไปไม่ได้ — ระบบเตือนให้แก้ก่อน</td></tr>
+                <tr><td><span class="m-badge" style="background:rgba(239,68,68,.12);color:var(--red)">ติดลบ ⚠️</span></td><td>EXP อยู่ก่อน MFG ซึ่งเป็นไปไม่ได้ — <b>บันทึกและอนุมัติไม่ได้จนกว่าจะแก้</b></td></tr>
               </tbody>
             </table>
             <div class="m-note">
@@ -1866,8 +1870,11 @@
               เป็นรูปแบบตายตัวของฟอร์ม ไม่ใช่สิ่งที่ต้องเดา<br>
               ตอนที่ปล่อยให้ AI แปลงเอง มันเคย "แก้ให้ดูสมเหตุสมผล" จนได้วันหมดอายุมาก่อนวันผลิต
               ตอนนี้ตัวเลขที่อ่านไม่ครบหรือเป็นวันที่ที่ไม่มีจริงจะถูกปล่อยว่างไว้ ไม่เดาให้<br>
-              ถ้ายังมีแถวที่ผิดปกติเหลืออยู่ตอนกดบันทึกหรืออนุมัติ ระบบจะขึ้นกล่องให้ยืนยัน —
-              กด <b>ยกเลิก</b> เพื่อกลับไปแก้วันที่ หรือ <b>ตกลง</b> หากตรวจกับเอกสารแล้วว่าถูกจริง
+              <b>Shelf Life ติดลบ = บันทึกไม่ได้เลย</b> ระบบจะขึ้นกล่องแจ้งเตือน ไฮไลต์แถวนั้นเป็นสีแดง
+              และพาไปที่ช่องวันที่ให้แก้ทันที ไม่มีปุ่มให้กดผ่าน เพราะวันหมดอายุที่มาก่อนวันผลิต
+              ไม่มีทางตรงกับเอกสารได้ จึงไม่ใช่เรื่องที่ต้องให้ใครยืนยัน<br>
+              ส่วนกรณี <b>เกิน 7 วัน</b> ยังเป็นกล่องให้ยืนยัน — กด <b>ยกเลิก</b> เพื่อกลับไปแก้
+              หรือ <b>ตกลง</b> หากตรวจกับเอกสารแล้วว่าถูกจริง
             </div>
           </div>
 
@@ -4140,7 +4147,7 @@ function batchRow(b={}, orderNo, seriesNo, planTotal){
   const sn = b.series_no || seriesNo || $("e_series").value || "";
   const pt = b.plan_total ?? planTotal ?? $("e_plan_total").value ?? "";
   const shelf = shelfDays(b.mfg_date, b.exp_date);
-  return `<div class="brow" style="display:grid;grid-template-columns:.9fr .7fr .9fr .9fr .5fr .7fr .5fr 36px;gap:6px;align-items:center;padding:4px 0" data-shelf-level="${shelf.level||''}">
+  return `<div class="brow${shelf.level==='error'?' brow-bad':''}" style="display:grid;grid-template-columns:.9fr .7fr .9fr .9fr .5fr .7fr .5fr 36px;gap:6px;align-items:center;padding:4px 0" data-shelf-level="${shelf.level||''}">
     <input class="b-orderno" value="${on}" style="font-size:12px;background:var(--bg2);color:var(--faint)" readonly>
     <input class="b-series" value="${sn}" style="font-size:12px;background:var(--bg2);color:var(--faint)" readonly>
     <input class="b-mfg" type="date" value="${b.mfg_date||''}" style="font-size:12px" onchange="updateShelf(this)">
@@ -4160,6 +4167,7 @@ window.updateShelf = (el) => {
   span.textContent = s.text;
   span.style.color = s.color || "var(--faint)";
   row.dataset.shelfLevel = s.level || "";
+  row.classList.toggle("brow-bad", s.level === "error");
 };
 window.addBatch = () => { $("e_batches").insertAdjacentHTML("beforeend", batchRow({}, $("e_order").value, $("e_series").value, $("e_plan_total").value)); $("batchSection").classList.remove("hidden"); };
 function collectBatches(){
@@ -4176,8 +4184,19 @@ function checkBatchShelf(){
   const rows = [...$("e_batches").querySelectorAll(".brow")];
   const errors = rows.filter(r=>r.dataset.shelfLevel==="error");
   const warns = rows.filter(r=>r.dataset.shelfLevel==="warn");
+  // A date that runs backwards is not a judgement call — it cannot be what the
+  // paper says, so there is nothing for anyone to confirm.  Refuse outright and
+  // point at the row to fix, rather than offering an OK that saves it anyway.
   if(errors.length > 0){
-    return confirm(`⚠️ พบ ${errors.length} batch ที่ EXP Date อยู่ก่อน MFG Date (Shelf Life ติดลบ)\nกรุณาตรวจสอบวันที่ให้ถูกต้อง\n\nต้องการบันทึกต่อหรือไม่?`);
+    errors.forEach(r => r.classList.add("brow-bad"));
+    const first = errors[0];
+    first.scrollIntoView({behavior:"smooth", block:"center"});
+    alert(`❌ บันทึกไม่ได้ ต้องแก้ไขวันที่ก่อน\n\n`
+      + `พบ ${errors.length} batch ที่วันหมดอายุ (EXP) มาก่อนวันผลิต (MFG)\n`
+      + `ซึ่งเป็นไปไม่ได้ — มักเกิดจากอ่านเลขเดือนผิด\n\n`
+      + `กรุณาเทียบกับเอกสารต้นฉบับแล้วแก้ให้ถูกต้อง`);
+    setTimeout(() => { const d = first.querySelector(".b-exp"); if(d) d.focus(); }, 400);
+    return false;
   }
   if(warns.length > 0){
     return confirm(`พบ ${warns.length} batch ที่ Shelf Life เกิน 7 วัน\nกรุณาตรวจสอบว่า MFG/EXP Date ถูกต้อง\n\nต้องการบันทึกต่อหรือไม่?`);
