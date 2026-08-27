@@ -162,8 +162,8 @@ class TestGetUserRole:
              patch.object(store, "_create_user_doc") as mock_create:
             mock_db().collection().document().get.return_value = mock_doc
             role = store.get_user_role("uid1", "first@test.com")
-        assert role == "admin"
-        mock_create.assert_called_once_with("uid1", "first@test.com", "admin", "system")
+        assert role == "super_admin"
+        mock_create.assert_called_once_with("uid1", "first@test.com", "super_admin", "system")
 
     def test_subsequent_user_becomes_staff(self):
         mock_doc = MagicMock()
@@ -202,7 +202,7 @@ class TestUpdateUserRole:
 # ---------------------------------------------------------------------------
 class TestDefaults:
     def test_valid_roles(self):
-        assert store.VALID_ROLES == {"admin", "supervisor", "staff"}
+        assert store.VALID_ROLES == {"super_admin", "admin", "supervisor", "staff"}
 
     def test_all_default_roles_present(self):
         for role in store.VALID_ROLES:

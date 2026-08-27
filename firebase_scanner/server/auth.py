@@ -1,11 +1,12 @@
 """Firebase ID-token verification with role-based access control.
 
-Roles: admin, supervisor, staff
-- admin: full access (user management, settings, all operations)
+Roles: super_admin, admin, supervisor, staff
+- super_admin: full access across all factories, manages factories
+- admin: full access within their factory (user management, settings, all operations)
 - supervisor: approve/reject scanned records, view orders, export
 - staff: scan files, upload to queue, view orders (no approve, no settings)
 
-The first user to log in when no users exist is auto-promoted to admin.
+The first user to log in when no users exist is auto-promoted to super_admin.
 """
 import os
 
@@ -37,8 +38,15 @@ async def verify_token(authorization: str = Header(default="")):
         allow = _allowed()
         if allow and email not in allow:
             raise HTTPException(status_code=403, detail="อีเมลนี้ไม่มีสิทธิ์ใช้งาน")
-    role = store.get_user_role(uid, email)
-    return {"uid": uid, "email": decoded.get("email"), "role": role}
+    info = store.get_user_info(uid, email)
+    return {
+        "uid": uid,
+        "email": decoded.get("email"),
+        "role": info["role"],
+        "factory_id": info.get("factory_id"),
+        "factory_code": info.get("factory_code"),
+        "factory_name": info.get("factory_name"),
+    }
 
 
 def require_role(*roles):

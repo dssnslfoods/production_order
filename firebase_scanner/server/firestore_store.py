@@ -13,11 +13,15 @@ PENDING = "pending"
 DEAD_LETTER = "dead_letter"
 USERS = "users"
 ACTIVITY = "activity_logs"
+FACTORIES = "factories"
 
 MAX_RETRY = 3
 LOG_RETENTION_DAYS = 90
 
 DEFAULT_PERMISSIONS = {
+    "super_admin": ["dashboard", "scan", "orders", "ask", "forecast", "health",
+                    "users", "activity", "settings", "approve", "delete",
+                    "export", "factories"],
     "admin": ["dashboard", "scan", "orders", "ask", "forecast", "health",
               "users", "activity", "settings", "approve", "delete", "export"],
     "supervisor": ["dashboard", "scan", "orders", "ask", "forecast", "health",
@@ -29,8 +33,8 @@ DEFAULT_PERMISSIONS = {
 # Bump when a release adds permissions.  Roles saved before that release have
 # no opinion about the new keys, so they are granted the default rather than
 # silently losing a page that used to be open to everyone.
-PERM_VERSION = 2
-_NEW_BY_VERSION = {2: ["ask", "forecast", "health"]}
+PERM_VERSION = 3
+_NEW_BY_VERSION = {2: ["ask", "forecast", "health"], 3: ["factories"]}
 
 DEFAULT_SETTINGS = {
     "provider": "claude",
@@ -81,7 +85,7 @@ def get_permissions():
     perms = s.get("role_permissions")
     if not perms or not isinstance(perms, dict):
         return dict(DEFAULT_PERMISSIONS)
-    for role in ("admin", "supervisor", "staff"):
+    for role in ("super_admin", "admin", "supervisor", "staff"):
         if role not in perms:
             perms[role] = list(DEFAULT_PERMISSIONS.get(role, []))
 
@@ -97,18 +101,25 @@ def get_permissions():
         db().collection(SETTINGS).document("app").set(
             {"role_permissions": perms, "perm_version": PERM_VERSION}, merge=True)
 
-    # admin always keeps users + settings to avoid lockout
-    for must in ("users", "settings", "dashboard"):
-        if must not in perms["admin"]:
-            perms["admin"].append(must)
+    # admin/super_admin always keeps users + settings to avoid lockout
+    for role in ("super_admin", "admin"):
+        for must in ("users", "settings", "dashboard"):
+            if must not in perms.get(role, []):
+                perms.setdefault(role, []).append(must)
+    # super_admin always keeps factories
+    if "factories" not in perms.get("super_admin", []):
+        perms.setdefault("super_admin", []).append("factories")
     return perms
 
 
 def save_permissions(perms):
-    # admin always keeps users + settings
-    for must in ("users", "settings", "dashboard"):
-        if must not in perms.get("admin", []):
-            perms.setdefault("admin", []).append(must)
+    # admin/super_admin always keeps users + settings
+    for role in ("super_admin", "admin"):
+        for must in ("users", "settings", "dashboard"):
+            if must not in perms.get(role, []):
+                perms.setdefault(role, []).append(must)
+    if "factories" not in perms.get("super_admin", []):
+        perms.setdefault("super_admin", []).append("factories")
     db().collection(SETTINGS).document("app").set(
         {"role_permissions": perms, "perm_version": PERM_VERSION}, merge=True)
     return get_permissions()
@@ -129,6 +140,68 @@ def save_settings(patch):
         cur["drive_folder_id"] = patch["drive_folder_id"] or ""
     db().collection(SETTINGS).document("app").set(cur)
     return cur
+
+
+# ---------------------------------------------------------------------------
+# Images
+# ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Factories
+# ---------------------------------------------------------------------------
+def add_factory(code, name, created_by):
+    doc = {
+        "code": code.strip().upper(),
+        "name": name.strip(),
+        "created_at": firestore.SERVER_TIMESTAMP,
+        "created_by": created_by,
+    }
+    ref = db().collection(FACTORIES).add(doc)[1]
+    return ref.id
+
+
+def list_factories():
+    out = []
+    for d in db().collection(FACTORIES).order_by("code").stream():
+        r = d.to_dict()
+        r["id"] = d.id
+        ts = r.get("created_at")
+        r["created_at"] = ts.isoformat() if hasattr(ts, "isoformat") else None
+        out.append(r)
+    return out
+
+
+def get_factory(factory_id):
+    if not factory_id:
+        return None
+    d = db().collection(FACTORIES).document(factory_id).get()
+    if not d.exists:
+        return None
+    r = d.to_dict()
+    r["id"] = d.id
+    return r
+
+
+def update_factory(factory_id, patch):
+    allowed = {"code", "name"}
+    upd = {k: v for k, v in patch.items() if k in allowed}
+    if "code" in upd:
+        upd["code"] = upd["code"].strip().upper()
+    if "name" in upd:
+        upd["name"] = upd["name"].strip()
+    db().collection(FACTORIES).document(factory_id).update(upd)
+    return get_factory(factory_id)
+
+
+def find_factory_by_code(code):
+    code = (code or "").strip().upper()
+    if not code:
+        return None
+    for d in (db().collection(FACTORIES)
+              .where("code", "==", code).limit(1).stream()):
+        r = d.to_dict()
+        r["id"] = d.id
+        return r
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -172,7 +245,7 @@ def _review_reasons(data):
 
 
 def add_order(data, source_image, provider, user_email=None, source_filename=None,
-              ai_image=None):
+              ai_image=None, factory_id=None):
     reasons = _review_reasons(data)
     doc = {
         "order_no": data.get("order_no"),
@@ -194,6 +267,7 @@ def add_order(data, source_image, provider, user_email=None, source_filename=Non
         "scanned_by": user_email,
         "scanned_at": firestore.SERVER_TIMESTAMP,
         "status": "pending_approval",
+        "factory_id": factory_id,
     }
     ref = db().collection(ORDERS).add(doc)[1]
     return ref.id
@@ -202,20 +276,25 @@ def add_order(data, source_image, provider, user_email=None, source_filename=Non
 RUNS = "scan_runs"
 
 
-def log_run(trigger, result):
+def log_run(trigger, result, factory_id=None):
     """Record one processing run (manual button or scheduled) for the report."""
-    db().collection(RUNS).add({
+    doc = {
         "ran_at": firestore.SERVER_TIMESTAMP,
         "trigger": trigger,
         "processed": result.get("processed", 0),
         "succeeded": result.get("succeeded", 0),
         "failed": result.get("failed", 0),
-    })
+    }
+    if factory_id:
+        doc["factory_id"] = factory_id
+    db().collection(RUNS).add(doc)
 
 
-def list_runs(limit=20):
-    q = (db().collection(RUNS)
-         .order_by("ran_at", direction=firestore.Query.DESCENDING).limit(limit))
+def list_runs(limit=20, factory_id=None):
+    q = db().collection(RUNS)
+    if factory_id:
+        q = q.where("factory_id", "==", factory_id)
+    q = q.order_by("ran_at", direction=firestore.Query.DESCENDING).limit(limit)
     out = []
     for d in q.stream():
         r = d.to_dict()
@@ -225,24 +304,29 @@ def list_runs(limit=20):
     return out
 
 
-def count_orders():
+def count_orders(factory_id=None):
+    q = db().collection(ORDERS)
+    if factory_id:
+        q = q.where("factory_id", "==", factory_id)
     try:
         from google.cloud.firestore_v1.aggregation import AggregationQuery
-        agg = AggregationQuery(db().collection(ORDERS)).count(alias="n")
+        agg = AggregationQuery(q).count(alias="n")
         res = agg.get()
         return int(res[0][0].value)
     except Exception:  # noqa: BLE001
-        return sum(1 for _ in db().collection(ORDERS).stream())
+        return sum(1 for _ in q.stream())
 
 
-def list_orders(limit=100, cursor=None):
+def list_orders(limit=100, cursor=None, factory_id=None):
     """List orders with cursor-based pagination.
 
     Returns (orders, next_cursor).  Pass next_cursor back as `cursor`
     to fetch the next page.  next_cursor is None when there are no more.
     """
-    q = (db().collection(ORDERS)
-         .order_by("scanned_at", direction=firestore.Query.DESCENDING))
+    q = db().collection(ORDERS)
+    if factory_id:
+        q = q.where("factory_id", "==", factory_id)
+    q = q.order_by("scanned_at", direction=firestore.Query.DESCENDING)
     if cursor:
         snap = db().collection(ORDERS).document(cursor).get()
         if snap.exists:
@@ -320,7 +404,8 @@ def delete_order(order_id):
 # ---------------------------------------------------------------------------
 # Pending queue (upload now, scan later — manual button or scheduled)
 # ---------------------------------------------------------------------------
-def add_pending(raw: bytes, content_type: str, filename: str, user_email=None):
+def add_pending(raw: bytes, content_type: str, filename: str, user_email=None,
+                factory_id=None):
     ext = os.path.splitext(filename or "")[1] or ".jpg"
     path = f"pending/{uuid.uuid4().hex}{ext}"
     bucket().blob(path).upload_from_string(raw, content_type=content_type or "application/octet-stream")
@@ -329,6 +414,8 @@ def add_pending(raw: bytes, content_type: str, filename: str, user_email=None):
         "status": "pending", "error": None, "uploaded_by": user_email,
         "uploaded_at": firestore.SERVER_TIMESTAMP,
     }
+    if factory_id:
+        doc["factory_id"] = factory_id
     return db().collection(PENDING).add(doc)[1].id
 
 
@@ -341,9 +428,13 @@ def get_pending(pid):
     return r
 
 
-def list_pending():
+def list_pending(factory_id=None):
+    q = db().collection(PENDING)
+    if factory_id:
+        q = q.where("factory_id", "==", factory_id)
+    q = q.order_by("uploaded_at")
     out = []
-    for d in db().collection(PENDING).order_by("uploaded_at").stream():
+    for d in q.stream():
         r = d.to_dict(); r["id"] = d.id
         ts = r.get("uploaded_at")
         r["uploaded_at"] = ts.isoformat() if hasattr(ts, "isoformat") else None
@@ -382,9 +473,13 @@ def fail_pending(pid, err):
     return "failed"
 
 
-def list_dead_letter():
+def list_dead_letter(factory_id=None):
+    q = db().collection(DEAD_LETTER)
+    if factory_id:
+        q = q.where("factory_id", "==", factory_id)
+    q = q.order_by("moved_at", direction=firestore.Query.DESCENDING)
     out = []
-    for d in db().collection(DEAD_LETTER).order_by("moved_at", direction=firestore.Query.DESCENDING).stream():
+    for d in q.stream():
         r = d.to_dict()
         r["id"] = d.id
         for ts_field in ("uploaded_at", "moved_at"):
@@ -433,12 +528,14 @@ def signed_image_url(blob_path, minutes=15):
 # ---------------------------------------------------------------------------
 # Duplicate detection — Order No. is the primary key
 # ---------------------------------------------------------------------------
-def find_by_order_no(order_no: str):
+def find_by_order_no(order_no: str, factory_id=None):
     """Return existing order if order_no already exists, else None."""
     if not order_no:
         return None
-    for d in (db().collection(ORDERS)
-              .where("order_no", "==", order_no).limit(1).stream()):
+    q = db().collection(ORDERS).where("order_no", "==", order_no)
+    if factory_id:
+        q = q.where("factory_id", "==", factory_id)
+    for d in q.limit(1).stream():
         row = d.to_dict()
         return {"id": d.id, "order_no": row.get("order_no"),
                 "series_no": row.get("series_no"),
@@ -448,19 +545,32 @@ def find_by_order_no(order_no: str):
 # ---------------------------------------------------------------------------
 # User management (roles: admin, supervisor, staff)
 # ---------------------------------------------------------------------------
-VALID_ROLES = {"admin", "supervisor", "staff"}
+VALID_ROLES = {"super_admin", "admin", "supervisor", "staff"}
+
+
+def get_user_info(uid, email):
+    """Get user role + factory_id from Firestore. Auto-creates first user as super_admin."""
+    doc = db().collection(USERS).document(uid).get()
+    if doc.exists:
+        data = doc.to_dict() or {}
+        return {
+            "role": data.get("role", "staff"),
+            "factory_id": data.get("factory_id"),
+            "factory_code": data.get("factory_code"),
+            "factory_name": data.get("factory_name"),
+        }
+    if _count_users() == 0:
+        _create_user_doc(uid, email, "super_admin", "system")
+        return {"role": "super_admin", "factory_id": None,
+                "factory_code": None, "factory_name": None}
+    _create_user_doc(uid, email, "staff", "auto")
+    return {"role": "staff", "factory_id": None,
+            "factory_code": None, "factory_name": None}
 
 
 def get_user_role(uid, email):
-    """Get user role from Firestore. Auto-creates first user as admin."""
-    doc = db().collection(USERS).document(uid).get()
-    if doc.exists:
-        return (doc.to_dict() or {}).get("role", "staff")
-    if _count_users() == 0:
-        _create_user_doc(uid, email, "admin", "system")
-        return "admin"
-    _create_user_doc(uid, email, "staff", "auto")
-    return "staff"
+    """Backward-compatible wrapper."""
+    return get_user_info(uid, email)["role"]
 
 
 def _count_users():
@@ -473,18 +583,28 @@ def _count_users():
         return sum(1 for _ in db().collection(USERS).limit(1).stream())
 
 
-def _create_user_doc(uid, email, role, created_by):
-    db().collection(USERS).document(uid).set({
+def _create_user_doc(uid, email, role, created_by, factory_id=None,
+                     factory_code=None, factory_name=None):
+    doc = {
         "email": email,
         "role": role,
         "created_at": firestore.SERVER_TIMESTAMP,
         "created_by": created_by,
-    })
+    }
+    if factory_id:
+        doc["factory_id"] = factory_id
+        doc["factory_code"] = factory_code
+        doc["factory_name"] = factory_name
+    db().collection(USERS).document(uid).set(doc)
 
 
-def list_users():
+def list_users(factory_id=None):
+    q = db().collection(USERS)
+    if factory_id:
+        q = q.where("factory_id", "==", factory_id)
+    q = q.order_by("email")
     out = []
-    for d in db().collection(USERS).order_by("email").stream():
+    for d in q.stream():
         r = d.to_dict()
         r["uid"] = d.id
         ts = r.get("created_at")
@@ -497,6 +617,14 @@ def update_user_role(uid, role):
     if role not in VALID_ROLES:
         raise ValueError(f"role ต้องเป็น {VALID_ROLES}")
     db().collection(USERS).document(uid).update({"role": role})
+
+
+def update_user_factory(uid, factory_id, factory_code, factory_name):
+    db().collection(USERS).document(uid).update({
+        "factory_id": factory_id,
+        "factory_code": factory_code,
+        "factory_name": factory_name,
+    })
 
 
 def delete_user_doc(uid):
@@ -515,21 +643,26 @@ def get_user_doc(uid):
 # ---------------------------------------------------------------------------
 # Activity log (audit trail)
 # ---------------------------------------------------------------------------
-def log_activity(action, user_email, user_role, detail=None, target_id=None):
-    db().collection(ACTIVITY).add({
+def log_activity(action, user_email, user_role, detail=None, target_id=None,
+                 factory_id=None):
+    doc = {
         "action": action,
         "user_email": user_email,
         "user_role": user_role,
         "detail": detail,
         "target_id": target_id,
         "timestamp": firestore.SERVER_TIMESTAMP,
-    })
+    }
+    if factory_id:
+        doc["factory_id"] = factory_id
+    db().collection(ACTIVITY).add(doc)
 
 
-def list_activity(limit=100):
-    q = (db().collection(ACTIVITY)
-         .order_by("timestamp", direction=firestore.Query.DESCENDING)
-         .limit(limit))
+def list_activity(limit=100, factory_id=None):
+    q = db().collection(ACTIVITY)
+    if factory_id:
+        q = q.where("factory_id", "==", factory_id)
+    q = q.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(limit)
     out = []
     for d in q.stream():
         r = d.to_dict()
@@ -661,7 +794,7 @@ def flush_data(mock_only=False, include_activity=False):
 EXPORT_BATCHES = "export_batches"
 
 
-def mark_exported(order_ids, user_email, meta=None):
+def mark_exported(order_ids, user_email, meta=None, factory_id=None):
     """Record that these orders went out in an export file.
 
     Written as one batch per chunk so a large export cannot leave half the
@@ -686,21 +819,27 @@ def mark_exported(order_ids, user_email, meta=None):
             })
         wb.commit()
 
-    batch_ref.set({
+    doc = {
         "created_at": stamp,
         "user_email": user_email,
         "count": len(order_ids),
         "order_ids": order_ids[:2000],
         "meta": meta or {},
         "undone": False,
-    })
+    }
+    if factory_id:
+        doc["factory_id"] = factory_id
+    batch_ref.set(doc)
     return batch_ref.id
 
 
-def export_status():
+def export_status(factory_id=None):
     """How many approved orders are still waiting to go into SAP."""
+    q = db().collection(ORDERS)
+    if factory_id:
+        q = q.where("factory_id", "==", factory_id)
     pending, exported, oldest = 0, 0, None
-    for d in db().collection(ORDERS).stream():
+    for d in q.stream():
         row = d.to_dict() or {}
         if row.get("status") != "approved":
             continue
@@ -714,10 +853,11 @@ def export_status():
     return {"pending": pending, "exported": exported, "oldest_pending": oldest}
 
 
-def list_export_batches(limit=20):
-    q = (db().collection(EXPORT_BATCHES)
-         .order_by("created_at", direction=firestore.Query.DESCENDING)
-         .limit(limit))
+def list_export_batches(limit=20, factory_id=None):
+    q = db().collection(EXPORT_BATCHES)
+    if factory_id:
+        q = q.where("factory_id", "==", factory_id)
+    q = q.order_by("created_at", direction=firestore.Query.DESCENDING).limit(limit)
     out = []
     for d in q.stream():
         row = d.to_dict() or {}

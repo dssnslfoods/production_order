@@ -33,14 +33,21 @@ _cache = {"at": 0.0, "orders": None}
 # ---------------------------------------------------------------------------
 # Loading and normalisation
 # ---------------------------------------------------------------------------
-def load_orders(force=False):
+def load_orders(force=False, factory_id=None):
     """All orders, cached briefly so a burst of questions hits Firestore once."""
+    cache_key = factory_id or "__all__"
     now = time.time()
-    if not force and _cache["orders"] is not None and now - _cache["at"] < ORDER_CACHE_TTL:
-        return _cache["orders"]
-    data, _ = store.list_orders(limit=5000)
-    _cache["orders"] = data
+    cached = _cache.get(cache_key)
+    if not force and cached is not None and now - _cache.get("at", 0) < ORDER_CACHE_TTL:
+        return cached
+    data, _ = store.list_orders(limit=5000, factory_id=factory_id)
+    _cache[cache_key] = data
     _cache["at"] = now
+    # keep backward compat for the old key
+    if cache_key != "__all__":
+        _cache["orders"] = None
+    else:
+        _cache["orders"] = data
     return data
 
 

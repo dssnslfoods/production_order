@@ -69,7 +69,7 @@ class TestVerifyToken:
             mock_store._init = MagicMock()
             mock_fb.verify_id_token.return_value = {"uid": "u1", "email": "notinlist@test.com"}
             mock_store.get_user_doc.return_value = {"uid": "u1", "role": "admin"}
-            mock_store.get_user_role.return_value = "admin"
+            mock_store.get_user_info.return_value = {"role": "admin", "factory_id": "f1", "factory_code": "FAC1", "factory_name": "Factory 1"}
             result = await auth.verify_token("Bearer valid-token")
         assert result["uid"] == "u1"
         assert result["role"] == "admin"
@@ -94,7 +94,7 @@ class TestVerifyToken:
             mock_store._init = MagicMock()
             mock_fb.verify_id_token.return_value = {"uid": "u3", "email": "anyone@test.com"}
             mock_store.get_user_doc.return_value = None
-            mock_store.get_user_role.return_value = "staff"
+            mock_store.get_user_info.return_value = {"role": "staff", "factory_id": None, "factory_code": None, "factory_name": None}
             result = await auth.verify_token("Bearer valid-token")
         assert result["role"] == "staff"
 

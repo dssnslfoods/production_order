@@ -895,6 +895,9 @@
 
       <div class="nav-group" data-group="admin">
         <div class="nav-label">จัดการระบบ</div>
+        <button data-label="โรงงาน" class="nav-item" data-page="factories" onclick="showPage('factories')">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M2 20V8l4-6h4l-1 6h5l-1 6h5v6H2z"/><path d="M6 14v6"/><path d="M10 14v6"/></svg></span> <span class="nav-text">โรงงาน</span>
+        </button>
         <button data-label="ผู้ใช้งาน" class="nav-item" data-page="users" onclick="showPage('users')">
           <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> <span class="nav-text">ผู้ใช้งาน</span>
         </button>
@@ -917,6 +920,7 @@
     <div class="sidebar-footer">
       <div class="sf-chips">
         <span class="chip"><span class="dot"></span>ออนไลน์</span>
+        <span id="factoryChip" class="chip hidden" style="font-size:11px;background:rgba(16,185,129,.15);color:#34d399"></span>
         <span id="roleChip" class="chip" style="font-size:11px"></span>
       </div>
       <button class="ghost sm sf-logout" data-label="ออกจากระบบ" onclick="doLogout()" aria-label="ออกจากระบบ">
@@ -1484,6 +1488,52 @@
 
       </section>
 
+      <!-- ======== PAGE: Factories (super_admin only) ======== -->
+      <section id="page-factories" class="page-section hidden">
+        <div class="card panel">
+          <div class="between" style="margin-bottom:16px">
+            <div class="phead" style="margin:0"><span class="pico" style="background:rgba(16,185,129,.16);color:var(--emerald)"><svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M2 20V8l4-6h4l-1 6h5l-1 6h5v6H2z"/><path d="M6 14v6"/><path d="M10 14v6"/></svg></span><h2>จัดการโรงงาน</h2></div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button class="ghost sm" onclick="loadFactories()"><span style="display:inline-flex;align-items:center;gap:5px"><svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> รีเฟรช</span></button>
+              <button class="btn sm" onclick="toggleAddFactory()" id="addFactoryToggle"><span style="display:inline-flex;align-items:center;gap:5px"><svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> เพิ่มโรงงาน</span></button>
+            </div>
+          </div>
+
+          <div id="addFactoryForm" class="hidden" style="margin-bottom:20px;padding:20px;border-radius:12px;background:rgba(16,185,129,.03);border:1px solid rgba(16,185,129,.15)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+              <h3 style="font-size:14px;font-weight:700;color:var(--emerald)">เพิ่มโรงงานใหม่</h3>
+              <button class="ghost sm" onclick="toggleAddFactory()" style="padding:5px 10px">✕</button>
+            </div>
+            <div style="display:grid;grid-template-columns:150px 1fr auto;gap:12px;align-items:end">
+              <div>
+                <label>รหัสโรงงาน</label>
+                <input id="newFactoryCode" type="text" placeholder="เช่น FA, FB" style="text-transform:uppercase">
+              </div>
+              <div>
+                <label>ชื่อโรงงาน</label>
+                <input id="newFactoryName" type="text" placeholder="เช่น โรงงาน A">
+              </div>
+              <button class="btn" style="width:auto;padding:11px 24px;white-space:nowrap" onclick="createFactory()">สร้างโรงงาน</button>
+            </div>
+            <div id="createFactoryResult" class="hint" style="margin-top:8px"></div>
+          </div>
+
+          <div style="overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse;font-size:13.5px">
+              <thead>
+                <tr style="border-bottom:2px solid var(--line)">
+                  <th style="padding:10px 14px;text-align:left;color:var(--muted);font-weight:600;font-size:12px">รหัส</th>
+                  <th style="padding:10px 14px;text-align:left;color:var(--muted);font-weight:600;font-size:12px">ชื่อโรงงาน</th>
+                  <th style="padding:10px 14px;text-align:left;color:var(--muted);font-weight:600;font-size:12px">สร้างเมื่อ</th>
+                  <th style="padding:10px 14px;text-align:right;color:var(--muted);font-weight:600;font-size:12px">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="factoriesList"><tr><td colspan="4" class="muted" style="padding:16px">กำลังโหลด…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
       <!-- ======== PAGE: Users (admin only) ======== -->
       <section id="page-users" class="page-section hidden">
 
@@ -1503,7 +1553,7 @@
               <h3 style="font-size:14px;font-weight:700;color:var(--emerald);display:flex;align-items:center;gap:8px"><svg style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg> เพิ่มผู้ใช้ใหม่</h3>
               <button class="ghost sm" onclick="toggleAddUser()" style="padding:5px 10px">✕</button>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:end">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:12px;align-items:end">
               <div>
                 <label>อีเมล</label>
                 <input id="newUserEmail" type="email" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="user@company.com">
@@ -1520,6 +1570,10 @@
                   <option value="admin">Admin</option>
                 </select>
               </div>
+              <div id="newUserFactoryWrap">
+                <label>โรงงาน</label>
+                <select id="newUserFactory"></select>
+              </div>
               <button class="btn" style="width:auto;padding:11px 24px;white-space:nowrap" onclick="createUser()">สร้างผู้ใช้</button>
             </div>
             <div id="createUserResult" class="hint" style="margin-top:8px"></div>
@@ -1535,6 +1589,7 @@
                 <tr style="border-bottom:2px solid var(--line)">
                   <th style="padding:10px 14px;text-align:left;color:var(--muted);font-weight:600;font-size:12px">ผู้ใช้</th>
                   <th style="padding:10px 14px;text-align:left;color:var(--muted);font-weight:600;font-size:12px">บทบาท</th>
+                  <th style="padding:10px 14px;text-align:left;color:var(--muted);font-weight:600;font-size:12px">โรงงาน</th>
                   <th style="padding:10px 14px;text-align:left;color:var(--muted);font-weight:600;font-size:12px">สร้างเมื่อ</th>
                   <th style="padding:10px 14px;text-align:right;color:var(--muted);font-weight:600;font-size:12px;min-width:160px">จัดการ</th>
                 </tr>
@@ -1558,6 +1613,7 @@
                 <thead>
                   <tr style="border-bottom:2px solid var(--line)">
                     <th style="padding:10px 14px;text-align:left;color:var(--muted);font-weight:600;min-width:140px">สิทธิ์</th>
+                    <th id="permSAHeader" style="padding:10px 20px;text-align:center;min-width:90px"><span style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;background:rgba(139,92,246,.08);color:var(--violet);font-weight:700;font-size:12px">Super Admin</span></th>
                     <th style="padding:10px 20px;text-align:center;min-width:90px"><span style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;background:rgba(244,63,94,.08);color:var(--rose);font-weight:700;font-size:12px">Admin</span></th>
                     <th style="padding:10px 20px;text-align:center;min-width:90px"><span style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;background:rgba(245,158,11,.08);color:var(--amber);font-weight:700;font-size:12px">Supervisor</span></th>
                     <th style="padding:10px 20px;text-align:center;min-width:90px"><span style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;background:rgba(14,165,233,.08);color:var(--sky);font-weight:700;font-size:12px">Staff</span></th>
@@ -1572,9 +1628,13 @@
           <div class="card panel" style="background:linear-gradient(135deg,rgba(168,85,247,.03),rgba(99,102,241,.03))">
             <div class="phead"><span class="pico" style="background:rgba(168,85,247,.12);color:var(--violet)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></span><h2>คำอธิบาย Role</h2></div>
             <div style="display:flex;flex-direction:column;gap:16px">
+              <div style="padding:14px 16px;border-radius:10px;border:1px solid rgba(139,92,246,.12);background:rgba(139,92,246,.03)">
+                <div style="font-weight:700;font-size:13px;color:var(--violet);margin-bottom:4px;display:flex;align-items:center;gap:6px"><svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Super Admin</div>
+                <div style="font-size:12.5px;color:var(--muted);line-height:1.6">เห็นทุกโรงงาน + จัดการโรงงาน + จัดการผู้ใช้ทุกโรงงาน</div>
+              </div>
               <div style="padding:14px 16px;border-radius:10px;border:1px solid rgba(244,63,94,.12);background:rgba(244,63,94,.03)">
                 <div style="font-weight:700;font-size:13px;color:var(--rose);margin-bottom:4px;display:flex;align-items:center;gap:6px"><svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Admin</div>
-                <div style="font-size:12.5px;color:var(--muted);line-height:1.6">ทุกอย่าง + จัดการผู้ใช้ + ตั้งค่าระบบ</div>
+                <div style="font-size:12.5px;color:var(--muted);line-height:1.6">ทุกอย่างภายในโรงงานตนเอง + จัดการผู้ใช้ + ตั้งค่าระบบ</div>
               </div>
               <div style="padding:14px 16px;border-radius:10px;border:1px solid rgba(245,158,11,.12);background:rgba(245,158,11,.03)">
                 <div style="font-weight:700;font-size:13px;color:var(--amber);margin-bottom:4px;display:flex;align-items:center;gap:6px"><svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Supervisor</div>
@@ -2555,13 +2615,14 @@ window.showPage = (page) => {
   document.querySelector(`.nav-item[data-page="${page}"]`)?.classList.add('active');
   document.querySelectorAll('.tab-item').forEach(n => n.classList.remove('active'));
   document.querySelector(`.tab-item[data-page="${page}"]`)?.classList.add('active');
+  if(page==='factories') loadFactories();
   if(page==='users'){ loadUsers(); renderPermMatrix(); }
   if(page==='activity') loadActivity();
   if(page==='ask') loadSuggestions();
   if(page==='forecast') loadForecast();
   if(page==='health') loadHealth();
   if(page==='export'){ loadExportStatus(); loadExportBatches(); }
-  if(page==='settings' && currentRole === 'admin') loadFlushPreview();
+  if(page==='settings' && (currentRole === 'admin' || currentRole === 'super_admin')) loadFlushPreview();
 };
 
 const notConfigured = FIREBASE_CONFIG.apiKey === "PASTE_API_KEY";
@@ -2613,13 +2674,13 @@ function hasPerm(p){ return currentPerms.includes(p); }
 function applyRole(role, perms){
   currentRole = role;
   if(perms) currentPerms = perms;
-  const labels = {admin:"Admin",supervisor:"Supervisor",staff:"Staff"};
-  const colors = {admin:"#fb7185",supervisor:"#fbbf24",staff:"#38bdf8"};
+  const labels = {super_admin:"Super Admin",admin:"Admin",supervisor:"Supervisor",staff:"Staff"};
+  const colors = {super_admin:"#a78bfa",admin:"#fb7185",supervisor:"#fbbf24",staff:"#38bdf8"};
   $("roleChip").textContent = labels[role]||role;
   $("roleChip").style.color = colors[role]||"var(--muted)";
   // pages - show/hide nav items by permission
   const pages = ["dashboard","scan","orders","ask","forecast","health",
-                 "export","users","activity","settings"];
+                 "export","factories","users","activity","settings"];
   pages.forEach(p => {
     const show = hasPerm(p);
     document.querySelectorAll(`.nav-item[data-page="${p}"]`).forEach(el => el.style.display = show ? "" : "none");
@@ -2632,7 +2693,7 @@ function applyRole(role, perms){
     g.style.display = visible ? "" : "none";
   });
   // The flush is admin-only on the server too; hiding it is convenience, not the gate.
-  $("dangerZone")?.classList.toggle("hidden", role !== "admin");
+  $("dangerZone")?.classList.toggle("hidden", role !== "admin" && role !== "super_admin");
   // actions
   const approveBtn = $("approveBtn");
   if(approveBtn) approveBtn.classList.toggle("hidden", !hasPerm("approve"));
@@ -2650,6 +2711,22 @@ window.loadConfig = async () => {
     if(c.permissions) currentPerms = c.permissions;
     if(c.all_permissions) allPerms = c.all_permissions;
     if(c.role) applyRole(c.role, c.permissions);
+    // factory context
+    window._factoryId = c.factory_id || null;
+    window._factoryCode = c.factory_code || null;
+    window._factoryName = c.factory_name || null;
+    window._allFactories = c.factories || [];
+    const fc = $("factoryChip");
+    if(fc){
+      if(c.factory_code){
+        fc.textContent = c.factory_code;
+        fc.title = c.factory_name || "";
+        fc.classList.remove("hidden");
+      } else if(c.role === "super_admin"){
+        fc.textContent = "ทุกโรงงาน";
+        fc.classList.remove("hidden");
+      } else { fc.classList.add("hidden"); }
+    }
     if(!$("provider")) return;
     $("provider").value = c.provider;
     const ok = c.keys_configured[c.provider];
@@ -4334,22 +4411,49 @@ window.exportExcel = async (onlyNew) => {
 };
 
 // ---- user management (admin) ----
-const ROLE_LABELS = {admin:"Admin",supervisor:"Supervisor",staff:"Staff"};
-const ROLE_COLORS = {admin:"var(--rose)",supervisor:"var(--amber)",staff:"var(--sky)"};
-const ROLE_BG = {admin:"rgba(244,63,94,.08)",supervisor:"rgba(245,158,11,.08)",staff:"rgba(14,165,233,.08)"};
+const ROLE_LABELS = {super_admin:"Super Admin",admin:"Admin",supervisor:"Supervisor",staff:"Staff"};
+const ROLE_COLORS = {super_admin:"var(--violet)",admin:"var(--rose)",supervisor:"var(--amber)",staff:"var(--sky)"};
+const ROLE_BG = {super_admin:"rgba(139,92,246,.08)",admin:"rgba(244,63,94,.08)",supervisor:"rgba(245,158,11,.08)",staff:"rgba(14,165,233,.08)"};
 window.toggleAddUser = () => {
   const f = $("addUserForm");
   f.classList.toggle("hidden");
 };
 window.loadUsers = async () => {
+  // populate factory dropdown for new user form
+  const fsel = $("newUserFactory");
+  const isSA = currentRole === "super_admin";
+  if(fsel){
+    const facs = window._allFactories || [];
+    if(isSA && facs.length){
+      fsel.innerHTML = facs.map(f => `<option value="${f.id}">${f.code} — ${f.name}</option>`).join("");
+      $("newUserFactoryWrap").classList.remove("hidden");
+    } else {
+      $("newUserFactoryWrap").classList.add("hidden");
+    }
+  }
+  // add super_admin option to new user role if current user is super_admin
+  const rsel = $("newUserRole");
+  if(rsel && isSA && !rsel.querySelector('option[value="super_admin"]')){
+    const opt = document.createElement("option"); opt.value = "super_admin"; opt.textContent = "Super Admin";
+    rsel.appendChild(opt);
+  }
   try{
     const j = await (await api("/users")).json();
     const list = j.users||[];
+    const isSA = currentRole === "super_admin";
+    const roleOpts = (sel) => {
+      let html = `<option value="staff" ${sel==="staff"?"selected":""}>Staff</option>`;
+      html += `<option value="supervisor" ${sel==="supervisor"?"selected":""}>Supervisor</option>`;
+      html += `<option value="admin" ${sel==="admin"?"selected":""}>Admin</option>`;
+      if(isSA) html += `<option value="super_admin" ${sel==="super_admin"?"selected":""}>Super Admin</option>`;
+      return html;
+    };
     $("usersList").innerHTML = list.length ? list.map(u => {
       const rl = ROLE_LABELS[u.role]||u.role;
       const rc = ROLE_COLORS[u.role]||"var(--muted)";
       const bg = ROLE_BG[u.role]||"rgba(100,116,139,.08)";
       const initials = (u.display_name || u.email || "?").slice(0,2).toUpperCase();
+      const facLabel = u.factory_code ? `<span style="font-size:12px;color:var(--emerald);font-weight:600">${u.factory_code}</span>` : '<span style="font-size:12px;color:var(--faint)">—</span>';
       return `<tr style="border-bottom:1px solid var(--line);transition:.15s">
         <td style="padding:12px 14px">
           <div style="display:flex;align-items:center;gap:12px">
@@ -4362,11 +4466,10 @@ window.loadUsers = async () => {
         </td>
         <td style="padding:12px 14px">
           <select style="width:auto;padding:5px 10px;font-size:12px;border-radius:20px;background:${bg};color:${rc};font-weight:600;border:1px solid transparent;cursor:pointer" onchange="changeRole('${u.uid}',this.value)" title="เปลี่ยน Role">
-            <option value="staff" ${u.role==="staff"?"selected":""}>Staff</option>
-            <option value="supervisor" ${u.role==="supervisor"?"selected":""}>Supervisor</option>
-            <option value="admin" ${u.role==="admin"?"selected":""}>Admin</option>
+            ${roleOpts(u.role)}
           </select>
         </td>
+        <td style="padding:12px 14px">${facLabel}</td>
         <td style="padding:12px 14px;font-size:12.5px;color:var(--muted)">${u.created_at?u.created_at.slice(0,10):"-"}</td>
         <td style="padding:12px 14px;text-align:right">
           <div style="display:flex;gap:6px;justify-content:flex-end">
@@ -4375,19 +4478,21 @@ window.loadUsers = async () => {
           </div>
         </td>
       </tr>`;
-    }).join("") : '<tr><td colspan="4" class="muted" style="padding:16px">ยังไม่มีผู้ใช้</td></tr>';
-  }catch(e){ $("usersList").innerHTML = '<tr><td colspan="4" class="muted" style="padding:16px">โหลดไม่สำเร็จ (ต้องเป็น Admin)</td></tr>'; }
+    }).join("") : '<tr><td colspan="5" class="muted" style="padding:16px">ยังไม่มีผู้ใช้</td></tr>';
+  }catch(e){ $("usersList").innerHTML = '<tr><td colspan="5" class="muted" style="padding:16px">โหลดไม่สำเร็จ (ต้องเป็น Admin)</td></tr>'; }
 };
 window.createUser = async () => {
-  // Trim both: a stray space from copy-paste or a tablet keyboard is the usual
-  // reason a brand-new account cannot log in afterwards.
   const email=$("newUserEmail").value.trim().toLowerCase(), pw=$("newUserPw").value.trim(),
         nameEl=$("newUserName"), name=nameEl?nameEl.value.trim():"", role=$("newUserRole").value;
+  const facSel=$("newUserFactory");
+  const factory_id = (currentRole==="super_admin" && facSel) ? facSel.value : null;
   if(!email||!pw){ toast("กรุณากรอกอีเมลและรหัสผ่าน"); return; }
   if(pw.length<6){ toast("รหัสผ่านต้องมีอย่างน้อย 6 ตัวขึ้นไป"); return; }
   $("createUserResult").innerHTML = '<span class="spin"></span> กำลังสร้าง…';
   try{
-    const r = await api("/users",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password:pw,role,display_name:name||null})});
+    const payload = {email,password:pw,role,display_name:name||null};
+    if(factory_id) payload.factory_id = factory_id;
+    const r = await api("/users",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
     if(r.ok){
       toast("สร้างผู้ใช้ "+email+" สำเร็จ ✓");
       $("createUserResult").innerHTML='✅ <b>'+email+'</b> เข้าสู่ระบบได้แล้ว · รหัสผ่าน: <b>'+pw+'</b>';
@@ -4422,6 +4527,49 @@ window.resetUserPw = async (uid,email) => {
   }catch(e){ toast("เชื่อมต่อไม่สำเร็จ"); }
 };
 
+// ---- factory management (super_admin) ----
+window.toggleAddFactory = () => { $("addFactoryForm").classList.toggle("hidden"); };
+window.loadFactories = async () => {
+  try{
+    const j = await (await api("/factories")).json();
+    const list = j.factories||[];
+    window._allFactories = list;
+    $("factoriesList").innerHTML = list.length ? list.map(f => {
+      return `<tr style="border-bottom:1px solid var(--line)">
+        <td style="padding:12px 14px;font-weight:700;font-size:15px;color:var(--emerald)">${f.code}</td>
+        <td style="padding:12px 14px;font-weight:600">${f.name}</td>
+        <td style="padding:12px 14px;font-size:12.5px;color:var(--muted)">${f.created_at?f.created_at.slice(0,10):"-"}</td>
+        <td style="padding:12px 14px;text-align:right">
+          <button class="ghost sm" title="แก้ไข" onclick="editFactory('${f.id}','${f.code.replace(/'/g,"")}','${f.name.replace(/'/g,"")}')" style="padding:6px 10px"><svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+        </td>
+      </tr>`;
+    }).join("") : '<tr><td colspan="4" class="muted" style="padding:16px">ยังไม่มีโรงงาน</td></tr>';
+  }catch(e){ $("factoriesList").innerHTML = '<tr><td colspan="4" class="muted" style="padding:16px">โหลดไม่สำเร็จ</td></tr>'; }
+};
+window.createFactory = async () => {
+  const code=$("newFactoryCode").value.trim().toUpperCase(), name=$("newFactoryName").value.trim();
+  if(!code||!name){ toast("กรุณากรอกรหัสและชื่อโรงงาน"); return; }
+  $("createFactoryResult").innerHTML = '<span class="spin"></span> กำลังสร้าง…';
+  try{
+    const r = await api("/factories",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code,name})});
+    if(r.ok){
+      toast("สร้างโรงงาน "+code+" สำเร็จ ✓");
+      $("createFactoryResult").innerHTML = "✅ สร้างโรงงาน <b>"+code+"</b> แล้ว";
+      $("newFactoryCode").value=""; $("newFactoryName").value="";
+      loadFactories(); loadConfig();
+    } else { const e=await r.json().catch(()=>({})); $("createFactoryResult").textContent="❌ "+(e.detail||"สร้างไม่สำเร็จ"); }
+  }catch(e){ $("createFactoryResult").textContent="❌ เชื่อมต่อไม่สำเร็จ"; }
+};
+window.editFactory = async (id,code,name) => {
+  const newName = prompt("แก้ไขชื่อโรงงาน "+code+":", name);
+  if(!newName || newName === name) return;
+  try{
+    const r = await api("/factories/"+id,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({code,name:newName})});
+    if(r.ok){ toast("แก้ไขโรงงาน "+code+" แล้ว ✓"); loadFactories(); loadConfig(); }
+    else { const e=await r.json().catch(()=>({})); toast("แก้ไขไม่สำเร็จ: "+(e.detail||"")); }
+  }catch(e){ toast("เชื่อมต่อไม่สำเร็จ"); }
+};
+
 // ---- permission matrix ----
 const PERM_ITEMS = [
   {key:"dashboard", label:"แดชบอร์ด", group:"หน้าจอ"},
@@ -4431,31 +4579,39 @@ const PERM_ITEMS = [
   {key:"forecast",  label:"พยากรณ์", group:"หน้าจอ"},
   {key:"health",    label:"สุขภาพการผลิต", group:"หน้าจอ"},
   {key:"export",    label:"Export", group:"หน้าจอ"},
+  {key:"factories", label:"โรงงาน", group:"หน้าจอ"},
   {key:"users",     label:"ผู้ใช้งาน", group:"หน้าจอ"},
   {key:"activity",  label:"ประวัติการใช้งาน", group:"หน้าจอ"},
   {key:"settings",  label:"ตั้งค่า", group:"หน้าจอ"},
   {key:"approve",   label:"อนุมัติ record", group:"สิทธิ์การดำเนินการ"},
   {key:"delete",    label:"ลบ record", group:"สิทธิ์การดำเนินการ"},
 ];
-const ROLES_ORDER = ["admin","supervisor","staff"];
+const ROLES_ORDER = ["super_admin","admin","supervisor","staff"];
 const ADMIN_LOCKED = ["dashboard","users","settings"];
+const SUPER_ADMIN_LOCKED = ["dashboard","users","settings","factories"];
 function renderPermMatrix(){
   const body = $("permBody");
   if(!body) return;
+  const isSA = currentRole === "super_admin";
+  const visibleRoles = isSA ? ROLES_ORDER : ROLES_ORDER.filter(r => r !== "super_admin");
+  const colCount = visibleRoles.length + 1;
+  const saHeader = $("permSAHeader");
+  if(saHeader) saHeader.style.display = isSA ? "" : "none";
   let html = "", lastGroup = "";
   PERM_ITEMS.forEach(p => {
     if(p.group !== lastGroup){
       lastGroup = p.group;
-      html += `<tr><td colspan="4" style="padding:10px 12px 4px;font-weight:700;font-size:12px;color:var(--indigo);border-top:1px solid var(--line)">${p.group}</td></tr>`;
+      html += `<tr><td colspan="${colCount}" style="padding:10px 12px 4px;font-weight:700;font-size:12px;color:var(--indigo);border-top:1px solid var(--line)">${p.group}</td></tr>`;
     }
     html += `<tr style="border-bottom:1px solid var(--line)"><td style="padding:8px 12px">${p.label}</td>`;
-    ROLES_ORDER.forEach(r => {
+    visibleRoles.forEach(r => {
       const checked = (allPerms[r]||[]).includes(p.key);
-      const locked = r==="admin" && ADMIN_LOCKED.includes(p.key);
+      const locked = (r==="super_admin" && SUPER_ADMIN_LOCKED.includes(p.key)) || (r==="admin" && ADMIN_LOCKED.includes(p.key));
+      const accentMap = {super_admin:"var(--violet)",admin:"var(--rose)",supervisor:"var(--amber)",staff:"var(--sky)"};
       html += `<td style="padding:8px 16px;text-align:center">
         <input type="checkbox" class="perm-cb" data-role="${r}" data-perm="${p.key}"
-          ${checked?"checked":""} ${locked?"disabled title='Admin ต้องมีสิทธิ์นี้เสมอ'":""}
-          style="width:18px;height:18px;accent-color:${r==="admin"?"var(--rose)":r==="supervisor"?"var(--amber)":"var(--sky)"};cursor:${locked?"not-allowed":"pointer"}">
+          ${checked?"checked":""} ${locked?"disabled title='ต้องมีสิทธิ์นี้เสมอ'":""}
+          style="width:18px;height:18px;accent-color:${accentMap[r]||"var(--sky)"};cursor:${locked?"not-allowed":"pointer"}">
       </td>`;
     });
     html += "</tr>";
@@ -4469,6 +4625,7 @@ window.savePermissions = async () => {
     if(cb.checked) newPerms[cb.dataset.role].push(cb.dataset.perm);
   });
   ADMIN_LOCKED.forEach(k => { if(!newPerms.admin.includes(k)) newPerms.admin.push(k); });
+  if(newPerms.super_admin) SUPER_ADMIN_LOCKED.forEach(k => { if(!newPerms.super_admin.includes(k)) newPerms.super_admin.push(k); });
   $("permResult").innerHTML = '<span class="spin"></span> กำลังบันทึก…';
   try{
     const r = await api("/permissions",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({permissions:newPerms})});

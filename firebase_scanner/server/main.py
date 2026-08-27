@@ -47,9 +47,17 @@ async def unhandled_exception_handler(_request: Request, exc: Exception):
         content={"error": True, "code": 500, "detail": "เกิดข้อผิดพลาดภายในระบบ"},
     )
 
-admin_only = require_role("admin")
-admin_or_sup = require_role("admin", "supervisor")
-any_role = require_role("admin", "supervisor", "staff")
+admin_only = require_role("super_admin", "admin")
+admin_or_sup = require_role("super_admin", "admin", "supervisor")
+any_role = require_role("super_admin", "admin", "supervisor", "staff")
+super_only = require_role("super_admin")
+
+
+def _fid(user):
+    """Effective factory_id for data queries. super_admin sees all (None)."""
+    if user["role"] == "super_admin":
+        return None
+    return user.get("factory_id")
 
 _ENV_KEY = {"claude": "CLAUDE_API_KEY", "gemini": "GEMINI_API_KEY", "openai": "OPENAI_API_KEY"}
 
@@ -161,9 +169,14 @@ def health():
 def get_config(user=Depends(auth.verify_token)):
     cfg = _masked_config(user["email"])
     cfg["role"] = user["role"]
+    cfg["factory_id"] = user.get("factory_id")
+    cfg["factory_code"] = user.get("factory_code")
+    cfg["factory_name"] = user.get("factory_name")
     perms = store.get_permissions()
     cfg["permissions"] = perms.get(user["role"], [])
     cfg["all_permissions"] = perms
+    if user["role"] == "super_admin":
+        cfg["factories"] = store.list_factories()
     return cfg
 
 
@@ -206,7 +219,8 @@ async def scan(file: UploadFile = File(...), user=Depends(auth.verify_token)):
     except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=422, detail=f"อ่านฟอร์มไม่สำเร็จ: {e}")
 
-    dup = store.find_by_order_no(data.get("order_no"))
+    fid = _fid(user)
+    dup = store.find_by_order_no(data.get("order_no"), factory_id=fid)
     if dup:
         raise HTTPException(status_code=409,
                             detail=f"Order No. {dup['order_no']} มีในระบบแล้ว")
@@ -215,15 +229,16 @@ async def scan(file: UploadFile = File(...), user=Depends(auth.verify_token)):
     ai_path = (store.upload_image(ai_bytes[1], ai_bytes[0], "ai_" + (file.filename or "page"))
                if ai_bytes else None)
     order_id = store.add_order(data, blob_path, provider, user_email=user["email"],
-                               ai_image=ai_path)
+                               ai_image=ai_path, factory_id=fid)
     analytics.invalidate_cache()
     store.log_activity("scan", user["email"], user["role"],
-                       f"สแกนไฟล์ {file.filename} → Order {data.get('order_no') or '-'}", order_id)
+                       f"สแกนไฟล์ {file.filename} → Order {data.get('order_no') or '-'}", order_id,
+                       factory_id=fid)
     return {"id": order_id, "data": data,
             "summary": {"lines": len(data.get("lines", []))}}
 
 
-def _process_queue(trigger="manual"):
+def _process_queue(trigger="manual", factory_id=None):
     """Scan every pending/failed file → Firestore. Shared by manual button and scheduler."""
     settings = store.get_settings()
     provider = settings["provider"]
@@ -232,15 +247,16 @@ def _process_queue(trigger="manual"):
     if not key:
         return {"error": f"ยังไม่ได้ตั้งค่า API key ของ {provider}", "processed": 0}
     result = {"processed": 0, "succeeded": 0, "failed": 0, "dead": 0, "items": []}
-    for p in store.list_pending():
+    for p in store.list_pending(factory_id=factory_id):
         if p.get("status") not in ("pending", "failed"):
             continue
+        pfid = p.get("factory_id") or factory_id
         item = {"file": p.get("filename"), "status": "", "detail": ""}
         try:
             raw = store.download_bytes(p["storage_path"])
             images, _ai = _prepare_images(raw, p.get("content_type") or "", p.get("filename") or "")
             data = extractor.extract(images, provider, key, model)
-            dup = store.find_by_order_no(data.get("order_no"))
+            dup = store.find_by_order_no(data.get("order_no"), factory_id=pfid)
             if dup:
                 store.delete_pending(p["id"])
                 item["status"] = "skipped"
@@ -250,7 +266,8 @@ def _process_queue(trigger="manual"):
                 result["items"].append(item)
                 continue
             store.add_order(data, p["storage_path"], provider,
-                            user_email=p.get("uploaded_by"), source_filename=p.get("filename"))
+                            user_email=p.get("uploaded_by"), source_filename=p.get("filename"),
+                            factory_id=pfid)
             store.delete_pending(p["id"])
             item["status"] = "success"
             item["detail"] = f"Order {data.get('order_no') or '-'} · {len(data.get('lines', []))} รายการ"
@@ -267,7 +284,7 @@ def _process_queue(trigger="manual"):
         result["items"].append(item)
     if result["processed"]:
         try:
-            store.log_run(trigger, result)
+            store.log_run(trigger, result, factory_id=factory_id)
         except Exception:  # noqa: BLE001
             pass
     return result
@@ -294,20 +311,22 @@ def _auto_orient(raw: bytes, content_type: str) -> tuple[str, bytes]:
 
 @app.post("/api/queue")
 async def queue(files: List[UploadFile] = File(...), user=Depends(auth.verify_token)):
+    fid = _fid(user)
     saved = []
     for f in files:
         raw = await f.read()
         optimized, opt_ct = _optimize_image(raw, f.content_type or "")
-        store.add_pending(optimized, opt_ct, f.filename, user["email"])
+        store.add_pending(optimized, opt_ct, f.filename, user["email"],
+                          factory_id=fid)
         saved.append(f.filename)
     store.log_activity("upload_queue", user["email"], user["role"],
-                       f"อัปโหลด {len(saved)} ไฟล์เข้าคิว")
+                       f"อัปโหลด {len(saved)} ไฟล์เข้าคิว", factory_id=fid)
     return {"queued": saved, "count": len(saved)}
 
 
 @app.get("/api/pending")
 def pending(user=Depends(auth.verify_token)):
-    return {"pending": store.list_pending()}
+    return {"pending": store.list_pending(factory_id=_fid(user))}
 
 
 @app.get("/api/pending/{pid}/preview")
@@ -364,7 +383,8 @@ def drive_pull(user=Depends(admin_only)):
 @app.post("/api/process")
 def process(user=Depends(auth.verify_token)):
     pulled = _pull_drive()
-    r = _process_queue()
+    fid = _fid(user)
+    r = _process_queue(factory_id=fid)
     r["drive_pulled"] = pulled.get("pulled", 0)
     if pulled.get("error"):
         r["drive_error"] = pulled["error"]
@@ -389,15 +409,18 @@ def process_one(pid: str, user=Depends(auth.verify_token)):
         raw = store.download_bytes(p["storage_path"])
         images, _ai = _prepare_images(raw, p.get("content_type") or "", p.get("filename") or "")
         data = extractor.extract(images, provider, key, model)
-        dup = store.find_by_order_no(data.get("order_no"))
+        pfid = p.get("factory_id") or _fid(user)
+        dup = store.find_by_order_no(data.get("order_no"), factory_id=pfid)
         if dup:
             store.delete_pending(pid)
             return {"status": "skipped", "detail": f"Order No. {data.get('order_no')} มีในระบบแล้ว — ข้าม"}
         store.add_order(data, p["storage_path"], provider,
-                        user_email=p.get("uploaded_by"), source_filename=p.get("filename"))
+                        user_email=p.get("uploaded_by"), source_filename=p.get("filename"),
+                        factory_id=pfid)
         store.delete_pending(pid)
         store.log_activity("scan", user["email"], user["role"],
-                           f"สแกน {p.get('filename')} → Order {data.get('order_no')}")
+                           f"สแกน {p.get('filename')} → Order {data.get('order_no')}",
+                           factory_id=pfid)
         return {"status": "success", "detail": f"Order {data.get('order_no') or '-'} · {len(data.get('lines', []))} รายการ"}
     except Exception as e:  # noqa: BLE001
         store.fail_pending(pid, _friendly_error(e))
@@ -454,13 +477,14 @@ def set_schedule(body: ScheduleIn, user=Depends(admin_only)):
 @app.get("/api/report")
 def report(user=Depends(auth.verify_token)):
     import datetime
-    orders, _ = store.list_orders(limit=500)
+    fid = _fid(user)
+    orders, _ = store.list_orders(limit=500, factory_id=fid)
     today = datetime.datetime.utcnow().date().isoformat()
     today_count = sum(1 for o in orders if (o.get("scanned_at") or "").startswith(today))
     return {
-        "total_scanned": store.count_orders(),
+        "total_scanned": store.count_orders(factory_id=fid),
         "today_scanned": today_count,
-        "runs": store.list_runs(limit=20),
+        "runs": store.list_runs(limit=20, factory_id=fid),
         "recent": [
             {"filename": o.get("source_filename"),
              "order_no": o.get("order_no"),
@@ -475,7 +499,8 @@ def report(user=Depends(auth.verify_token)):
 @app.get("/api/orders")
 def orders(limit: int = 100, cursor: Optional[str] = None,
            user=Depends(auth.verify_token)):
-    items, next_cursor = store.list_orders(limit=min(limit, 500), cursor=cursor)
+    items, next_cursor = store.list_orders(limit=min(limit, 500), cursor=cursor,
+                                           factory_id=_fid(user))
     return {"orders": items, "next_cursor": next_cursor}
 
 
@@ -523,7 +548,8 @@ def order_approve(order_id: str, user=Depends(_require_perm("approve"))):
     result = store.approve_order(order_id, user["email"])
     analytics.invalidate_cache()
     store.log_activity("approve", user["email"], user["role"],
-                       f"อนุมัติ Order {o.get('order_no') or '-'}", order_id)
+                       f"อนุมัติ Order {o.get('order_no') or '-'}", order_id,
+                       factory_id=_fid(user))
     return result
 
 
@@ -548,7 +574,8 @@ def order_update(order_id: str, body: OrderIn, user=Depends(auth.verify_token)):
     result = store.update_order(order_id, body.model_dump(exclude_unset=True))
     analytics.invalidate_cache()
     store.log_activity("edit_order", user["email"], user["role"],
-                       f"แก้ไข Order {o.get('order_no') or '-'}", order_id)
+                       f"แก้ไข Order {o.get('order_no') or '-'}", order_id,
+                       factory_id=_fid(user))
     return result
 
 
@@ -558,19 +585,20 @@ def order_delete(order_id: str, user=Depends(_require_perm("delete"))):
     store.delete_order(order_id)
     analytics.invalidate_cache()
     store.log_activity("delete_order", user["email"], user["role"],
-                       f"ลบ Order {(o or {}).get('order_no') or '-'}", order_id)
+                       f"ลบ Order {(o or {}).get('order_no') or '-'}", order_id,
+                       factory_id=_fid(user))
     return {"deleted": order_id}
 
 
 @app.get("/api/export/status")
 def export_status(user=Depends(auth.verify_token)):
     """How many approved orders have not yet been handed to SAP."""
-    return store.export_status()
+    return store.export_status(factory_id=_fid(user))
 
 
 @app.get("/api/export/batches")
 def export_batches(limit: int = 20, user=Depends(auth.verify_token)):
-    return {"batches": store.list_export_batches(limit)}
+    return {"batches": store.list_export_batches(limit, factory_id=_fid(user))}
 
 
 @app.post("/api/export/batches/{batch_id}/undo")
@@ -588,7 +616,8 @@ def export(from_date: Optional[str] = None, to_date: Optional[str] = None,
           only_new: bool = False, mark: bool = True,
           user=Depends(auth.verify_token)):
     from urllib.parse import quote
-    data, _ = store.list_orders(limit=2000)
+    fid = _fid(user)
+    data, _ = store.list_orders(limit=2000, factory_id=fid)
     if status and status != "all":
         data = [o for o in data if o.get("status") == status]
     if only_new:
@@ -623,11 +652,12 @@ def export(from_date: Optional[str] = None, to_date: Optional[str] = None,
         batch_id = store.mark_exported(ids, user["email"], {
             "from_date": from_date, "to_date": to_date,
             "field": field, "status": status, "only_new": only_new,
-        })
+        }, factory_id=fid)
         if ids:
             analytics.invalidate_cache()
             store.log_activity("export", user["email"], user["role"],
-                               f"Export {len(ids)} รายการ", batch_id)
+                               f"Export {len(ids)} รายการ", batch_id,
+                               factory_id=fid)
     # HTTP headers are latin-1 only, so encode the Thai filename per RFC 5987.
     thai = quote("ใบเบิกวัตถุดิบ.xlsx")
     cd = f"attachment; filename=\"requisition.xlsx\"; filename*=UTF-8''{thai}"
@@ -673,24 +703,64 @@ def ask(body: AskIn, user=Depends(_require_perm("ask"))):
 @app.get("/api/analytics/forecast")
 def analytics_forecast(months: int = 1, user=Depends(_require_perm("forecast"))):
     months = max(1, min(6, months))
-    return analytics.forecast(months=months)
+    return analytics.forecast(months=months,
+                              orders=analytics.load_orders(factory_id=_fid(user)))
 
 
 @app.get("/api/analytics/bom")
 def analytics_bom(user=Depends(_require_perm("forecast"))):
-    return {"products": analytics.implied_bom()}
+    return {"products": analytics.implied_bom(
+        orders=analytics.load_orders(factory_id=_fid(user)))}
 
 
 @app.get("/api/analytics/health")
 def analytics_health(user=Depends(_require_perm("health"))):
     """Production health in one round trip — all four views share one order load."""
-    orders = analytics.load_orders()
+    orders = analytics.load_orders(factory_id=_fid(user))
     return {
         "yield": analytics.yield_trend(orders),
         "variance": analytics.plan_variance(orders),
         "workload": analytics.workload(orders),
         "weekday": analytics.weekday_pattern(orders),
     }
+
+
+# ---------------------------------------------------------------------------
+# Factory management (super_admin only)
+# ---------------------------------------------------------------------------
+class FactoryIn(BaseModel):
+    code: str
+    name: str
+
+
+@app.get("/api/factories")
+def list_factories(user=Depends(admin_only)):
+    return {"factories": store.list_factories()}
+
+
+@app.post("/api/factories")
+def create_factory(body: FactoryIn, user=Depends(super_only)):
+    code = (body.code or "").strip().upper()
+    name = (body.name or "").strip()
+    if not code or not name:
+        raise HTTPException(status_code=400, detail="ต้องระบุรหัสและชื่อโรงงาน")
+    if store.find_factory_by_code(code):
+        raise HTTPException(status_code=409, detail=f"รหัส {code} มีอยู่แล้ว")
+    fid = store.add_factory(code, name, user["email"])
+    store.log_activity("create_factory", user["email"], user["role"],
+                       f"สร้าง factory {code} ({name})")
+    return {"id": fid, "code": code, "name": name}
+
+
+@app.put("/api/factories/{factory_id}")
+def update_factory(factory_id: str, body: FactoryIn, user=Depends(super_only)):
+    fac = store.get_factory(factory_id)
+    if not fac:
+        raise HTTPException(status_code=404, detail="ไม่พบ factory")
+    result = store.update_factory(factory_id, body.model_dump(exclude_unset=True))
+    store.log_activity("update_factory", user["email"], user["role"],
+                       f"แก้ไข factory {result['code']} ({result['name']})")
+    return result
 
 
 @app.get("/api/permissions")
@@ -706,13 +776,14 @@ class PermissionsIn(BaseModel):
 def save_permissions(body: PermissionsIn, user=Depends(admin_only)):
     result = store.save_permissions(body.permissions)
     store.log_activity("change_permissions", user["email"], user["role"],
-                       "เปลี่ยนสิทธิ์การเข้าถึงของ roles")
+                       "เปลี่ยนสิทธิ์การเข้าถึงของ roles", factory_id=_fid(user))
     return {"permissions": result}
 
 
 @app.get("/api/users")
 def list_users(user=Depends(admin_only)):
-    return {"users": store.list_users()}
+    fid = _fid(user)
+    return {"users": store.list_users(factory_id=fid)}
 
 
 class UserCreate(BaseModel):
@@ -720,6 +791,7 @@ class UserCreate(BaseModel):
     password: str
     role: str = "staff"
     display_name: Optional[str] = None
+    factory_id: Optional[str] = None
 
 
 MIN_PASSWORD = 6
@@ -783,9 +855,19 @@ def create_user(body: UserCreate, user=Depends(admin_only)):
     except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=400, detail=f"สร้างผู้ใช้ไม่สำเร็จ: {e}")
 
-    store._create_user_doc(uid, email, body.role, user["email"])
+    # Determine factory for the new user
+    target_fid = body.factory_id or _fid(user)
+    fac = store.get_factory(target_fid) if target_fid else None
+    if body.role != "super_admin" and not target_fid:
+        raise HTTPException(status_code=400,
+                            detail="ต้องระบุ factory สำหรับผู้ใช้ที่ไม่ใช่ super_admin")
+    store._create_user_doc(uid, email, body.role, user["email"],
+                           factory_id=target_fid,
+                           factory_code=fac["code"] if fac else None,
+                           factory_name=fac["name"] if fac else None)
     store.log_activity("create_user", user["email"], user["role"],
-                       f"สร้างผู้ใช้ {email} (role: {body.role})")
+                       f"สร้างผู้ใช้ {email} (role: {body.role})",
+                       factory_id=_fid(user))
 
     problem = _can_sign_in(email, password)
     if problem:
@@ -793,11 +875,14 @@ def create_user(body: UserCreate, user=Depends(admin_only)):
             status_code=400,
             detail=f"สร้างบัญชีแล้ว แต่ยังเข้าสู่ระบบไม่ได้ ({problem}) — "
                    "ลองตั้งรหัสผ่านใหม่จากปุ่มกุญแจในตาราง")
-    return {"uid": uid, "email": email, "role": body.role, "verified": True}
+    return {"uid": uid, "email": email, "role": body.role, "verified": True,
+            "factory_id": target_fid,
+            "factory_code": fac["code"] if fac else None}
 
 
 class UserUpdate(BaseModel):
     role: Optional[str] = None
+    factory_id: Optional[str] = None
 
 
 @app.put("/api/users/{uid}")
@@ -810,7 +895,15 @@ def update_user(uid: str, body: UserUpdate, user=Depends(admin_only)):
             raise HTTPException(status_code=400, detail=f"role ต้องเป็น {store.VALID_ROLES}")
         store.update_user_role(uid, body.role)
         store.log_activity("change_role", user["email"], user["role"],
-                           f"เปลี่ยน role ของ {existing['email']} เป็น {body.role}")
+                           f"เปลี่ยน role ของ {existing['email']} เป็น {body.role}",
+                           factory_id=_fid(user))
+    if body.factory_id and user["role"] == "super_admin":
+        fac = store.get_factory(body.factory_id)
+        if not fac:
+            raise HTTPException(status_code=400, detail="ไม่พบ factory")
+        store.update_user_factory(uid, body.factory_id, fac["code"], fac["name"])
+        store.log_activity("change_factory", user["email"], user["role"],
+                           f"ย้าย {existing['email']} ไป factory {fac['code']}")
     return store.get_user_doc(uid)
 
 
@@ -867,7 +960,7 @@ def reset_user_pw(uid: str, body: ResetPwIn, user=Depends(admin_only)):
 # ---------------------------------------------------------------------------
 @app.get("/api/activity")
 def activity_log(limit: int = 100, user=Depends(_require_perm("activity"))):
-    return {"logs": store.list_activity(limit=min(limit, 500))}
+    return {"logs": store.list_activity(limit=min(limit, 500), factory_id=_fid(user))}
 
 
 # ---------------------------------------------------------------------------
@@ -875,7 +968,7 @@ def activity_log(limit: int = 100, user=Depends(_require_perm("activity"))):
 # ---------------------------------------------------------------------------
 @app.get("/api/dead-letter")
 def dead_letter(user=Depends(admin_only)):
-    return {"items": store.list_dead_letter()}
+    return {"items": store.list_dead_letter(factory_id=_fid(user))}
 
 
 @app.post("/api/dead-letter/{dlq_id}/retry")

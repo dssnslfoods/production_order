@@ -370,7 +370,7 @@ class TestPagination:
             resp = client.get("/api/orders?cursor=abc123",
                               headers={"Authorization": "Bearer test"})
         assert resp.status_code == 200
-        mock_store.list_orders.assert_called_once_with(limit=100, cursor="abc123")
+        mock_store.list_orders.assert_called_once_with(limit=100, cursor="abc123", factory_id=None)
 
     def test_orders_returns_next_cursor(self, client):
         with patch("main.store") as mock_store:
