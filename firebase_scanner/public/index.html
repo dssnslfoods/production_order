@@ -2638,7 +2638,11 @@ async function token(){ return auth.currentUser ? await auth.currentUser.getIdTo
 async function api(path, opts={}){
   const t = await token();
   const headers = Object.assign({Authorization:"Bearer "+t}, opts.headers||{});
-  return fetch("/api"+path, Object.assign({}, opts, {headers}));
+  const ctrl = new AbortController();
+  const ms = path.startsWith("/process") ? 300000 : 60000;
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try{ return await fetch("/api"+path, Object.assign({}, opts, {headers, signal:ctrl.signal})); }
+  finally{ clearTimeout(timer); }
 }
 
 if (notConfigured) {
