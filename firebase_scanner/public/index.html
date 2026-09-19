@@ -128,6 +128,16 @@
     font-weight:600;
   }
   .nav-item .nav-icon{font-size:17px;width:24px;text-align:center;flex:none;display:inline-flex;align-items:center;justify-content:center}
+  /* red count of orders an approver sent back, so a reviewer sees them from any page */
+  .nav-badge{margin-left:auto;min-width:20px;padding:1px 7px;border-radius:999px;background:#ef4444;color:#fff;
+    font-size:11px;font-weight:700;line-height:18px;text-align:center}
+  .nav-item{position:relative}
+  body.nav-mini .nav-item .nav-badge{position:absolute;top:4px;right:6px;margin:0;padding:0 5px;min-width:16px;font-size:10px;line-height:16px}
+  .tab-item{position:relative}
+  .tab-item .nav-badge{position:absolute;top:0;right:4px;margin:0;padding:0 5px;min-width:16px;font-size:10px;line-height:16px}
+  .returned-banner{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px;padding:12px 16px;
+    border-radius:12px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#dc2626;font-weight:600;font-size:13.5px}
+  .returned-banner button{margin-left:auto;width:auto;background:#ef4444;box-shadow:none}
   .nav-icon svg,.tab-icon svg,.pico svg{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
   .pico svg{width:18px;height:18px}
   .logo svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
@@ -965,6 +975,7 @@
         </button>
         <button data-label="รายการ" class="nav-item" data-page="orders" onclick="showPage('orders')">
           <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg></span> <span class="nav-text">รายการ</span>
+          <span class="nav-badge returned-badge hidden" title="รายการที่ Approver ตีกลับ รอแก้ไข"></span>
         </button>
       </div>
 
@@ -1040,6 +1051,7 @@
     </button>
     <button class="tab-item" data-page="orders" onclick="showPage('orders')">
       <span class="tab-icon"><svg viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg></span> รายการ
+      <span class="nav-badge returned-badge hidden"></span>
     </button>
     <button class="tab-item" data-page="activity" onclick="showPage('activity')">
       <span class="tab-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span> ประวัติ
@@ -1168,6 +1180,11 @@
           <div class="between" style="margin-bottom:16px">
             <div class="phead" style="margin:0"><span class="pico" style="background:rgba(52,211,153,.16);color:var(--emerald)"><svg viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></span><h2>รายการที่สแกนแล้ว</h2></div>
             <button class="ghost sm" onclick="loadOrders()">รีเฟรช</button>
+          </div>
+
+          <div id="returnedBanner" class="returned-banner hidden">
+            <span>↩ มี <b id="returnedBannerCount">0</b> ใบที่ Approver ตีกลับ — รอแก้ไขแล้วส่งต่อไปอนุมัติใหม่</span>
+            <button class="btn sm" onclick="showOrdersWithStatus('returned_to_review')">ดูรายการที่ถูกตีกลับ</button>
           </div>
 
           <div class="ord-filters">
@@ -2109,7 +2126,7 @@
               <div class="m-step" style="border-color:var(--emerald)"><span class="m-num" style="background:var(--emerald)">4</span><b>อนุมัติแล้ว</b><br><span class="muted">พร้อม Export เข้า SAP</span></div>
             </div>
             <ul class="m-list">
-              <li>Approver ตีกลับได้โดย<b>ต้องระบุเหตุผล</b> — ใบจะเป็น <b>"ตีกลับ — รอแก้ไข"</b> ให้ Reviewer แก้แล้วส่งต่อไปอนุมัติใหม่</li>
+              <li>Approver ตีกลับได้โดย<b>ต้องระบุเหตุผล</b> — ใบจะเป็น <b>"ตีกลับ — รอแก้ไข"</b> ให้ Reviewer แก้แล้วส่งต่อไปอนุมัติใหม่ — Reviewer จะเห็น<b>ตัวเลขสีแดงที่เมนู "รายการ"</b> แถบเตือนด้านบนหน้ารายการ และการ์ดบนแดชบอร์ด และใบที่ถูกตีกลับจะอยู่บนสุดของรายการเสมอ</li>
               <li>Reviewer เปิดใบร่างแล้วกด "ตรวจสอบแล้ว ส่งต่อไปอนุมัติ" ได้เลยโดยไม่ต้องรอ Staff ส่ง (ประวัติจะบันทึกว่า "จากฉบับร่าง")</li>
               <li>แต่ละขั้นแก้ไขได้เฉพาะผู้รับผิดชอบขั้นนั้น — ตั้งแต่ "รออนุมัติ" ขึ้นไปแก้ไขข้อมูลไม่ได้แล้ว</li>
             </ul>
@@ -3417,6 +3434,12 @@ window.applyOrderFilters = () => {
     }
     return true;
   });
+
+  // Returned orders are the reviewer's most urgent work: keep them on top.
+  if(hasPerm("confirm_review")){
+    filtered.sort((a,b) => (b.status === "returned_to_review") - (a.status === "returned_to_review"));
+  }
+  updateReturnedAlerts();
 
   const note = $("filterNote");
   if(note){
@@ -5291,6 +5314,12 @@ window.loadDashActions = async () => {
   const cards = [];
   const fetches = [];
 
+  if(hasPerm("confirm_review") && returnedTotal > 0){
+    cards.push({
+      tone:"rose", n:returnedTotal, unit:"ใบ", label:"ถูก Approver ตีกลับ",
+      sub:"รอแก้ไขแล้วส่งต่อไปอนุมัติใหม่", click:"showOrdersWithStatus('returned_to_review')",
+      cta:"ดูรายการ →", order:-1});
+  }
   if(hasPerm("export")){
     fetches.push(api("/export/status").then(r=>r.json()).then(j=>{
       if(j.pending > 0) cards.push({
@@ -5324,13 +5353,27 @@ window.loadDashActions = async () => {
 
   const COLOR = {amber:"var(--amber)", rose:"var(--rose)", indigo:"var(--indigo)"};
   box.innerHTML = cards.length ? cards.map(c => `
-    <div class="k tap" onclick="showPage('${c.go}')">
+    <div class="k tap" onclick="${c.click || `showPage('${c.go}')`}">
       <span>${esc(c.label)}</span>
       <b style="color:${COLOR[c.tone]}">${fmt(c.n)} <small class="muted" style="font-size:12px">${esc(c.unit)}</small></b>
       ${c.sub ? `<span class="muted" style="font-size:11.5px">${c.sub}</span>` : ""}
       <span class="hint2">${c.cta}</span>
     </div>`).join("") : "";
 };
+
+// Orders an approver sent back sit with the reviewer until fixed.  A filter
+// option alone is too easy to miss, so whoever can fix them sees the count
+// on the menu, above the order list and on the dashboard.
+let returnedTotal = 0;
+function updateReturnedAlerts(){
+  const n = hasPerm("confirm_review") ? returnedTotal : 0;
+  document.querySelectorAll(".returned-badge").forEach(b => {
+    b.textContent = n > 99 ? "99+" : n;
+    b.classList.toggle("hidden", n === 0);
+  });
+  $("returnedBannerCount").textContent = n;
+  $("returnedBanner").classList.toggle("hidden", n === 0 || $("statusFilter").value === "returned_to_review");
+}
 
 window.loadReport = async () => {
   try{
@@ -5344,6 +5387,8 @@ window.loadReport = async () => {
     const sc = r.status_counts || {};
     $("inReviewCount").textContent = (sc.draft||0) + (sc.pending_review||0);
     $("returnedCount").textContent = sc.returned_to_review||0;
+    returnedTotal = sc.returned_to_review||0;
+    updateReturnedAlerts();
     $("pendingApprovalCount").textContent = sc.pending_approval||0;
     $("approvedCount").textContent = (sc.approved||0) + (sc.exported||0);
     const dc = (dj.items||[]).length;
