@@ -1,9 +1,10 @@
 """Firebase ID-token verification with role-based access control.
 
-Roles: super_admin, admin, supervisor, staff
+Roles: super_admin, admin, approver, reviewer, staff
 - super_admin: full access across all factories, manages factories
 - admin: full access within their factory (user management, settings, all operations)
-- supervisor: approve/reject scanned records, view orders, export
+- approver: final approval/return-to-review of reviewed records, view orders, export
+- reviewer: confirms staff-submitted scans are correct and sends them to the approver
 - staff: scan files, upload to queue, view orders (no approve, no settings)
 
 The first user to log in when no users exist is auto-promoted to super_admin.

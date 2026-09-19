@@ -1064,6 +1064,7 @@
             <div class="tile a"><b id="totalScanned">—</b><span>สแกนสะสม</span></div>
             <div class="tile b"><b id="todayScanned">—</b><span>วันนี้</span></div>
             <div class="tile c"><b id="pendingCount">0</b><span>คิวรอสแกน</span></div>
+            <div class="tile d" title="ร่าง + รอตรวจสอบ + ถูกตีกลับ"><b id="inReviewCount">0</b><span>รอตรวจสอบ</span></div>
             <div class="tile d"><b id="pendingApprovalCount">0</b><span>รออนุมัติ</span></div>
             <div class="tile a"><b id="approvedCount">0</b><span>อนุมัติแล้ว</span></div>
             <div class="tile" style="background:rgba(239,68,68,.12)"><b id="skippedCount" style="color:#f87171">0</b><span style="color:rgba(248,113,113,.8)">ซ้ำ (ข้าม)</span></div>
@@ -1177,8 +1178,10 @@
               <label for="statusFilter">สถานะ</label>
               <select id="statusFilter" onchange="applyOrderFilters()">
                 <option value="all">ทั้งหมด</option>
+                <option value="draft">ร่าง — รอส่งตรวจ</option>
+                <option value="pending_review">รอตรวจสอบ</option>
+                <option value="returned_to_review">ตีกลับ — รอแก้ไข</option>
                 <option value="pending_approval">รออนุมัติ</option>
-                <option value="draft">Draft</option>
                 <option value="approved">อนุมัติแล้ว</option>
                 <option value="not_exported">อนุมัติแล้ว · ยังไม่ส่ง SAP</option>
                 <option value="needs_review">ต้องตรวจสอบ (ข้อมูลอาจไม่ครบ)</option>
@@ -1382,8 +1385,10 @@
                 <select id="expStatus">
                   <option value="approved">อนุมัติแล้ว</option>
                   <option value="all">ทั้งหมด</option>
+                  <option value="pending_review">รอตรวจสอบ</option>
+                  <option value="returned_to_review">ตีกลับ — รอแก้ไข</option>
                   <option value="pending_approval">รออนุมัติ</option>
-                  <option value="draft">ฉบับร่าง</option>
+                  <option value="draft">ร่าง — รอส่งตรวจ</option>
                 </select>
               </div>
             </div>
@@ -1681,7 +1686,8 @@
                 <label>บทบาท (Role)</label>
                 <select id="newUserRole">
                   <option value="staff">Staff</option>
-                  <option value="supervisor">Supervisor</option>
+                  <option value="reviewer">Reviewer</option>
+                  <option value="approver">Approver</option>
                   <option value="admin">Admin</option>
                 </select>
               </div>
@@ -1726,12 +1732,8 @@
             <div style="overflow-x:auto">
               <table id="permMatrix" style="width:100%;border-collapse:collapse;font-size:13px">
                 <thead>
-                  <tr style="border-bottom:2px solid var(--line)">
+                  <tr id="permHeadRow" style="border-bottom:2px solid var(--line)">
                     <th style="padding:10px 14px;text-align:left;color:var(--muted);font-weight:600;min-width:140px">สิทธิ์</th>
-                    <th id="permSAHeader" style="padding:10px 20px;text-align:center;min-width:90px"><span style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;background:rgba(139,92,246,.08);color:var(--violet);font-weight:700;font-size:12px">Super Admin</span></th>
-                    <th style="padding:10px 20px;text-align:center;min-width:90px"><span style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;background:rgba(244,63,94,.08);color:var(--rose);font-weight:700;font-size:12px">Admin</span></th>
-                    <th style="padding:10px 20px;text-align:center;min-width:90px"><span style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;background:rgba(245,158,11,.08);color:var(--amber);font-weight:700;font-size:12px">Supervisor</span></th>
-                    <th style="padding:10px 20px;text-align:center;min-width:90px"><span style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;background:rgba(14,165,233,.08);color:var(--sky);font-weight:700;font-size:12px">Staff</span></th>
                   </tr>
                 </thead>
                 <tbody id="permBody"></tbody>
@@ -1751,9 +1753,13 @@
                 <div style="font-weight:700;font-size:13px;color:var(--rose);margin-bottom:4px;display:flex;align-items:center;gap:6px"><svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Admin</div>
                 <div style="font-size:12.5px;color:var(--muted);line-height:1.6">ทุกอย่างภายในโรงงานตนเอง + จัดการผู้ใช้ + ตั้งค่าระบบ</div>
               </div>
+              <div style="padding:14px 16px;border-radius:10px;border:1px solid rgba(16,185,129,.12);background:rgba(16,185,129,.03)">
+                <div style="font-weight:700;font-size:13px;color:var(--emerald);margin-bottom:4px;display:flex;align-items:center;gap:6px"><svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Reviewer</div>
+                <div style="font-size:12.5px;color:var(--muted);line-height:1.6">ตรวจสอบ/แก้ไขรายการที่ Staff ส่งมา แล้วยืนยันส่งให้ Approver, แก้รายการที่ถูกตีกลับ</div>
+              </div>
               <div style="padding:14px 16px;border-radius:10px;border:1px solid rgba(245,158,11,.12);background:rgba(245,158,11,.03)">
-                <div style="font-weight:700;font-size:13px;color:var(--amber);margin-bottom:4px;display:flex;align-items:center;gap:6px"><svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Supervisor</div>
-                <div style="font-size:12.5px;color:var(--muted);line-height:1.6">ตรวจสอบ/อนุมัติ record, ดูประวัติ, export</div>
+                <div style="font-weight:700;font-size:13px;color:var(--amber);margin-bottom:4px;display:flex;align-items:center;gap:6px"><svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Approver</div>
+                <div style="font-size:12.5px;color:var(--muted);line-height:1.6">ขั้นสุดท้าย: อนุมัติ หรือ ตีกลับให้ Reviewer พร้อมเหตุผล, ดูประวัติ, export ส่ง SAP</div>
               </div>
               <div style="padding:14px 16px;border-radius:10px;border:1px solid rgba(14,165,233,.12);background:rgba(14,165,233,.03)">
                 <div style="font-weight:700;font-size:13px;color:var(--sky);margin-bottom:4px;display:flex;align-items:center;gap:6px"><svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Staff</div>
@@ -1865,12 +1871,16 @@
                   <td>ใช้งานได้ทุกฟีเจอร์ — สแกน, อนุมัติ, จัดการผู้ใช้, ตั้งค่า AI, Export, ดูประวัติ, ปรับ Permission Matrix, <b>ล้างข้อมูลเพื่อเริ่มระบบใหม่</b></td>
                 </tr>
                 <tr>
-                  <td><span class="m-badge" style="background:rgba(245,158,11,.12);color:var(--amber)">Supervisor</span></td>
-                  <td>สแกน, ตรวจสอบ/แก้ไข, อนุมัติรายการ, ดูประวัติการใช้งาน, Export Excel</td>
+                  <td><span class="m-badge" style="background:rgba(16,185,129,.12);color:var(--emerald)">Reviewer</span></td>
+                  <td>ตรวจสอบ/แก้ไขรายการที่ Staff ส่งมา, ยืนยันส่งอนุมัติ, แก้ไขรายการที่ถูกตีกลับ, ดูประวัติการใช้งาน, Export Excel</td>
+                </tr>
+                <tr>
+                  <td><span class="m-badge" style="background:rgba(245,158,11,.12);color:var(--amber)">Approver</span></td>
+                  <td>อนุมัติรายการขั้นสุดท้าย หรือตีกลับให้ Reviewer พร้อมเหตุผล, ดูประวัติการใช้งาน, Export ส่ง SAP</td>
                 </tr>
                 <tr>
                   <td><span class="m-badge" style="background:rgba(14,165,233,.12);color:var(--sky)">Staff</span></td>
-                  <td>สแกน/อัปโหลดเอกสารเข้าคิว, ดูรายการ, Export Excel</td>
+                  <td>สแกน/อัปโหลดเอกสารเข้าคิว, ตรวจสอบฉบับร่างแล้วกด “ส่งตรวจสอบ”, ดูรายการ, Export Excel</td>
                 </tr>
               </tbody>
             </table>
@@ -1931,7 +1941,10 @@
                 <tr><td><b>วันนี้</b></td><td>จำนวนที่สแกนในวันนี้</td></tr>
                 <tr><td><b>ซ้ำ (ข้าม)</b></td><td>จำนวนไฟล์ที่ถูกข้ามเพราะเลข Production Order ซ้ำ</td></tr>
                 <tr><td><b>คิวรอสแกน</b></td><td>ไฟล์ที่อัปโหลดแล้ว รอ AI ประมวลผล</td></tr>
-                <tr><td><b>รออนุมัติ</b></td><td>รายการที่สแกนสำเร็จ รอ Supervisor/Admin ตรวจสอบ</td></tr>
+                <tr><td><b>ร่าง — รอส่งตรวจ</b></td><td>สแกนสำเร็จแล้ว รอ Staff ตรวจสอบและกดส่งตรวจสอบ</td></tr>
+                <tr><td><b>รอตรวจสอบ</b></td><td>Staff ส่งแล้ว รอ Reviewer ตรวจสอบและยืนยันส่งอนุมัติ</td></tr>
+                <tr><td><b>ตีกลับ — รอแก้ไข</b></td><td>Approver ตีกลับพร้อมเหตุผล รอ Reviewer แก้ไขแล้วยืนยันส่งอนุมัติใหม่</td></tr>
+                <tr><td><b>รออนุมัติ</b></td><td>Reviewer ยืนยันแล้ว รอ Approver อนุมัติหรือตีกลับ</td></tr>
                 <tr><td><b>อนุมัติแล้ว</b></td><td>รายการที่ตรวจสอบผ่านแล้ว พร้อม Export</td></tr>
               </tbody>
             </table>
@@ -2106,8 +2119,8 @@
               </tbody>
             </table>
             <div class="m-note">
-              รายการที่ขึ้น "ต้องตรวจสอบ" ยังสามารถแก้ไข บันทึก และอนุมัติได้ตามปกติ
-              — ป้ายนี้เป็นเพียงคำเตือนให้ Supervisor ตรวจสอบกับเอกสารต้นฉบับก่อนอนุมัติ
+              รายการที่ขึ้น "ต้องตรวจสอบ" ยังดำเนินการตามขั้นตอนได้ตามปกติ
+              — ป้ายนี้เป็นเพียงคำเตือนให้ Reviewer / Approver ตรวจสอบกับเอกสารต้นฉบับก่อนอนุมัติ
             </div>
 
             <h4 style="margin:16px 0 8px;font-size:14px">7.2 ยืนยันค่าต่าง</h4>
@@ -2363,7 +2376,7 @@
               <li>กรอก <b>อีเมล</b> ของผู้ใช้ใหม่</li>
               <li>ตั้ง <b>รหัสผ่าน</b> เริ่มต้น — <b>อย่างน้อย 6 ตัวขึ้นไป</b> ไม่มีเงื่อนไขอื่น
                 (ไม่บังคับตัวพิมพ์ใหญ่ ตัวเลข หรืออักขระพิเศษ)</li>
-              <li>เลือก <b>บทบาท</b> — Staff / Supervisor / Admin</li>
+              <li>เลือก <b>บทบาท</b> — Staff / Reviewer / Approver / Admin</li>
               <li>กดปุ่ม <b>"สร้างผู้ใช้"</b></li>
             </ol>
             <div class="m-note">
@@ -2637,8 +2650,14 @@
       <div id="editApproval" style="margin-bottom:14px;padding:12px 16px;border-radius:12px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2)">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
           <span id="editStatusText" style="font-size:13px;font-weight:600;color:#d97706">รออนุมัติ</span>
-          <button class="btn sm" id="approveBtn" onclick="approveOrder()" style="width:auto;background:var(--emerald);box-shadow:0 4px 12px -4px rgba(16,185,129,.4)">✓ อนุมัติรายการนี้</button>
+          <span style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn sm hidden" id="submitReviewBtn" onclick="submitReviewOrder()" style="width:auto;background:var(--sky);box-shadow:0 4px 12px -4px rgba(56,189,248,.4)">📤 ส่งตรวจสอบ</button>
+            <button class="btn sm hidden" id="confirmReviewBtn" onclick="confirmReviewOrder()" style="width:auto;background:var(--sky);box-shadow:0 4px 12px -4px rgba(56,189,248,.4)">✓ ยืนยันส่งอนุมัติ</button>
+            <button class="btn sm hidden" id="returnToReviewBtn" onclick="returnToReviewOrder()" style="width:auto;background:var(--red);box-shadow:0 4px 12px -4px rgba(239,68,68,.4)">↩ ตีกลับ</button>
+            <button class="btn sm hidden" id="approveBtn" onclick="approveOrder()" style="width:auto;background:var(--emerald);box-shadow:0 4px 12px -4px rgba(16,185,129,.4)">✓ อนุมัติรายการนี้</button>
+          </span>
         </div>
+        <div id="editRejectionReason" class="hidden" style="margin-top:10px;padding:10px 12px;border-radius:8px;background:rgba(239,68,68,.1);color:#dc2626;font-size:12.5px;font-weight:600"></div>
       </div>
       <div class="row">
         <button class="btn" id="saveEditBtn" onclick="saveEdit()" >บันทึกฉบับร่าง (Draft)</button>
@@ -2867,8 +2886,8 @@ function hasPerm(p){ return currentPerms.includes(p); }
 function applyRole(role, perms){
   currentRole = role;
   if(perms) currentPerms = perms;
-  const labels = {super_admin:"Super Admin",admin:"Admin",supervisor:"Supervisor",staff:"Staff"};
-  const colors = {super_admin:"#a78bfa",admin:"#fb7185",supervisor:"#fbbf24",staff:"#38bdf8"};
+  const labels = {super_admin:"Super Admin",admin:"Admin",approver:"Approver",reviewer:"Reviewer",staff:"Staff"};
+  const colors = {super_admin:"#a78bfa",admin:"#fb7185",approver:"#fbbf24",reviewer:"#34d399",staff:"#38bdf8"};
   $("roleChip").textContent = labels[role]||role;
   $("roleChip").style.color = colors[role]||"var(--muted)";
   // pages - show/hide nav items by permission
@@ -3216,12 +3235,16 @@ function renderOrderRow(o){
   const po = (o.order_no||"(ไม่มีเลขที่)");
   const dt = o.document_date||"";
   const approved = o.status === "approved";
-  const isDraft = o.edited && !approved;
-  const statusBadge = approved
-    ? '<span class="pill" style="font-size:10.5px;padding:2px 8px">✓ อนุมัติ</span>'
-    : isDraft
-      ? '<span class="pill" style="font-size:10.5px;padding:2px 8px;background:rgba(99,102,241,.12);color:#6366f1">📝 Draft</span>'
-      : '<span class="pill" style="font-size:10.5px;padding:2px 8px;background:rgba(245,158,11,.15);color:#d97706">รออนุมัติ</span>';
+  const returned = o.status === "returned_to_review";
+  const isDraft = o.status === "draft";
+  const STATUS_BADGES = {
+    draft: '<span class="pill" style="font-size:10.5px;padding:2px 8px;background:rgba(99,102,241,.12);color:#6366f1">📝 ร่าง — รอส่งตรวจ</span>',
+    approved: '<span class="pill" style="font-size:10.5px;padding:2px 8px">✓ อนุมัติ</span>',
+    pending_approval: '<span class="pill" style="font-size:10.5px;padding:2px 8px;background:rgba(245,158,11,.15);color:#d97706">รออนุมัติ</span>',
+    pending_review: '<span class="pill" style="font-size:10.5px;padding:2px 8px;background:rgba(56,189,248,.15);color:#0284c7">รอตรวจสอบ</span>',
+    returned_to_review: '<span class="pill" style="font-size:10.5px;padding:2px 8px;background:rgba(239,68,68,.15);color:#dc2626" title="'+esc(o.rejection_reason||'')+'">↩ ตีกลับ — รอแก้ไข</span>',
+  };
+  const statusBadge = STATUS_BADGES[o.status] || STATUS_BADGES.pending_approval;
   let planTag = "";
   if(o.plan_total!=null && o.actual_total!=null && o.plan_total>0){
     const pct = (o.actual_total/o.plan_total*100).toFixed(1);
@@ -3244,7 +3267,7 @@ function renderOrderRow(o){
     : approved
       ? '<span class="pill" style="font-size:10px;padding:2px 7px;background:rgba(245,158,11,.14);color:#b45309" title="อนุมัติแล้วแต่ยังไม่เคยอยู่ในไฟล์ Export">รอส่ง SAP</span>'
       : '';
-  const borderClr = approved ? 'var(--emerald)' : isDraft ? 'var(--indigo)' : 'var(--amber)';
+  const borderClr = approved ? 'var(--emerald)' : returned ? 'var(--red)' : isDraft ? 'var(--indigo)' : 'var(--amber)';
   const chk = hasPerm("delete") ? `<input type="checkbox" class="o-check" data-oid="${o.id}" data-label="${po.replace(/"/g,'')}" onchange="updateBatchBar()">` : '';
   return `<div class="order orow" style="border-left-color:${borderClr}">${chk}<div class="obody"><b>${po} ${statusBadge} ${reviewBadge} ${pageBadge} ${sapBadge} <span class="muted" style="font-weight:400">${dt?' · '+dt:''} ${o.product_name?' · '+o.product_name:''}</span></b>
     <div class="meta">${fmtTs(o.scanned_at)}
@@ -3350,8 +3373,7 @@ window.applyOrderFilters = () => {
     } else if(status === "needs_review"){
       if(!o.needs_review) return false;
     } else if(status !== "all"){
-      const isDraft = o.edited && o.status !== "approved";
-      if(status === "draft" ? !isDraft : (o.status !== status || isDraft)) return false;
+      if(o.status !== status) return false;
     }
     const d = orderDate(o);
     if(from && (!d || d < from)) return false;
@@ -3434,8 +3456,10 @@ window.loadOrders = async (append) => {
     else allOrders = items;
     applyOrderFilters();
     const approved = allOrders.filter(o => o.status === "approved").length;
-    const pending = allOrders.filter(o => o.status !== "approved").length;
+    const inReview = allOrders.filter(o => ["draft","pending_review","returned_to_review"].includes(o.status)).length;
+    const pending = allOrders.filter(o => o.status === "pending_approval").length;
     $("approvedCount").textContent = approved;
+    $("inReviewCount").textContent = inReview;
     $("pendingApprovalCount").textContent = pending;
     const lb = $("loadMoreBar");
     if(lb && !loadingAll) lb.innerHTML = ordersCursor
@@ -4429,60 +4453,135 @@ function loadEditForm(o){
       })();
     });
   } else { wrap.classList.add("hidden"); }
-  // approval status
+  // workflow: draft (staff) -> pending_review (reviewer) -> pending_approval (approver) -> approved
+  //           approver may return pending_approval -> returned_to_review (reviewer)
   const approved = o.status === "approved";
+  const isDraft = o.status === "draft";
+  const inReview = o.status === "pending_review";
+  const returned = o.status === "returned_to_review";
+  const inApproval = o.status === "pending_approval";
+  const editableNow = (isDraft && hasPerm("edit_order"))
+    || ((inReview || returned) && hasPerm("confirm_review"));
   const ap = $("editApproval");
+  const STAGE = {
+    draft:              ["📝 ร่าง — ตรวจสอบข้อมูลที่สแกนแล้วกด “ส่งตรวจสอบ”", "#6366f1", "99,102,241"],
+    pending_review:     ["รอตรวจสอบ — Reviewer ตรวจสอบก่อนส่งอนุมัติ", "#0284c7", "56,189,248"],
+    returned_to_review: ["↩ ถูกตีกลับ — Reviewer แก้ไขแล้วยืนยันส่งอนุมัติใหม่", "#dc2626", "239,68,68"],
+    pending_approval:   ["รออนุมัติ — ผ่านการตรวจสอบแล้ว", "#d97706", "245,158,11"],
+  };
   if(approved){
     ap.style.background = "rgba(22,163,74,.08)";
     ap.style.border = "1px solid rgba(22,163,74,.2)";
-    $("editStatusText").innerHTML = `✓ อนุมัติแล้ว${o.approved_by?' · โดย '+o.approved_by:''}`;
+    $("editStatusText").innerHTML = `✓ อนุมัติแล้ว${o.approved_by?' · โดย '+esc(o.approved_by):''}`;
     $("editStatusText").style.color = "#16a34a";
-    $("approveBtn").classList.add("hidden");
   } else {
-    const isDraft = o.edited && o.status !== "approved";
-    ap.style.background = isDraft ? "rgba(99,102,241,.08)" : "rgba(245,158,11,.08)";
-    ap.style.border = isDraft ? "1px solid rgba(99,102,241,.2)" : "1px solid rgba(245,158,11,.2)";
-    $("editStatusText").innerHTML = isDraft
-      ? "📝 ฉบับร่าง (Draft) — แก้ไขแล้ว รออนุมัติ"
-      : "รออนุมัติ — กรุณาตรวจสอบข้อมูลก่อนอนุมัติ";
-    $("editStatusText").style.color = isDraft ? "#6366f1" : "#d97706";
-    $("approveBtn").classList.toggle("hidden", !hasPerm("approve"));
-    updateSaveBtn();
+    const [text, color, rgb] = STAGE[o.status] || STAGE.pending_approval;
+    ap.style.background = `rgba(${rgb},.08)`;
+    ap.style.border = `1px solid rgba(${rgb},.2)`;
+    $("editStatusText").textContent = text;
+    $("editStatusText").style.color = color;
   }
-  // read-only when approved
+  // rejection reason (approver's note to the reviewer)
+  const reasonBox = $("editRejectionReason");
+  if(returned && o.rejection_reason){
+    reasonBox.textContent = "เหตุผลที่ตีกลับ: " + o.rejection_reason;
+    reasonBox.classList.remove("hidden");
+  } else { reasonBox.classList.add("hidden"); }
+  // action buttons — one role, one action, gated by both status and permission
+  $("submitReviewBtn").classList.toggle("hidden", !(isDraft && hasPerm("edit_order")));
+  $("confirmReviewBtn").classList.toggle("hidden",
+    !((inReview || returned) && hasPerm("confirm_review")));
+  $("approveBtn").classList.toggle("hidden", !(inApproval && hasPerm("approve")));
+  $("returnToReviewBtn").classList.toggle("hidden", !(inApproval && hasPerm("return_to_review")));
+  updateSaveBtn();
+  // read-only unless this order is in an editable stage the user may edit
   const modal = $("editModal");
-  modal.querySelectorAll("input, select, textarea").forEach(el => { el.readOnly = approved; el.disabled = approved; });
-  $("saveEditBtn").classList.toggle("hidden", approved);
-  modal.querySelectorAll(".del").forEach(el => { if(el.textContent.trim()==="×") el.style.display = approved ? "none" : ""; });
+  modal.querySelectorAll("input, select, textarea").forEach(el => { el.readOnly = !editableNow; el.disabled = !editableNow; });
+  $("saveEditBtn").classList.toggle("hidden", !editableNow);
+  modal.querySelectorAll(".del").forEach(el => { if(el.textContent.trim()==="×") el.style.display = editableNow ? "" : "none"; });
   const addLineBtn = modal.querySelector('[onclick="addLine()"]');
-  if(addLineBtn) addLineBtn.style.display = approved ? "none" : "";
+  if(addLineBtn) addLineBtn.style.display = editableNow ? "" : "none";
   const addBatchBtn = $("addBatchBtn");
-  if(addBatchBtn) addBatchBtn.style.display = approved ? "none" : "";
+  if(addBatchBtn) addBatchBtn.style.display = editableNow ? "" : "none";
   // update title
-  modal.querySelector(".phead h2").textContent = approved ? "ดูรายละเอียดใบสั่งผลิต" : "แก้ไข / จัดการใบสั่งผลิต";
-  modal.querySelector(".phead .pico").innerHTML = approved ? '<svg viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+  modal.querySelector(".phead h2").textContent = editableNow ? "แก้ไข / จัดการใบสั่งผลิต" : "ดูรายละเอียดใบสั่งผลิต";
+  modal.querySelector(".phead .pico").innerHTML = editableNow ? '<svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>';
 }
 window.approveOrder = async () => {
-  const unacked = [...$("e_lines").querySelectorAll('.l-confirm.show')]
-    .filter(el => !el.querySelector('.l-ack').checked);
-  if(unacked.length > 0){
-    toast("กรุณายืนยันค่าต่างทั้งหมดก่อนอนุมัติ (เหลือ "+unacked.length+" รายการ)");
-    return;
-  }
+  // pending_approval orders are no longer editable (only pending_review /
+  // returned_to_review are), so approve no longer re-saves form data first —
+  // it just confirms what the reviewer already sent up.
   if(!checkBatchShelf()) return;
   if(!confirm("ยืนยันอนุมัติรายการนี้?")) return;
   try{
-    // save current form data first
-    const body = collectFormData();
-    const sr = await api("/orders/"+editId, {method:"PUT", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)});
-    if(!sr.ok){ const e=await sr.json().catch(()=>({})); toast("บันทึกข้อมูลไม่สำเร็จ: "+(e.detail||"")); return; }
-    // then approve
     const r = await api("/orders/"+editId+"/approve", {method:"POST"});
     if(r.ok){
       toast("อนุมัติรายการแล้ว ✓");
       closeEdit();
       loadOrders(); loadReport();
     } else { const e=await r.json().catch(()=>({})); toast("อนุมัติไม่สำเร็จ: "+(e.detail||"")); }
+  }catch(e){ toast("เชื่อมต่อไม่สำเร็จ"); }
+};
+async function _saveFormIfEditable(){
+  // Persist any in-progress edits before a stage-change call, but only when
+  // this order is actually editable right now (staff/reviewer on
+  // pending_review / returned_to_review) — approve/return-to-review calls
+  // this too, and on those it is simply a no-op.
+  const btn = $("saveEditBtn");
+  if(btn.classList.contains("hidden")) return true;
+  const body = collectFormData();
+  const sr = await api("/orders/"+editId, {method:"PUT", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)});
+  if(!sr.ok){ const e=await sr.json().catch(()=>({})); toast("บันทึกข้อมูลไม่สำเร็จ: "+(e.detail||"")); return false; }
+  return true;
+}
+window.submitReviewOrder = async () => {
+  const unacked = [...$("e_lines").querySelectorAll('.l-confirm.show')]
+    .filter(el => !el.querySelector('.l-ack').checked);
+  if(unacked.length > 0){
+    toast("กรุณายืนยันค่าต่างทั้งหมดก่อนส่งตรวจสอบ (เหลือ "+unacked.length+" รายการ)");
+    return;
+  }
+  if(!checkBatchShelf()) return;
+  try{
+    if(!await _saveFormIfEditable()) return;
+    const r = await api("/orders/"+editId+"/submit-review", {method:"POST"});
+    if(r.ok){
+      toast("ส่งตรวจสอบแล้ว ✓");
+      closeEdit();
+      loadOrders(); loadReport();
+    } else { const e=await r.json().catch(()=>({})); toast("ส่งตรวจสอบไม่สำเร็จ: "+(e.detail||"")); }
+  }catch(e){ toast("เชื่อมต่อไม่สำเร็จ"); }
+};
+window.confirmReviewOrder = async () => {
+  const unacked = [...$("e_lines").querySelectorAll('.l-confirm.show')]
+    .filter(el => !el.querySelector('.l-ack').checked);
+  if(unacked.length > 0){
+    toast("กรุณายืนยันค่าต่างทั้งหมดก่อนยืนยันส่งอนุมัติ (เหลือ "+unacked.length+" รายการ)");
+    return;
+  }
+  if(!checkBatchShelf()) return;
+  if(!confirm("ยืนยันส่งรายการนี้ให้ผู้อนุมัติ?")) return;
+  try{
+    if(!await _saveFormIfEditable()) return;
+    const r = await api("/orders/"+editId+"/confirm-review", {method:"POST"});
+    if(r.ok){
+      toast("ยืนยันส่งอนุมัติแล้ว ✓");
+      closeEdit();
+      loadOrders(); loadReport();
+    } else { const e=await r.json().catch(()=>({})); toast("ยืนยันไม่สำเร็จ: "+(e.detail||"")); }
+  }catch(e){ toast("เชื่อมต่อไม่สำเร็จ"); }
+};
+window.returnToReviewOrder = async () => {
+  const reason = (prompt("เหตุผลที่ตีกลับ (จำเป็นต้องระบุ):") || "").trim();
+  if(!reason){ toast("ต้องระบุเหตุผลในการตีกลับ"); return; }
+  try{
+    const r = await api("/orders/"+editId+"/return-to-review",
+      {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({reason})});
+    if(r.ok){
+      toast("ตีกลับรายการแล้ว");
+      closeEdit();
+      loadOrders(); loadReport();
+    } else { const e=await r.json().catch(()=>({})); toast("ตีกลับไม่สำเร็จ: "+(e.detail||"")); }
   }catch(e){ toast("เชื่อมต่อไม่สำเร็จ"); }
 };
 function updateNav(){
@@ -4762,9 +4861,9 @@ window.exportExcel = async (onlyNew) => {
 };
 
 // ---- user management (admin) ----
-const ROLE_LABELS = {super_admin:"Super Admin",admin:"Admin",supervisor:"Supervisor",staff:"Staff"};
-const ROLE_COLORS = {super_admin:"var(--violet)",admin:"var(--rose)",supervisor:"var(--amber)",staff:"var(--sky)"};
-const ROLE_BG = {super_admin:"rgba(139,92,246,.08)",admin:"rgba(244,63,94,.08)",supervisor:"rgba(245,158,11,.08)",staff:"rgba(14,165,233,.08)"};
+const ROLE_LABELS = {super_admin:"Super Admin",admin:"Admin",approver:"Approver",reviewer:"Reviewer",staff:"Staff"};
+const ROLE_COLORS = {super_admin:"var(--violet)",admin:"var(--rose)",approver:"var(--amber)",reviewer:"var(--emerald)",staff:"var(--sky)"};
+const ROLE_BG = {super_admin:"rgba(139,92,246,.08)",admin:"rgba(244,63,94,.08)",approver:"rgba(245,158,11,.08)",reviewer:"rgba(16,185,129,.08)",staff:"rgba(14,165,233,.08)"};
 window.toggleAddUser = () => {
   const f = $("addUserForm");
   f.classList.toggle("hidden");
@@ -4793,7 +4892,8 @@ window.loadUsers = async () => {
     const list = j.users||[];
     const roleOpts = (sel) => {
       let html = `<option value="staff" ${sel==="staff"?"selected":""}>Staff</option>`;
-      html += `<option value="supervisor" ${sel==="supervisor"?"selected":""}>Supervisor</option>`;
+      html += `<option value="reviewer" ${sel==="reviewer"?"selected":""}>Reviewer</option>`;
+      html += `<option value="approver" ${sel==="approver"?"selected":""}>Approver</option>`;
       html += `<option value="admin" ${sel==="admin"?"selected":""}>Admin</option>`;
       if(isSA) html += `<option value="super_admin" ${sel==="super_admin"?"selected":""}>Super Admin</option>`;
       return html;
@@ -4959,20 +5059,40 @@ const PERM_ITEMS = [
   {key:"users",     label:"ผู้ใช้งาน", group:"หน้าจอ"},
   {key:"activity",  label:"ประวัติการใช้งาน", group:"หน้าจอ"},
   {key:"settings",  label:"ตั้งค่า", group:"หน้าจอ"},
-  {key:"approve",   label:"อนุมัติ record", group:"สิทธิ์การดำเนินการ"},
-  {key:"delete",    label:"ลบ record", group:"สิทธิ์การดำเนินการ"},
+  {key:"confirm_review",   label:"ยืนยันส่งอนุมัติ", group:"สิทธิ์การดำเนินการ"},
+  {key:"approve",          label:"อนุมัติ record", group:"สิทธิ์การดำเนินการ"},
+  {key:"return_to_review", label:"ตีกลับให้ตรวจสอบใหม่", group:"สิทธิ์การดำเนินการ"},
+  {key:"edit_order",       label:"แก้ไขฉบับร่าง / ส่งตรวจสอบ", group:"สิทธิ์การดำเนินการ"},
+  {key:"delete",           label:"ลบ record", group:"สิทธิ์การดำเนินการ"},
 ];
-const ROLES_ORDER = ["super_admin","admin","supervisor","staff"];
+// Canonical display order — the actual set of columns rendered is whatever
+// roles come back from the backend's permissions data (see renderPermMatrix),
+// so a new role (e.g. a future one) shows up automatically without a code
+// change here; this array only controls left-to-right ordering.
+const ROLES_ORDER = ["super_admin","admin","approver","reviewer","staff"];
 const ADMIN_LOCKED = ["dashboard","users","settings"];
 const SUPER_ADMIN_LOCKED = ["dashboard","users","settings","factories"];
+// Roles rendered as columns come from whatever role keys the backend's
+// permissions data actually contains — not a hardcoded list — so a role
+// added on the server (e.g. reviewer/approver) shows up here automatically.
+// ROLES_ORDER is only a preferred left-to-right ordering hint.
+function _rolesFromPerms(){
+  const known = Object.keys(allPerms || {});
+  const ordered = ROLES_ORDER.filter(r => known.includes(r));
+  const extra = known.filter(r => !ROLES_ORDER.includes(r)).sort();
+  return ordered.length ? ordered.concat(extra) : ROLES_ORDER.concat(extra);
+}
 function renderPermMatrix(){
   const body = $("permBody");
   if(!body) return;
   const isSA = currentRole === "super_admin";
-  const visibleRoles = isSA ? ROLES_ORDER : ROLES_ORDER.filter(r => r !== "super_admin");
+  const roles = _rolesFromPerms();
+  const visibleRoles = isSA ? roles : roles.filter(r => r !== "super_admin");
   const colCount = visibleRoles.length + 1;
-  const saHeader = $("permSAHeader");
-  if(saHeader) saHeader.style.display = isSA ? "" : "none";
+  const head = $("permHeadRow");
+  head.querySelectorAll("th.role-col").forEach(th => th.remove());
+  visibleRoles.forEach(r => head.insertAdjacentHTML("beforeend",
+    `<th class="role-col" style="padding:10px 20px;text-align:center;min-width:90px"><span style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;background:${ROLE_BG[r]||"rgba(14,165,233,.08)"};color:${ROLE_COLORS[r]||"var(--sky)"};font-weight:700;font-size:12px">${esc(ROLE_LABELS[r]||r)}</span></th>`));
   let html = "", lastGroup = "";
   PERM_ITEMS.forEach(p => {
     if(p.group !== lastGroup){
@@ -4983,7 +5103,7 @@ function renderPermMatrix(){
     visibleRoles.forEach(r => {
       const checked = (allPerms[r]||[]).includes(p.key);
       const locked = (r==="super_admin" && SUPER_ADMIN_LOCKED.includes(p.key)) || (r==="admin" && ADMIN_LOCKED.includes(p.key));
-      const accentMap = {super_admin:"var(--violet)",admin:"var(--rose)",supervisor:"var(--amber)",staff:"var(--sky)"};
+      const accentMap = {super_admin:"var(--violet)",admin:"var(--rose)",approver:"var(--amber)",reviewer:"var(--emerald)",staff:"var(--sky)"};
       html += `<td style="padding:8px 16px;text-align:center">
         <input type="checkbox" class="perm-cb" data-role="${r}" data-perm="${p.key}"
           ${checked?"checked":""} ${locked?"disabled title='ต้องมีสิทธิ์นี้เสมอ'":""}
@@ -4996,8 +5116,11 @@ function renderPermMatrix(){
 }
 window.savePermissions = async () => {
   const newPerms = {};
-  ROLES_ORDER.forEach(r => newPerms[r] = []);
+  // A role whose column is not rendered (super_admin, for an admin) keeps what it has.
+  _rolesFromPerms().forEach(r => newPerms[r] =
+    document.querySelector(`.perm-cb[data-role="${r}"]`) ? [] : [...(allPerms[r]||[])]);
   document.querySelectorAll('.perm-cb').forEach(cb => {
+    if(!(cb.dataset.role in newPerms)) newPerms[cb.dataset.role] = [];
     if(cb.checked) newPerms[cb.dataset.role].push(cb.dataset.perm);
   });
   ADMIN_LOCKED.forEach(k => { if(!newPerms.admin.includes(k)) newPerms.admin.push(k); });
@@ -5020,6 +5143,7 @@ window.savePermissions = async () => {
 // ---- activity log ----
 const ACTION_LABELS = {
   scan:"สแกน", upload_queue:"อัปโหลด", approve:"อนุมัติ",
+  submit_review:"ส่งตรวจสอบ", confirm_review:"ยืนยันส่งอนุมัติ", return_to_review:"ตีกลับ",
   edit_order:"แก้ไข", delete_order:"ลบ", create_user:"สร้างผู้ใช้",
   change_role:"เปลี่ยน Role", delete_user:"ลบผู้ใช้", reset_password:"รีเซ็ตรหัสผ่าน",
 };

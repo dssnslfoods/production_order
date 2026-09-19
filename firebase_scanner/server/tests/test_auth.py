@@ -105,7 +105,7 @@ class TestVerifyToken:
 class TestRequireRole:
     @pytest.mark.asyncio
     async def test_allowed_role(self):
-        check = auth.require_role("admin", "supervisor")
+        check = auth.require_role("admin", "approver")
         with patch("auth.verify_token") as mock_verify:
             mock_verify.return_value = {"uid": "u1", "email": "a@test.com", "role": "admin"}
             result = await check("Bearer token")

@@ -21,20 +21,34 @@ LOG_RETENTION_DAYS = 90
 DEFAULT_PERMISSIONS = {
     "super_admin": ["dashboard", "scan", "orders", "ask", "forecast", "health",
                     "users", "activity", "settings", "approve", "delete",
-                    "export", "factories"],
+                    "export", "factories", "confirm_review", "return_to_review",
+                    "edit_order"],
     "admin": ["dashboard", "scan", "orders", "ask", "forecast", "health",
-              "users", "activity", "settings", "approve", "delete", "export"],
-    "supervisor": ["dashboard", "scan", "orders", "ask", "forecast", "health",
-                   "activity", "approve", "export"],
+              "users", "activity", "settings", "approve", "delete", "export",
+              "confirm_review", "return_to_review", "edit_order"],
+    "approver": ["dashboard", "scan", "orders", "ask", "forecast", "health",
+                 "activity", "approve", "return_to_review", "export"],
+    "reviewer": ["dashboard", "scan", "orders", "ask", "forecast", "health",
+                 "activity", "confirm_review", "edit_order", "export"],
     "staff": ["dashboard", "scan", "orders", "ask", "forecast", "health",
-              "export"],
+              "edit_order", "export"],
 }
 
 # Bump when a release adds permissions.  Roles saved before that release have
 # no opinion about the new keys, so they are granted the default rather than
 # silently losing a page that used to be open to everyone.
-PERM_VERSION = 3
-_NEW_BY_VERSION = {2: ["ask", "forecast", "health"], 3: ["factories"]}
+PERM_VERSION = 4
+_NEW_BY_VERSION = {2: ["ask", "forecast", "health"], 3: ["factories"],
+                   4: ["confirm_review", "return_to_review", "edit_order"]}
+
+# Users and saved permission tables written before the approver rename still
+# say "supervisor"; they are read as approver so nobody is locked out before
+# tools/migrate_supervisor_to_approver.py has been run.
+LEGACY_ROLE_ALIASES = {"supervisor": "approver"}
+
+
+def normalize_role(role):
+    return LEGACY_ROLE_ALIASES.get(role, role)
 
 DEFAULT_SETTINGS = {
     "provider": "claude",
@@ -85,7 +99,11 @@ def get_permissions():
     perms = s.get("role_permissions")
     if not perms or not isinstance(perms, dict):
         return dict(DEFAULT_PERMISSIONS)
-    for role in ("super_admin", "admin", "supervisor", "staff"):
+    for old, new in LEGACY_ROLE_ALIASES.items():
+        if old in perms:
+            legacy = perms.pop(old)
+            perms.setdefault(new, legacy)
+    for role in ("super_admin", "admin", "approver", "reviewer", "staff"):
         if role not in perms:
             perms[role] = list(DEFAULT_PERMISSIONS.get(role, []))
 
@@ -120,8 +138,11 @@ def save_permissions(perms):
                 perms.setdefault(role, []).append(must)
     if "factories" not in perms.get("super_admin", []):
         perms.setdefault("super_admin", []).append("factories")
-    db().collection(SETTINGS).document("app").set(
-        {"role_permissions": perms, "perm_version": PERM_VERSION}, merge=True)
+    ref = db().collection(SETTINGS).document("app")
+    ref.set({"role_permissions": perms, "perm_version": PERM_VERSION}, merge=True)
+    # merge=True keeps map keys it was not given, so drop pre-rename role keys.
+    ref.update({f"role_permissions.{old}": firestore.DELETE_FIELD
+                for old in LEGACY_ROLE_ALIASES})
     return get_permissions()
 
 
@@ -448,7 +469,7 @@ def add_order(data, source_image, provider, user_email=None, source_filename=Non
         "provider": provider,
         "scanned_by": user_email,
         "scanned_at": firestore.SERVER_TIMESTAMP,
-        "status": "pending_approval",
+        "status": "draft",
         "factory_id": factory_id,
     }
     ref = db().collection(ORDERS).add(doc)[1]
@@ -575,6 +596,40 @@ def approve_order(order_id, user_email):
         "source_images": [],
     })
     _drop_blobs(paths)
+    return get_order(order_id)
+
+
+def confirm_review(order_id, user_email):
+    """Reviewer confirms a scanned order is correct → moves it to pending_approval."""
+    ref = db().collection(ORDERS).document(order_id)
+    ref.update({
+        "status": "pending_approval",
+        "reviewed_by": user_email,
+        "reviewed_at": firestore.SERVER_TIMESTAMP,
+    })
+    return get_order(order_id)
+
+
+def return_order_to_review(order_id, user_email, reason):
+    """Approver bounces an order back to the reviewer with a reason."""
+    ref = db().collection(ORDERS).document(order_id)
+    ref.update({
+        "status": "returned_to_review",
+        "rejection_reason": reason,
+        "returned_by": user_email,
+        "returned_at": firestore.SERVER_TIMESTAMP,
+    })
+    return get_order(order_id)
+
+
+def submit_for_review(order_id, user_email):
+    """Staff has checked the scanned draft and hands it to the reviewer."""
+    ref = db().collection(ORDERS).document(order_id)
+    ref.update({
+        "status": "pending_review",
+        "submitted_by": user_email,
+        "submitted_at": firestore.SERVER_TIMESTAMP,
+    })
     return get_order(order_id)
 
 
@@ -754,9 +809,9 @@ def find_by_order_no(order_no: str, factory_id=None):
 
 
 # ---------------------------------------------------------------------------
-# User management (roles: admin, supervisor, staff)
+# User management (roles: admin, approver, reviewer, staff)
 # ---------------------------------------------------------------------------
-VALID_ROLES = {"super_admin", "admin", "supervisor", "staff"}
+VALID_ROLES = {"super_admin", "admin", "approver", "reviewer", "staff"}
 
 
 def get_user_info(uid, email):
@@ -765,7 +820,7 @@ def get_user_info(uid, email):
     if doc.exists:
         data = doc.to_dict() or {}
         return {
-            "role": data.get("role", "staff"),
+            "role": normalize_role(data.get("role", "staff")),
             "factory_id": data.get("factory_id"),
             "factory_code": data.get("factory_code"),
             "factory_name": data.get("factory_name"),
@@ -818,6 +873,8 @@ def list_users(factory_id=None):
     for d in q.stream():
         r = d.to_dict()
         r["uid"] = d.id
+        if "role" in r:
+            r["role"] = normalize_role(r["role"])
         ts = r.get("created_at")
         r["created_at"] = ts.isoformat() if hasattr(ts, "isoformat") else None
         out.append(r)

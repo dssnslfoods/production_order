@@ -49,7 +49,7 @@ _PLAN_PROMPT = """คุณคือตัวแปลงคำถามเป�
   "filters": {{
     "material": "ชื่อวัตถุดิบที่ถาม หรือ null",
     "product": "ชื่อผลิตภัณฑ์ที่ถาม หรือ null",
-    "status": "all" | "approved" | "draft" | "pending_approval",
+    "status": "all" | "approved" | "draft" | "pending_review" | "pending_approval" | "returned_to_review",
     "date_from": "YYYY-MM-DD หรือ null",
     "date_to": "YYYY-MM-DD หรือ null"
   }},

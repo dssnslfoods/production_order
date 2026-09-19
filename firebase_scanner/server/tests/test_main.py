@@ -139,8 +139,13 @@ class TestOrders:
         assert resp.json()["deleted"] == "abc"
 
     def test_update_order(self, client):
-        with patch("main.store") as mock_store:
-            mock_store.get_order.return_value = {"id": "abc", "order_no": "OD001"}
+        async def fake_verify(auth_header=""):
+            return _mock_user()
+        with patch("auth.verify_token", new=fake_verify), \
+             patch("main.store") as mock_store:
+            mock_store.get_permissions.return_value = {"admin": ["edit_order", "confirm_review"]}
+            mock_store.get_order.return_value = {"id": "abc", "order_no": "OD001",
+                                                 "status": "pending_review"}
             mock_store.update_order.return_value = {"id": "abc", "order_no": "OD002"}
             mock_store.log_activity = MagicMock()
             resp = client.put("/api/orders/abc",
@@ -148,18 +153,211 @@ class TestOrders:
                               headers={"Authorization": "Bearer test"})
         assert resp.status_code == 200
 
+    def test_update_order_blocked_after_approval(self, client):
+        async def fake_verify(auth_header=""):
+            return _mock_user()
+        with patch("auth.verify_token", new=fake_verify), \
+             patch("main.store") as mock_store:
+            mock_store.get_permissions.return_value = {"admin": ["edit_order"]}
+            mock_store.get_order.return_value = {"id": "abc", "order_no": "OD001",
+                                                 "status": "approved"}
+            mock_store.log_activity = MagicMock()
+            resp = client.put("/api/orders/abc",
+                              json={"order_no": "OD002"},
+                              headers={"Authorization": "Bearer test"})
+        assert resp.status_code == 400
+
     def test_approve_order(self, client):
         async def fake_verify(auth_header=""):
             return _mock_user()
         with patch("auth.verify_token", new=fake_verify), \
              patch("main.store") as mock_store:
             mock_store.get_permissions.return_value = {"admin": ["approve"]}
-            mock_store.get_order.return_value = {"id": "abc", "order_no": "OD001"}
+            mock_store.get_order.return_value = {"id": "abc", "order_no": "OD001",
+                                                 "status": "pending_approval"}
             mock_store.approve_order.return_value = {"id": "abc", "status": "approved"}
             mock_store.log_activity = MagicMock()
             resp = client.post("/api/orders/abc/approve",
                                headers={"Authorization": "Bearer test"})
         assert resp.status_code == 200
+
+    def test_approve_order_wrong_status_rejected(self, client):
+        async def fake_verify(auth_header=""):
+            return _mock_user()
+        with patch("auth.verify_token", new=fake_verify), \
+             patch("main.store") as mock_store:
+            mock_store.get_permissions.return_value = {"admin": ["approve"]}
+            mock_store.get_order.return_value = {"id": "abc", "order_no": "OD001",
+                                                 "status": "pending_review"}
+            mock_store.log_activity = MagicMock()
+            resp = client.post("/api/orders/abc/approve",
+                               headers={"Authorization": "Bearer test"})
+        assert resp.status_code == 400
+
+    def test_confirm_review(self, client):
+        async def fake_verify(auth_header=""):
+            return _mock_user(role="reviewer")
+        with patch("auth.verify_token", new=fake_verify), \
+             patch("main.store") as mock_store:
+            mock_store.get_permissions.return_value = {"reviewer": ["confirm_review"]}
+            mock_store.get_order.return_value = {"id": "abc", "order_no": "OD001",
+                                                 "status": "pending_review"}
+            mock_store.confirm_review.return_value = {"id": "abc", "status": "pending_approval"}
+            mock_store.log_activity = MagicMock()
+            resp = client.post("/api/orders/abc/confirm-review",
+                               headers={"Authorization": "Bearer test"})
+        assert resp.status_code == 200
+
+    def test_confirm_review_allows_returned(self, client):
+        async def fake_verify(auth_header=""):
+            return _mock_user(role="reviewer")
+        with patch("auth.verify_token", new=fake_verify), \
+             patch("main.store") as mock_store:
+            mock_store.get_permissions.return_value = {"reviewer": ["confirm_review"]}
+            mock_store.get_order.return_value = {"id": "abc", "order_no": "OD001",
+                                                 "status": "returned_to_review"}
+            mock_store.confirm_review.return_value = {"id": "abc", "status": "pending_approval"}
+            mock_store.log_activity = MagicMock()
+            resp = client.post("/api/orders/abc/confirm-review",
+                               headers={"Authorization": "Bearer test"})
+        assert resp.status_code == 200
+
+    def test_confirm_review_wrong_status_rejected(self, client):
+        async def fake_verify(auth_header=""):
+            return _mock_user(role="reviewer")
+        with patch("auth.verify_token", new=fake_verify), \
+             patch("main.store") as mock_store:
+            mock_store.get_permissions.return_value = {"reviewer": ["confirm_review"]}
+            mock_store.get_order.return_value = {"id": "abc", "order_no": "OD001",
+                                                 "status": "approved"}
+            mock_store.log_activity = MagicMock()
+            resp = client.post("/api/orders/abc/confirm-review",
+                               headers={"Authorization": "Bearer test"})
+        assert resp.status_code == 400
+
+    def test_confirm_review_requires_permission(self, client):
+        async def fake_verify(auth_header=""):
+            return _mock_user(role="staff")
+        with patch("auth.verify_token", new=fake_verify), \
+             patch("main.store") as mock_store:
+            mock_store.get_permissions.return_value = {"staff": []}
+            resp = client.post("/api/orders/abc/confirm-review",
+                               headers={"Authorization": "Bearer test"})
+        assert resp.status_code == 403
+
+    def test_return_to_review(self, client):
+        async def fake_verify(auth_header=""):
+            return _mock_user(role="approver")
+        with patch("auth.verify_token", new=fake_verify), \
+             patch("main.store") as mock_store:
+            mock_store.get_permissions.return_value = {"approver": ["return_to_review"]}
+            mock_store.get_order.return_value = {"id": "abc", "order_no": "OD001",
+                                                 "status": "pending_approval"}
+            mock_store.return_order_to_review.return_value = {"id": "abc",
+                                                              "status": "returned_to_review"}
+            mock_store.log_activity = MagicMock()
+            resp = client.post("/api/orders/abc/return-to-review",
+                               json={"reason": "ยอดไม่ตรง"},
+                               headers={"Authorization": "Bearer test"})
+        assert resp.status_code == 200
+
+    def test_return_to_review_requires_reason(self, client):
+        async def fake_verify(auth_header=""):
+            return _mock_user(role="approver")
+        with patch("auth.verify_token", new=fake_verify), \
+             patch("main.store") as mock_store:
+            mock_store.get_permissions.return_value = {"approver": ["return_to_review"]}
+            resp = client.post("/api/orders/abc/return-to-review",
+                               json={"reason": ""},
+                               headers={"Authorization": "Bearer test"})
+        assert resp.status_code == 400
+
+    def test_return_to_review_wrong_status_rejected(self, client):
+        async def fake_verify(auth_header=""):
+            return _mock_user(role="approver")
+        with patch("auth.verify_token", new=fake_verify), \
+             patch("main.store") as mock_store:
+            mock_store.get_permissions.return_value = {"approver": ["return_to_review"]}
+            mock_store.get_order.return_value = {"id": "abc", "order_no": "OD001",
+                                                 "status": "pending_review"}
+            resp = client.post("/api/orders/abc/return-to-review",
+                               json={"reason": "ยอดไม่ตรง"},
+                               headers={"Authorization": "Bearer test"})
+        assert resp.status_code == 400
+
+    def _as(self, role, factory_id=None):
+        async def fake_verify(authorization: str = ""):
+            return {"uid": "u", "email": f"{role}@test.com", "role": role,
+                    "factory_id": factory_id}
+        app.dependency_overrides[main.auth.verify_token] = fake_verify
+        self._auth_patch = patch("auth.verify_token", new=fake_verify)
+        self._auth_patch.start()
+
+    def teardown_method(self):
+        if getattr(self, "_auth_patch", None):
+            self._auth_patch.stop()
+            self._auth_patch = None
+
+    def test_submit_review(self, client):
+        self._as("staff")
+        with patch("main.store") as mock_store:
+            mock_store.get_permissions.return_value = {"staff": ["edit_order"]}
+            mock_store.get_order.return_value = {"id": "abc", "order_no": "OD001",
+                                                 "status": "draft"}
+            mock_store.submit_for_review.return_value = {"id": "abc", "status": "pending_review"}
+            resp = client.post("/api/orders/abc/submit-review",
+                               headers={"Authorization": "Bearer test"})
+        assert resp.status_code == 200
+        assert mock_store.log_activity.call_args[0][0] == "submit_review"
+
+    def test_submit_review_only_from_draft(self, client):
+        self._as("staff")
+        with patch("main.store") as mock_store:
+            mock_store.get_permissions.return_value = {"staff": ["edit_order"]}
+            mock_store.get_order.return_value = {"id": "abc", "status": "returned_to_review"}
+            resp = client.post("/api/orders/abc/submit-review",
+                               headers={"Authorization": "Bearer test"})
+        assert resp.status_code == 400
+        mock_store.submit_for_review.assert_not_called()
+
+    def test_staff_edits_draft(self, client):
+        self._as("staff")
+        with patch("main.store") as mock_store:
+            mock_store.get_permissions.return_value = {"staff": ["edit_order"]}
+            mock_store.get_order.return_value = {"id": "abc", "status": "draft"}
+            resp = client.put("/api/orders/abc", json={"order_no": "X"},
+                              headers={"Authorization": "Bearer test"})
+        assert resp.status_code == 200
+
+    def test_staff_cannot_edit_once_in_review(self, client):
+        self._as("staff")
+        with patch("main.store") as mock_store:
+            mock_store.get_permissions.return_value = {"staff": ["edit_order"]}
+            mock_store.get_order.return_value = {"id": "abc", "status": "pending_review"}
+            resp = client.put("/api/orders/abc", json={"order_no": "X"},
+                              headers={"Authorization": "Bearer test"})
+        assert resp.status_code == 403
+        mock_store.update_order.assert_not_called()
+
+    def test_nobody_edits_pending_approval(self, client):
+        self._as("reviewer")
+        with patch("main.store") as mock_store:
+            mock_store.get_permissions.return_value = {"reviewer": ["edit_order", "confirm_review"]}
+            mock_store.get_order.return_value = {"id": "abc", "status": "pending_approval"}
+            resp = client.put("/api/orders/abc", json={"order_no": "X"},
+                              headers={"Authorization": "Bearer test"})
+        assert resp.status_code == 400
+
+    def test_other_factory_order_is_not_found(self, client):
+        self._as("approver", factory_id="f1")
+        with patch("main.store") as mock_store:
+            mock_store.get_permissions.return_value = {"approver": ["approve"]}
+            mock_store.get_order.return_value = {"id": "abc", "status": "pending_approval",
+                                                 "factory_id": "f2"}
+            resp = client.post("/api/orders/abc/approve",
+                               headers={"Authorization": "Bearer test"})
+        assert resp.status_code == 404
+        mock_store.approve_order.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -498,13 +696,24 @@ class TestFlush:
 # ---------------------------------------------------------------------------
 def _order_row(oid, status="approved", exported=False):
     row = {"id": oid, "order_no": oid, "status": status,
-           "document_date": "2026-07-01", "lines": []}
+           "document_date": "2026-07-01", "lines": [],
+           "approved_by": "test@test.com"}
     if exported:
         row["exported_at"] = "2026-07-02T10:00:00"
     return row
 
 
 class TestExportTracking:
+    # Only an approver's export is the real SAP hand-over; admin exports are tests.
+    @pytest.fixture
+    def client(self):
+        async def approver(authorization: str = ""):
+            return _mock_user(role="approver")
+        app.dependency_overrides[main.auth.verify_token] = approver
+        app.dependency_overrides[main.admin_only] = _fake_verify_token
+        yield TestClient(app)
+        app.dependency_overrides.clear()
+
     def test_export_marks_only_approved_orders(self, client):
         rows = [_order_row("a"), _order_row("b"),
                 _order_row("c", status="draft")]

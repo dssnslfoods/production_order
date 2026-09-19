@@ -50,8 +50,8 @@ async def unhandled_exception_handler(_request: Request, exc: Exception):
     )
 
 admin_only = require_role("super_admin", "admin")
-admin_or_sup = require_role("super_admin", "admin", "supervisor")
-any_role = require_role("super_admin", "admin", "supervisor", "staff")
+admin_or_approver = require_role("super_admin", "admin", "approver")
+any_role = require_role("super_admin", "admin", "approver", "reviewer", "staff")
 super_only = require_role("super_admin")
 
 
@@ -732,16 +732,81 @@ def _require_perm(perm):
     return _check
 
 
+def _factory_order(order_id, user):
+    """Fetch an order the caller's factory may act on (404 otherwise, like the list)."""
+    o = store.get_order(order_id)
+    fid = _fid(user)
+    if not o or (fid and o.get("factory_id") != fid):
+        raise HTTPException(status_code=404, detail="ไม่พบรายการ")
+    return o
+
+
+def _has_perm(user, perm):
+    return perm in store.get_permissions().get(user["role"], [])
+
+
+def _log_stage(action, verb, o, order_id, user, extra=""):
+    analytics.invalidate_cache()
+    store.log_activity(action, user["email"], user["role"],
+                       f"{verb} Order {o.get('order_no') or '-'}{extra}", order_id,
+                       factory_id=o.get("factory_id") or _fid(user))
+
+
+# Workflow: draft (staff checks the scan) -> pending_review (reviewer)
+#   -> pending_approval (approver) -> approved.
+# The approver may send pending_approval back as returned_to_review.
+REVIEW_STATUSES = ("pending_review", "returned_to_review")
+
+
+@app.post("/api/orders/{order_id}/submit-review")
+def order_submit_review(order_id: str, user=Depends(_require_perm("edit_order"))):
+    o = _factory_order(order_id, user)
+    if o.get("status") != "draft":
+        raise HTTPException(status_code=400,
+                            detail="ส่งตรวจสอบได้เฉพาะรายการฉบับร่างที่ยังไม่ได้ส่ง")
+    result = store.submit_for_review(order_id, user["email"])
+    _log_stage("submit_review", "ส่งตรวจสอบ", o, order_id, user)
+    return result
+
+
+@app.post("/api/orders/{order_id}/confirm-review")
+def order_confirm_review(order_id: str, user=Depends(_require_perm("confirm_review"))):
+    o = _factory_order(order_id, user)
+    if o.get("status") not in REVIEW_STATUSES:
+        raise HTTPException(status_code=400,
+                            detail="ยืนยันตรวจสอบได้เฉพาะรายการที่รอตรวจสอบ หรือถูกตีกลับ")
+    result = store.confirm_review(order_id, user["email"])
+    _log_stage("confirm_review", "ยืนยันตรวจสอบ", o, order_id, user)
+    return result
+
+
 @app.post("/api/orders/{order_id}/approve")
 def order_approve(order_id: str, user=Depends(_require_perm("approve"))):
-    o = store.get_order(order_id)
-    if not o:
-        raise HTTPException(status_code=404, detail="ไม่พบรายการ")
+    o = _factory_order(order_id, user)
+    if o.get("status") != "pending_approval":
+        raise HTTPException(status_code=400,
+                            detail="อนุมัติได้เฉพาะรายการที่ผ่านการตรวจสอบแล้ว (รออนุมัติ)")
     result = store.approve_order(order_id, user["email"])
-    analytics.invalidate_cache()
-    store.log_activity("approve", user["email"], user["role"],
-                       f"อนุมัติ Order {o.get('order_no') or '-'}", order_id,
-                       factory_id=_fid(user))
+    _log_stage("approve", "อนุมัติ", o, order_id, user)
+    return result
+
+
+class ReturnToReviewIn(BaseModel):
+    reason: str
+
+
+@app.post("/api/orders/{order_id}/return-to-review")
+def order_return_to_review(order_id: str, body: ReturnToReviewIn,
+                           user=Depends(_require_perm("return_to_review"))):
+    reason = (body.reason or "").strip()
+    if not reason:
+        raise HTTPException(status_code=400, detail="ต้องระบุเหตุผลในการตีกลับ")
+    o = _factory_order(order_id, user)
+    if o.get("status") != "pending_approval":
+        raise HTTPException(status_code=400,
+                            detail="ตีกลับได้เฉพาะรายการที่อยู่ในสถานะรออนุมัติ")
+    result = store.return_order_to_review(order_id, user["email"], reason)
+    _log_stage("return_to_review", "ตีกลับ", o, order_id, user, f": {reason}")
     return result
 
 
@@ -760,14 +825,22 @@ class OrderIn(BaseModel):
 
 @app.put("/api/orders/{order_id}")
 def order_update(order_id: str, body: OrderIn, user=Depends(auth.verify_token)):
-    o = store.get_order(order_id)
-    if not o:
-        raise HTTPException(status_code=404, detail="ไม่พบรายการ")
+    """Only whoever owns the current stage may edit: staff on a draft, the
+    reviewer while it is in review. Past that the record is frozen."""
+    o = _factory_order(order_id, user)
+    status = o.get("status")
+    if status == "draft":
+        need = "edit_order"
+    elif status in REVIEW_STATUSES:
+        need = "confirm_review"
+    else:
+        raise HTTPException(status_code=400,
+                            detail="แก้ไขได้เฉพาะฉบับร่าง หรือรายการที่อยู่ระหว่างตรวจสอบเท่านั้น")
+    if not _has_perm(user, need):
+        raise HTTPException(status_code=403,
+                            detail=f"ไม่มีสิทธิ์แก้ไขรายการในขั้นตอนนี้ (role: {user['role']})")
     result = store.update_order(order_id, body.model_dump(exclude_unset=True))
-    analytics.invalidate_cache()
-    store.log_activity("edit_order", user["email"], user["role"],
-                       f"แก้ไข Order {o.get('order_no') or '-'}", order_id,
-                       factory_id=_fid(user))
+    _log_stage("edit_order", "แก้ไข", o, order_id, user)
     return result
 
 
@@ -785,14 +858,14 @@ def order_delete(order_id: str, user=Depends(_require_perm("delete"))):
 @app.get("/api/export/status")
 def export_status(user=Depends(auth.verify_token)):
     """How many approved orders have not yet been handed to SAP."""
-    ab = user["email"] if user["role"] == "supervisor" else None
+    ab = user["email"] if user["role"] == "approver" else None
     return store.export_status(factory_id=_fid(user), approved_by=ab)
 
 
 @app.get("/api/export/batches")
 def export_batches(limit: int = 20, user=Depends(auth.verify_token)):
     batches = store.list_export_batches(limit, factory_id=_fid(user))
-    if user["role"] == "supervisor":
+    if user["role"] == "approver":
         batches = [b for b in batches if b.get("user_email") == user["email"]]
     return {"batches": batches}
 
@@ -820,7 +893,7 @@ def export(from_date: Optional[str] = None, to_date: Optional[str] = None,
     data, _ = store.list_orders(limit=2000, factory_id=fid)
     if status and status != "all":
         data = [o for o in data if o.get("status") == status]
-    if user["role"] == "supervisor":
+    if user["role"] == "approver":
         data = [o for o in data if o.get("approved_by") == user["email"]]
     if only_new:
         data = [o for o in data if not o.get("exported_at")]
@@ -848,8 +921,8 @@ def export(from_date: Optional[str] = None, to_date: Optional[str] = None,
     xlsx = excel_export.build_workbook(data)
 
     # admin/super_admin exports are test-only — never mark orders as exported.
-    # Only supervisor exports count as handed over to SAP.
-    should_mark = mark and user["role"] == "supervisor"
+    # Only approver exports count as handed over to SAP.
+    should_mark = mark and user["role"] == "approver"
     if should_mark:
         ids = [o["id"] for o in data if o.get("status") == "approved" and o.get("id")]
         batch_id = store.mark_exported(ids, user["email"], {
