@@ -786,6 +786,30 @@ class TestExportTracking:
             assert r.status_code == 200
             assert st.mark_exported.call_args[0][0] == ["a", "b"]
 
+    def test_approver_exports_orders_another_approver_approved(self, client):
+        # An approver who leaves must not strand the orders they approved.
+        rows = [_order_row("mine"), dict(_order_row("theirs"), approved_by="left@test.com")]
+        with patch("main.store") as st, patch("main.excel_export") as xl, \
+             patch("main.analytics"):
+            st.list_orders.return_value = (rows, None)
+            xl.build_workbook.return_value = b"xlsx"
+            st.mark_exported.return_value = "batch4"
+            client.get("/api/export?only_new=true")
+            assert st.mark_exported.call_args[0][0] == ["mine", "theirs"]
+
+    def test_status_is_factory_wide_for_approver(self, client):
+        with patch("main.store") as st:
+            st.export_status.return_value = {"pending": 0, "exported": 0,
+                                             "oldest_pending": None}
+            client.get("/api/export/status")
+            assert "approved_by" not in st.export_status.call_args.kwargs
+
+    def test_batches_are_factory_wide_for_approver(self, client):
+        with patch("main.store") as st:
+            st.list_export_batches.return_value = [{"id": "b1", "user_email": "other@test.com"}]
+            r = client.get("/api/export/batches")
+            assert [b["id"] for b in r.json()["batches"]] == ["b1"]
+
     def test_only_new_skips_already_exported(self, client):
         rows = [_order_row("a", exported=True), _order_row("b")]
         with patch("main.store") as st, patch("main.excel_export") as xl, \

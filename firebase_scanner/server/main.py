@@ -878,17 +878,17 @@ def order_delete(order_id: str, user=Depends(_require_perm("delete"))):
 
 @app.get("/api/export/status")
 def export_status(user=Depends(auth.verify_token)):
-    """How many approved orders have not yet been handed to SAP."""
-    ab = user["email"] if user["role"] == "approver" else None
-    return store.export_status(factory_id=_fid(user), approved_by=ab)
+    """How many approved orders have not yet been handed to SAP.
+
+    Factory-wide for every role: any approver may hand over any approved order,
+    so one who leaves cannot strand the orders they approved."""
+    return store.export_status(factory_id=_fid(user))
 
 
 @app.get("/api/export/batches")
 def export_batches(limit: int = 20, user=Depends(auth.verify_token)):
-    batches = store.list_export_batches(limit, factory_id=_fid(user))
-    if user["role"] == "approver":
-        batches = [b for b in batches if b.get("user_email") == user["email"]]
-    return {"batches": batches}
+    # Factory-wide, so approvers see what a colleague already sent to SAP.
+    return {"batches": store.list_export_batches(limit, factory_id=_fid(user))}
 
 
 @app.post("/api/export/batches/{batch_id}/undo")
@@ -914,8 +914,6 @@ def export(from_date: Optional[str] = None, to_date: Optional[str] = None,
     data, _ = store.list_orders(limit=2000, factory_id=fid)
     if status and status != "all":
         data = [o for o in data if o.get("status") == status]
-    if user["role"] == "approver":
-        data = [o for o in data if o.get("approved_by") == user["email"]]
     if only_new:
         data = [o for o in data if not o.get("exported_at")]
     if field not in ("document_date", "scanned_at"):
