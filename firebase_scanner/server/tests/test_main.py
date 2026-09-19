@@ -118,6 +118,7 @@ class TestOrders:
 
     def test_get_order_found(self, client):
         with patch("main.store") as mock_store:
+            mock_store.get_permissions.return_value = {"admin": ["edit_order", "confirm_review"]}
             mock_store.get_order.return_value = {
                 "id": "abc", "order_no": "OD001", "source_image": "scans/img.jpg"
             }
@@ -577,13 +578,57 @@ class TestErrorFormat:
 class TestPagination:
     def test_orders_with_cursor(self, client):
         with patch("main.store") as mock_store:
+            mock_store.get_permissions.return_value = {"admin": ["edit_order", "confirm_review"]}
             mock_store.list_orders.return_value = (
                 [{"id": "2", "order_no": "OD002", "lines": []}], None
             )
             resp = client.get("/api/orders?cursor=abc123",
                               headers={"Authorization": "Bearer test"})
         assert resp.status_code == 200
-        mock_store.list_orders.assert_called_once_with(limit=100, cursor="abc123", factory_id=None)
+        mock_store.list_orders.assert_called_once_with(limit=100, cursor="abc123", factory_id=None,
+                                                       statuses=None)
+
+    def _approver_client(self):
+        async def approver(authorization: str = ""):
+            return _mock_user(role="approver")
+        app.dependency_overrides[main.auth.verify_token] = approver
+        return TestClient(app)
+
+    def test_approver_list_hides_earlier_stages(self):
+        c = self._approver_client()
+        try:
+            with patch("main.store") as mock_store:
+                mock_store.get_permissions.return_value = {"approver": ["approve", "return_to_review"]}
+                mock_store.list_orders.return_value = ([], None)
+                c.get("/api/orders")
+            assert mock_store.list_orders.call_args.kwargs["statuses"] == main.APPROVER_STATUSES
+            assert "draft" not in main.APPROVER_STATUSES
+            assert "pending_review" not in main.APPROVER_STATUSES
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_approver_cannot_open_a_draft_directly(self):
+        c = self._approver_client()
+        try:
+            with patch("main.store") as mock_store:
+                mock_store.get_permissions.return_value = {"approver": ["approve"]}
+                mock_store.get_order.return_value = {"id": "abc", "status": "draft"}
+                assert c.get("/api/orders/abc").status_code == 404
+                mock_store.get_order.return_value = {"id": "abc", "status": "pending_approval"}
+                assert c.get("/api/orders/abc").status_code == 200
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_approver_given_review_rights_sees_everything(self):
+        c = self._approver_client()
+        try:
+            with patch("main.store") as mock_store:
+                mock_store.get_permissions.return_value = {"approver": ["approve", "confirm_review"]}
+                mock_store.list_orders.return_value = ([], None)
+                c.get("/api/orders")
+            assert mock_store.list_orders.call_args.kwargs["statuses"] is None
+        finally:
+            app.dependency_overrides.clear()
 
     def test_orders_returns_next_cursor(self, client):
         with patch("main.store") as mock_store:

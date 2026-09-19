@@ -423,3 +423,26 @@ class TestLegacySupervisorRole:
         assert "supervisor" not in perms
         assert perms["approver"] == ["orders", "approve"]
         assert "confirm_review" in perms["reviewer"]
+
+
+class TestListOrdersStatusFilter:
+    @staticmethod
+    def _doc(i, status):
+        d = MagicMock()
+        d.id = f"o{i}"
+        d.to_dict.return_value = {"status": status, "scanned_at": None}
+        return d
+
+    def test_hidden_orders_do_not_shorten_the_page(self):
+        docs = [self._doc(i, "draft") for i in range(5)] + \
+               [self._doc(i, "pending_approval") for i in range(5, 9)]
+        with patch.object(store, "db") as mock_db:
+            q = MagicMock()
+            mock_db().collection.return_value = q
+            q.where.return_value = q
+            q.order_by.return_value = q
+            q.stream.return_value = iter(docs)
+            out, cursor = store.list_orders(limit=3, statuses=("pending_approval",))
+        assert [o["id"] for o in out] == ["o5", "o6", "o7"]
+        assert cursor == "o7"
+        q.limit.assert_not_called()

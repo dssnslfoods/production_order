@@ -664,6 +664,7 @@ def report(user=Depends(auth.verify_token)):
 
     approved = [o for o in orders if o.get("status") == "approved"]
     variance = analytics.plan_variance(approved)
+    status_counts = Counter(o.get("status") or "unknown" for o in orders)
 
     return {
         "total_scanned": store.count_orders(factory_id=fid),
@@ -673,22 +674,41 @@ def report(user=Depends(auth.verify_token)):
         "uploaders": uploaders,
         "approval_logs": approval_logs[:20],
         "variance": variance,
+        "status_counts": dict(status_counts),
     }
+
+
+# Someone who can neither edit drafts nor review (an approver, by default) only
+# deals with what a reviewer has passed on, so earlier stages are hidden from them.
+APPROVER_STATUSES = ("pending_approval", "returned_to_review", "approved", "exported")
+
+
+def _visible_statuses(user):
+    if _has_perm(user, "edit_order") or _has_perm(user, "confirm_review"):
+        return None
+    return APPROVER_STATUSES
+
+
+def _visible_order(order_id, user):
+    o = _factory_order(order_id, user)
+    shown = _visible_statuses(user)
+    if shown and o.get("status") not in shown:
+        raise HTTPException(status_code=404, detail="ไม่พบรายการ")
+    return o
 
 
 @app.get("/api/orders")
 def orders(limit: int = 100, cursor: Optional[str] = None,
            user=Depends(auth.verify_token)):
     items, next_cursor = store.list_orders(limit=min(limit, 500), cursor=cursor,
-                                           factory_id=_fid(user))
+                                           factory_id=_fid(user),
+                                           statuses=_visible_statuses(user))
     return {"orders": items, "next_cursor": next_cursor}
 
 
 @app.get("/api/orders/{order_id}")
 def order_detail(order_id: str, user=Depends(auth.verify_token)):
-    o = store.get_order(order_id)
-    if not o:
-        raise HTTPException(status_code=404, detail="ไม่พบรายการ")
+    o = _visible_order(order_id, user)
     imgs = store.page_images_of(o)
     o["image_pages"] = [i.get("page") for i in imgs]
     o["has_image"] = bool(imgs)
@@ -702,9 +722,7 @@ def order_image(order_id: str, variant: str = "source", page: int = 0,
 
     `page` picks one sheet of a multi-page form; without it the first is served.
     """
-    o = store.get_order(order_id)
-    if not o:
-        raise HTTPException(status_code=404, detail="ไม่พบรายการ")
+    o = _visible_order(order_id, user)
     if variant == "ai":
         path = o.get("ai_image")
     else:

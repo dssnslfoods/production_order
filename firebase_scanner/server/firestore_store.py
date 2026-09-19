@@ -521,11 +521,13 @@ def count_orders(factory_id=None):
         return sum(1 for _ in q.stream())
 
 
-def list_orders(limit=100, cursor=None, factory_id=None):
+def list_orders(limit=100, cursor=None, factory_id=None, statuses=None):
     """List orders with cursor-based pagination.
 
     Returns (orders, next_cursor).  Pass next_cursor back as `cursor`
     to fetch the next page.  next_cursor is None when there are no more.
+    With `statuses`, other orders are skipped while still filling the page,
+    so a run of hidden orders cannot make a page come back empty.
     """
     q = db().collection(ORDERS)
     if factory_id:
@@ -535,19 +537,25 @@ def list_orders(limit=100, cursor=None, factory_id=None):
         snap = db().collection(ORDERS).document(cursor).get()
         if snap.exists:
             q = q.start_after(snap)
-    q = q.limit(limit + 1)
-    docs = list(q.stream())
-    has_more = len(docs) > limit
-    if has_more:
-        docs = docs[:limit]
-    out = []
-    for d in docs:
+    if not statuses:
+        q = q.limit(limit + 1)
+    picked = []
+    for d in q.stream():
         row = d.to_dict()
+        if statuses and row.get("status") not in statuses:
+            continue
+        picked.append((d, row))
+        if len(picked) > limit:
+            break
+    has_more = len(picked) > limit
+    picked = picked[:limit]
+    out = []
+    for d, row in picked:
         row["id"] = d.id
         ts = row.get("scanned_at")
         row["scanned_at"] = ts.isoformat() if hasattr(ts, "isoformat") else None
         out.append(row)
-    next_cursor = docs[-1].id if has_more else None
+    next_cursor = picked[-1][0].id if has_more else None
     return out, next_cursor
 
 

@@ -2806,6 +2806,7 @@ window.toggleSidebar = (force) => {
   $("sidebarBackdrop").classList.toggle('show', open);
 };
 
+let approverFilterSet = false;
 window.showOrdersWithStatus = (status) => {
   showPage("orders");
   $("statusFilter").value = status;
@@ -2889,9 +2890,16 @@ async function init(){
   loadPending(); loadOrders(); loadSchedule(); loadReport();
 }
 function hasPerm(p){ return currentPerms.includes(p); }
+// Mirrors main._visible_statuses: without draft-edit or review rights (an
+// approver by default) the server only returns what a reviewer passed on.
+function isApproverView(){ return !hasPerm("edit_order") && !hasPerm("confirm_review"); }
 function applyRole(role, perms){
   currentRole = role;
   if(perms) currentPerms = perms;
+  const approverView = isApproverView();
+  ["statusFilter","expStatus"].forEach(id => $(id).querySelectorAll('option[value="draft"],option[value="pending_review"]')
+    .forEach(o => { o.hidden = approverView; o.disabled = approverView; }));
+  if(approverView && !approverFilterSet){ $("statusFilter").value = "pending_approval"; approverFilterSet = true; }
   const labels = {super_admin:"Super Admin",admin:"Admin",approver:"Approver",reviewer:"Reviewer",staff:"Staff"};
   const colors = {super_admin:"#a78bfa",admin:"#fb7185",approver:"#fbbf24",reviewer:"#34d399",staff:"#38bdf8"};
   $("roleChip").textContent = labels[role]||role;
@@ -3462,13 +3470,6 @@ window.loadOrders = async (append) => {
     if(append) allOrders = allOrders.concat(items);
     else allOrders = items;
     applyOrderFilters();
-    const approved = allOrders.filter(o => o.status === "approved").length;
-    const inReview = allOrders.filter(o => ["draft","pending_review"].includes(o.status)).length;
-    $("returnedCount").textContent = allOrders.filter(o => o.status === "returned_to_review").length;
-    const pending = allOrders.filter(o => o.status === "pending_approval").length;
-    $("approvedCount").textContent = approved;
-    $("inReviewCount").textContent = inReview;
-    $("pendingApprovalCount").textContent = pending;
     const lb = $("loadMoreBar");
     if(lb && !loadingAll) lb.innerHTML = ordersCursor
       ? '<button class="btn ghost sm" onclick="loadOrders(true)">โหลดเพิ่มเติม...</button> <button class="btn ghost sm" onclick="ensureAllOrders()">โหลดทั้งหมด</button>'
@@ -5307,6 +5308,11 @@ window.loadReport = async () => {
     countTo($("totalScanned"), r.total_scanned);
     countTo($("todayScanned"), r.today_scanned);
     countTo($("skippedCount"), r.total_skipped||0);
+    const sc = r.status_counts || {};
+    $("inReviewCount").textContent = (sc.draft||0) + (sc.pending_review||0);
+    $("returnedCount").textContent = sc.returned_to_review||0;
+    $("pendingApprovalCount").textContent = sc.pending_approval||0;
+    $("approvedCount").textContent = (sc.approved||0) + (sc.exported||0);
     const dc = (dj.items||[]).length;
     $("deadCount").textContent = dc;
     $("deadTile").classList.toggle("hidden", dc===0);
