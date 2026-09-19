@@ -204,6 +204,20 @@ def find_factory_by_code(code):
     return None
 
 
+def factory_linked_collections(factory_id):
+    """Return list of collection names that have docs linked to this factory."""
+    linked = []
+    for col, label in [(USERS, "ผู้ใช้"), (ORDERS, "ใบเบิก"), (PENDING, "คิวสแกน")]:
+        q = db().collection(col).where("factory_id", "==", factory_id).limit(1)
+        if any(True for _ in q.stream()):
+            linked.append(label)
+    return linked
+
+
+def delete_factory(factory_id):
+    db().collection(FACTORIES).document(factory_id).delete()
+
+
 # ---------------------------------------------------------------------------
 # Images
 # ---------------------------------------------------------------------------
@@ -244,9 +258,174 @@ def _review_reasons(data):
     return reasons
 
 
+# Header fields a later sheet may supply: page 1 of a two-page form carries no
+# ยอดผลิต and no MFG/EXP block, page 2 carries no product row.  Whichever page
+# read a value keeps it — a later page only fills what is still blank.
+_MERGEABLE_HEADER = ("document_date", "series_no", "product_name", "product_whse",
+                     "plan_total", "actual_total", "plan_unit")
+
+
+def _pages_of(order):
+    """Page numbers already folded into this order (legacy rows imply page 1)."""
+    pages = order.get("pages")
+    if not pages:
+        return [int(order.get("page_no") or 1)]
+    out = []
+    for p in pages:
+        try:
+            out.append(int(p))
+        except (TypeError, ValueError):
+            continue
+    return out or [1]
+
+
+def merge_pages(current, data):
+    """Fold one continuation page into the order already stored.
+
+    Returns the Firestore patch, or None when `data` is a page this order has
+    already absorbed.  Lines are matched on (ลำดับ, รหัส) as well as on the page
+    index, so a misread "Page n of m" cannot duplicate rows that are already in.
+    """
+    page = int(data.get("page_no") or 1)
+    seen = _pages_of(current)
+    if page in seen:
+        return None
+
+    lines = list(current.get("lines") or [])
+    key = lambda ln: (str(ln.get("row_no")), str(ln.get("item_no")))
+    have = {key(ln) for ln in lines}
+    for ln in data.get("lines") or []:
+        if key(ln) not in have:
+            have.add(key(ln))
+            lines.append(ln)
+    lines.sort(key=lambda ln: (ln.get("row_no") is None, ln.get("row_no") or 0))
+
+    batches = list(current.get("batches") or [])
+    bkey = lambda b: (b.get("mfg_date"), b.get("exp_date"), b.get("batch_qty"))
+    bhave = {bkey(b) for b in batches}
+    for b in data.get("batches") or []:
+        if bkey(b) not in bhave:
+            bhave.add(bkey(b))
+            batches.append(b)
+
+    patch = {
+        "lines": lines,
+        "batches": batches,
+        "pages": sorted(seen + [page]),
+        "page_total": max(int(current.get("page_total") or 1),
+                          int(data.get("page_total") or 1)),
+    }
+    for f in _MERGEABLE_HEADER:
+        if current.get(f) in (None, "") and data.get(f) not in (None, ""):
+            patch[f] = data[f]
+
+    # The reasons were judged on a partial form; re-judge on the whole one, or a
+    # page-1-only scan stays flagged for a total that page 2 has since supplied.
+    reasons = _review_reasons({**current, **patch})
+    patch["review_reasons"] = reasons
+    patch["needs_review"] = bool(reasons)
+    return patch
+
+
+def page_images_of(row):
+    """Every stored sheet image for an order, oldest schema included."""
+    imgs = [dict(i) for i in (row.get("source_images") or []) if i.get("path")]
+    legacy = row.get("source_image")
+    if legacy and not any(i.get("path") == legacy for i in imgs):
+        imgs.insert(0, {"page": (_pages_of(row) or [1])[0], "path": legacy})
+    return sorted(imgs, key=lambda i: i.get("page") or 0)
+
+
+def merge_order_page(order_id, data, storage_path=None):
+    """Apply merge_pages to a stored order. -> merged | duplicate | locked | missing"""
+    ref = db().collection(ORDERS).document(order_id)
+    snap = ref.get()
+    if not snap.exists:
+        return "missing"
+    current = snap.to_dict() or {}
+    # An approved or exported order has been signed off and its source image
+    # dropped; quietly rewriting its lines would change a record someone already
+    # checked.  Refuse, and let the caller surface the page rather than bin it.
+    if current.get("status") in ("approved", "exported"):
+        return "locked"
+    patch = merge_pages(current, data)
+    if patch is None:
+        return "duplicate"
+    # Keep the incoming sheet's photo too: every page of the requisition has to
+    # stay checkable against the order it was folded into.
+    if storage_path:
+        imgs = page_images_of(current)
+        if not any(i.get("path") == storage_path for i in imgs):
+            imgs.append({"page": int(data.get("page_no") or 1), "path": storage_path})
+            imgs.sort(key=lambda i: i.get("page") or 0)
+        patch["source_images"] = imgs
+    patch["merged_at"] = firestore.SERVER_TIMESTAMP
+    ref.update(patch)
+    return "merged"
+
+
+# ---------------------------------------------------------------------------
+# Parked pages — a multi-page form waits in the queue until every sheet is in
+# ---------------------------------------------------------------------------
+def hold_page(pid, data):
+    """Park a scanned sheet on its queue entry instead of filing a partial order.
+
+    The reading is kept with the file, so completing the set later costs no
+    second trip to the vision model.
+    """
+    db().collection(PENDING).document(pid).update({
+        "status": "held",
+        "held_order_no": data.get("order_no"),
+        "held_page_no": int(data.get("page_no") or 1),
+        "held_page_total": int(data.get("page_total") or 1),
+        "parsed": data,
+        "error": None,
+        "held_at": firestore.SERVER_TIMESTAMP,
+    })
+
+
+def list_held_pages(order_no, factory_id=None):
+    """Parked sheets for one Order No., lowest page first.
+
+    Filtered in Python on purpose: a single-field equality query needs no
+    composite index, so this keeps working without a Firestore migration.
+    """
+    if not order_no:
+        return []
+    out = []
+    for d in db().collection(PENDING).where("held_order_no", "==", order_no).stream():
+        r = d.to_dict() or {}
+        if r.get("status") != "held":
+            continue
+        # Same rule as find_by_order_no: an untagged sheet belongs to no tenant,
+        # so it still joins its siblings instead of waiting for a page forever.
+        if factory_id and r.get("factory_id") not in (factory_id, None):
+            continue
+        r["id"] = d.id
+        out.append(r)
+    return sorted(out, key=lambda r: r.get("held_page_no") or 1)
+
+
+def assemble_pages(held):
+    """Fold parked sheets into one order record. -> (data, page_images)"""
+    ordered = sorted(held, key=lambda h: h.get("held_page_no") or 1)
+    combined = dict(ordered[0].get("parsed") or {})
+    combined["pages"] = [int(ordered[0].get("held_page_no") or 1)]
+    for h in ordered[1:]:
+        patch = merge_pages(combined, h.get("parsed") or {})
+        if patch:
+            combined.update(patch)
+    images = [{"page": int(h.get("held_page_no") or 1), "path": h["storage_path"]}
+              for h in ordered if h.get("storage_path")]
+    return combined, images
+
+
 def add_order(data, source_image, provider, user_email=None, source_filename=None,
-              ai_image=None, factory_id=None):
+              ai_image=None, factory_id=None, page_images=None):
     reasons = _review_reasons(data)
+    imgs = list(page_images or [])
+    if not imgs and source_image:
+        imgs = [{"page": int(data.get("page_no") or 1), "path": source_image}]
     doc = {
         "order_no": data.get("order_no"),
         "document_date": data.get("document_date"),
@@ -258,7 +437,10 @@ def add_order(data, source_image, provider, user_email=None, source_filename=Non
         "plan_unit": data.get("plan_unit"),
         "lines": data.get("lines", []),
         "batches": data.get("batches", []),
-        "source_image": source_image,
+        "pages": sorted(data.get("pages") or [int(data.get("page_no") or 1)]),
+        "page_total": int(data.get("page_total") or 1),
+        "source_image": source_image or (imgs[0]["path"] if imgs else None),
+        "source_images": imgs,
         "ai_image": ai_image,
         "source_filename": source_filename,
         "needs_review": bool(reasons),
@@ -284,6 +466,7 @@ def log_run(trigger, result, factory_id=None):
         "processed": result.get("processed", 0),
         "succeeded": result.get("succeeded", 0),
         "failed": result.get("failed", 0),
+        "skipped": result.get("skipped", 0),
     }
     if factory_id:
         doc["factory_id"] = factory_id
@@ -370,21 +553,28 @@ def update_order(order_id, patch):
     return get_order(order_id)
 
 
+def _drop_blobs(paths):
+    for p in paths:
+        try:
+            bucket().blob(p).delete()
+        except Exception:  # noqa: BLE001
+            pass
+
+
 def approve_order(order_id, user_email):
     ref = db().collection(ORDERS).document(order_id)
     doc = ref.get()
-    img_path = (doc.to_dict() or {}).get("source_image") if doc.exists else None
+    # A multi-page order holds one photo per sheet; approving retires them all,
+    # or the extra sheets linger in Storage with nothing pointing at them.
+    paths = [i["path"] for i in page_images_of(doc.to_dict() or {})] if doc.exists else []
     ref.update({
         "status": "approved",
         "approved_by": user_email,
         "approved_at": firestore.SERVER_TIMESTAMP,
         "source_image": None,
+        "source_images": [],
     })
-    if img_path:
-        try:
-            bucket().blob(img_path).delete()
-        except Exception:  # noqa: BLE001
-            pass
+    _drop_blobs(paths)
     return get_order(order_id)
 
 
@@ -392,12 +582,7 @@ def delete_order(order_id):
     ref = db().collection(ORDERS).document(order_id)
     doc = ref.get()
     if doc.exists:
-        img = (doc.to_dict() or {}).get("source_image")
-        if img:
-            try:
-                bucket().blob(img).delete()  # ลบรูปต้นฉบับใน Storage ด้วย
-            except Exception:  # noqa: BLE001
-                pass
+        _drop_blobs([i["path"] for i in page_images_of(doc.to_dict() or {})])
     ref.delete()
 
 
@@ -489,6 +674,15 @@ def list_dead_letter(factory_id=None):
     return out
 
 
+def get_dead_letter(dlq_id):
+    d = db().collection(DEAD_LETTER).document(dlq_id).get()
+    if not d.exists:
+        return None
+    r = d.to_dict()
+    r["id"] = d.id
+    return r
+
+
 def retry_dead_letter(dlq_id):
     ref = db().collection(DEAD_LETTER).document(dlq_id)
     doc = ref.get()
@@ -529,17 +723,34 @@ def signed_image_url(blob_path, minutes=15):
 # Duplicate detection — Order No. is the primary key
 # ---------------------------------------------------------------------------
 def find_by_order_no(order_no: str, factory_id=None):
-    """Return existing order if order_no already exists, else None."""
+    """Return the existing order for this Order No., else None.
+
+    Matched on order_no alone and narrowed in Python.  Filtering inside the
+    query silently skipped orders stored with no factory — a super_admin scan
+    saves none — and that miss reads as "no duplicate", which is how one
+    Production Order got filed twice.  An untagged order belongs to no tenant,
+    so it counts as the same document for whoever looks it up; two *tagged*
+    factories still never see each other's orders.
+    """
     if not order_no:
         return None
-    q = db().collection(ORDERS).where("order_no", "==", order_no)
+    rows = []
+    for d in db().collection(ORDERS).where("order_no", "==", order_no).stream():
+        r = d.to_dict() or {}
+        r["id"] = d.id
+        rows.append(r)
     if factory_id:
-        q = q.where("factory_id", "==", factory_id)
-    for d in q.limit(1).stream():
-        row = d.to_dict()
-        return {"id": d.id, "order_no": row.get("order_no"),
-                "series_no": row.get("series_no"),
-                "source_filename": row.get("source_filename")}
+        rows = [r for r in rows if r.get("factory_id") in (factory_id, None)]
+        rows.sort(key=lambda r: r.get("factory_id") != factory_id)  # exact match first
+    if not rows:
+        return None
+    row = rows[0]
+    return {"id": row["id"], "order_no": row.get("order_no"),
+            "series_no": row.get("series_no"),
+            "status": row.get("status"),
+            "factory_id": row.get("factory_id"),
+            "pages": _pages_of(row),
+            "source_filename": row.get("source_filename")}
 
 
 # ---------------------------------------------------------------------------
@@ -708,20 +919,22 @@ def _flush_targets(mock_only):
     out of the very screen that triggered the flush, and they are not the
     data anyone means by "start fresh".
     """
+    # Each entry is (doc_id, [blob paths]) — an order may hold one photo per
+    # sheet, and every one of them has to go with the document.
     orders = []
     for d in db().collection(ORDERS).stream():
         row = d.to_dict() or {}
         if mock_only and not row.get("is_mock"):
             continue
-        orders.append((d.id, row.get("source_image")))
+        orders.append((d.id, [i["path"] for i in page_images_of(row)]))
 
     if mock_only:
         # Only scanned orders carry the mock tag; leave real queue items alone.
         return {"orders": orders, "pending": [], "dead_letter": []}
 
-    pending = [(d.id, (d.to_dict() or {}).get("storage_path"))
+    pending = [(d.id, [p for p in [(d.to_dict() or {}).get("storage_path")] if p])
                for d in db().collection(PENDING).stream()]
-    dead = [(d.id, (d.to_dict() or {}).get("storage_path"))
+    dead = [(d.id, [p for p in [(d.to_dict() or {}).get("storage_path")] if p])
             for d in db().collection(DEAD_LETTER).stream()]
     return {"orders": orders, "pending": pending, "dead_letter": dead}
 
@@ -730,7 +943,7 @@ def flush_preview(mock_only=False, include_activity=False):
     """Count what a flush would delete, without deleting anything."""
     targets = _flush_targets(mock_only)
     counts = {k: len(v) for k, v in targets.items()}
-    counts["images"] = sum(1 for v in targets.values() for _, path in v if path)
+    counts["images"] = sum(len(paths) for v in targets.values() for _, paths in v)
     counts["activity"] = _count_collection(ACTIVITY) if include_activity else 0
     return counts
 
@@ -768,14 +981,13 @@ def flush_data(mock_only=False, include_activity=False):
     for collection, key in ((ORDERS, "orders"), (PENDING, "pending"),
                             (DEAD_LETTER, "dead_letter")):
         entries = targets.get(key) or []
-        for _, path in entries:
-            if not path:
-                continue
-            try:
-                bucket().blob(path).delete()
-                images += 1
-            except Exception:  # noqa: BLE001
-                pass          # already gone, or never uploaded
+        for _, paths in entries:
+            for path in paths:
+                try:
+                    bucket().blob(path).delete()
+                    images += 1
+                except Exception:  # noqa: BLE001
+                    pass          # already gone, or never uploaded
         deleted[key] = _delete_ids(collection, [doc_id for doc_id, _ in entries])
 
     if include_activity:
@@ -833,7 +1045,7 @@ def mark_exported(order_ids, user_email, meta=None, factory_id=None):
     return batch_ref.id
 
 
-def export_status(factory_id=None):
+def export_status(factory_id=None, approved_by=None):
     """How many approved orders are still waiting to go into SAP."""
     q = db().collection(ORDERS)
     if factory_id:
@@ -842,6 +1054,8 @@ def export_status(factory_id=None):
     for d in q.stream():
         row = d.to_dict() or {}
         if row.get("status") != "approved":
+            continue
+        if approved_by and row.get("approved_by") != approved_by:
             continue
         if row.get("exported_at"):
             exported += 1

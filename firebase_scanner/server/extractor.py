@@ -19,6 +19,12 @@ EXTRACTION_PROMPT = r"""
 
 ข้อมูลส่วนหัว:
 - Production Order   -> order_no (เช่น "326070043") — Primary Key
+- เลขหน้า            -> page_no, page_total — อ่านจากข้อความมุมซ้ายบน เช่น "Page 2 of 2"
+  → page_no=2, page_total=2 ; เห็น "Page 1 of 2" → page_no=1, page_total=2
+  ⚠️ ถ้าไม่มีข้อความนี้ในฟอร์ม ให้ส่ง page_no=1 และ page_total=1
+  ⚠️ เอกสารหลายหน้าใช้ Production Order เดียวกันทุกหน้า ระบบจะนำมารวมเองภายหลัง
+     หน้าที่ของคุณคืออ่านเฉพาะสิ่งที่เห็นในหน้านี้ ห้ามเดาข้อมูลของหน้าอื่น
+     ถ้าหน้านี้ไม่มีช่อง "ยอดผลิต" หรือตาราง MFG/EXP ให้ส่ง null / [] ตามจริง
 - วันที่              -> document_date (แปลงเป็น YYYY-MM-DD เช่น "2026-07-01")
 - Series No. / รหัส   -> series_no — อ่านจากรหัสตัวเลข 7–10 หลัก (เช่น "7010101004", "7010401001") ที่อยู่ในคอลัมน์ "รหัส" ของแถวแรกของตาราง (แถวเดียวกับชื่อผลิตภัณฑ์) ⚠️ ห้ามใช้เลข Production Order
 - ชื่อผลิตภัณฑ์        -> product_name — อ่านจากแถวแรกของตาราง (แถวเดียวกับ series_no) ในคอลัมน์ "สินค้า/รายการวัตถุดิบ" ซึ่งเป็นชื่อสินค้าหลัก เช่น "แซนวิชหมูหยองน้ำพริกเผา", "แซนวิชเดนิชคาโบว์นาร่า" — ⚠️ ห้ามใช้ชื่อแผนกหรือหัวเรื่องเอกสาร
@@ -70,6 +76,8 @@ EXTRACTION_PROMPT = r"""
 รูปแบบ JSON:
 {
   "order_no": "326070043",
+  "page_no": 1,
+  "page_total": 2,
   "document_date": "2026-07-01",
   "series_no": "7010101004",
   "product_name": "แซนวิชหมูหยองน้ำพริกเผา",
@@ -552,6 +560,16 @@ def _s(v):
     return v or None
 
 
+def _page_int(v):
+    """Page index as a positive int — a missing marker means a single-page form."""
+    n = _num(v)
+    try:
+        n = int(n)
+    except (TypeError, ValueError):
+        return 1
+    return n if n >= 1 else 1
+
+
 def _num_or_zero(v):
     """Like _num but returns 0 instead of None for blanks / dashes."""
     n = _num(v)
@@ -586,6 +604,8 @@ def _batch_date(raw):
 def normalize(data):
     out = {
         "order_no": _s(data.get("order_no")),
+        "page_no": _page_int(data.get("page_no")),
+        "page_total": _page_int(data.get("page_total")),
         "document_date": _s(data.get("document_date")),
         "series_no": _s(data.get("series_no")),
         "product_name": _s(data.get("product_name")),

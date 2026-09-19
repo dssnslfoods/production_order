@@ -4,9 +4,11 @@ Flow: mobile web uploads a photo → /api/scan extracts with a vision model →
 saves the image to Cloud Storage and the structured record to Firestore →
 /api/export builds an .xlsx from Firestore on demand.
 """
+import concurrent.futures
 import io
 import logging
 import os
+import threading
 import traceback
 from typing import List, Optional
 
@@ -58,6 +60,15 @@ def _fid(user):
     if user["role"] == "super_admin":
         return None
     return user.get("factory_id")
+
+
+def _require_factory(user):
+    """Raise 403 if a non-super_admin user has no factory assigned."""
+    if user["role"] == "super_admin":
+        return
+    if not user.get("factory_id"):
+        raise HTTPException(status_code=403,
+                            detail="ยังไม่ได้สังกัดโรงงาน กรุณาติดต่อ Admin เพื่อกำหนดโรงงาน")
 
 _ENV_KEY = {"claude": "CLAUDE_API_KEY", "gemini": "GEMINI_API_KEY", "openai": "OPENAI_API_KEY"}
 
@@ -202,8 +213,101 @@ def set_config(body: ConfigIn, user=Depends(admin_only)):
     return _masked_config(user["email"])
 
 
+def _page_label(data):
+    return f"หน้า {data.get('page_no') or 1}/{data.get('page_total') or 1}"
+
+
+def _absorb_page(dup, data, storage_path=None):
+    """Fold a repeat of an existing Order No. into it as a continuation page.
+
+    A multi-page form repeats its Order No. on every sheet, so treating the
+    second sheet as a duplicate would silently drop half the requisition.
+    Returns (status, detail); raises when the page cannot be filed at all, so
+    the file stays visible in the failure queue instead of disappearing.
+    """
+    outcome = store.merge_order_page(dup["id"], data, storage_path=storage_path)
+    order_no = data.get("order_no") or "-"
+    if outcome == "merged":
+        return "success", f"Order {order_no} · รวม{_page_label(data)} ({len(data.get('lines') or [])} รายการ)"
+    if outcome == "locked":
+        raise RuntimeError(
+            f"Order {order_no} อนุมัติ/ส่งออกไปแล้ว จึงเพิ่ม{_page_label(data)} ไม่ได้ "
+            f"— กรุณาตรวจสอบว่าเป็นเอกสารหน้าใหม่จริงหรือไม่")
+    if outcome == "missing":
+        raise RuntimeError(f"ไม่พบ Order {order_no} ที่จะรวมหน้า — ลองสแกนใหม่อีกครั้ง")
+    return "skipped", f"Order No. {order_no} {_page_label(data)} มีในระบบแล้ว — ข้าม"
+
+
+_ORDER_LOCKS = {}
+_ORDER_LOCKS_GUARD = threading.Lock()
+
+
+def _order_lock(order_no):
+    """One lock per Order No., so parallel workers cannot both file the same set."""
+    with _ORDER_LOCKS_GUARD:
+        return _ORDER_LOCKS.setdefault(order_no or "", threading.Lock())
+
+
+def _file_multipage(data, p, provider, pfid, order_no, total):
+    """Park a sheet of a multi-page form, and file the order once the set is whole."""
+    dup = store.find_by_order_no(order_no, factory_id=pfid)
+    if dup:
+        status, detail = _absorb_page(dup, data, storage_path=p.get("storage_path"))
+        store.delete_pending(p["id"])
+        return status, detail
+
+    store.hold_page(p["id"], data)
+    held = store.list_held_pages(order_no, factory_id=pfid)
+    have = sorted({int(h.get("held_page_no") or 1) for h in held})
+    missing = [n for n in range(1, total + 1) if n not in have]
+    if missing:
+        return "waiting", (f"Order {order_no or '-'} · ได้หน้า {'/'.join(map(str, have))} "
+                           f"— พักไว้ในคิว รอหน้า {'/'.join(map(str, missing))}")
+
+    assembled, images = store.assemble_pages(held)
+    store.add_order(assembled, None, provider,
+                    user_email=p.get("uploaded_by"),
+                    source_filename=p.get("filename"),
+                    factory_id=pfid, page_images=images)
+    for h in held:
+        store.delete_pending(h["id"])
+    return "success", (f"Order {order_no or '-'} · รวมครบ {total} หน้า · "
+                       f"{len(assembled.get('lines') or [])} รายการ")
+
+
+def _file_queued_scan(data, p, provider, pfid):
+    """Decide what a freshly-read queue file becomes. -> (status, detail)
+
+    An incomplete multi-page form must not reach the orders list: half a
+    requisition looks complete enough to approve and send to SAP.  Such a sheet
+    is parked on its queue entry, reading and all, and the set is filed as one
+    order only once every page has arrived.
+    """
+    order_no = data.get("order_no")
+    total = int(data.get("page_total") or 1)
+    if total > 1:
+        # Sibling sheets of one form usually land in the same cron batch and are
+        # read in parallel; without this, both could see the set as complete and
+        # file the order twice.
+        with _order_lock(order_no):
+            return _file_multipage(data, p, provider, pfid, order_no, total)
+
+    dup = store.find_by_order_no(order_no, factory_id=pfid)
+    if dup:
+        status, detail = _absorb_page(dup, data, storage_path=p.get("storage_path"))
+        store.delete_pending(p["id"])
+        return status, detail
+
+    store.add_order(data, p["storage_path"], provider,
+                    user_email=p.get("uploaded_by"), source_filename=p.get("filename"),
+                    factory_id=pfid)
+    store.delete_pending(p["id"])
+    return "success", f"Order {order_no or '-'} · {len(data.get('lines') or [])} รายการ"
+
+
 @app.post("/api/scan")
 async def scan(file: UploadFile = File(...), user=Depends(auth.verify_token)):
+    _require_factory(user)
     settings = store.get_settings()
     provider = settings["provider"]
     model = settings["models"].get(provider, "")
@@ -222,8 +326,17 @@ async def scan(file: UploadFile = File(...), user=Depends(auth.verify_token)):
     fid = _fid(user)
     dup = store.find_by_order_no(data.get("order_no"), factory_id=fid)
     if dup:
-        raise HTTPException(status_code=409,
-                            detail=f"Order No. {dup['order_no']} มีในระบบแล้ว")
+        try:
+            status, detail = _absorb_page(dup, data)
+        except RuntimeError as e:
+            raise HTTPException(status_code=409, detail=str(e))
+        if status == "skipped":
+            raise HTTPException(status_code=409, detail=detail)
+        analytics.invalidate_cache()
+        store.log_activity("scan", user["email"], user["role"], detail, dup["id"],
+                           factory_id=fid)
+        return {"id": dup["id"], "data": data, "merged": True, "detail": detail,
+                "summary": {"lines": len(data.get("lines", []))}}
 
     blob_path = store.upload_image(optimized, opt_ct, file.filename)
     ai_path = (store.upload_image(ai_bytes[1], ai_bytes[0], "ai_" + (file.filename or "page"))
@@ -256,22 +369,15 @@ def _process_queue(trigger="manual", factory_id=None):
             raw = store.download_bytes(p["storage_path"])
             images, _ai = _prepare_images(raw, p.get("content_type") or "", p.get("filename") or "")
             data = extractor.extract(images, provider, key, model)
-            dup = store.find_by_order_no(data.get("order_no"), factory_id=pfid)
-            if dup:
-                store.delete_pending(p["id"])
-                item["status"] = "skipped"
-                item["detail"] = f"Order No. {data.get('order_no')} มีในระบบแล้ว — ข้าม"
+            status, detail = _file_queued_scan(data, p, provider, pfid)
+            item["status"] = status
+            item["detail"] = detail
+            if status == "success":
+                result["succeeded"] += 1
+            elif status == "waiting":
+                result["waiting"] = result.get("waiting", 0) + 1
+            else:
                 result["skipped"] = result.get("skipped", 0) + 1
-                result["processed"] += 1
-                result["items"].append(item)
-                continue
-            store.add_order(data, p["storage_path"], provider,
-                            user_email=p.get("uploaded_by"), source_filename=p.get("filename"),
-                            factory_id=pfid)
-            store.delete_pending(p["id"])
-            item["status"] = "success"
-            item["detail"] = f"Order {data.get('order_no') or '-'} · {len(data.get('lines', []))} รายการ"
-            result["succeeded"] += 1
         except Exception as e:  # noqa: BLE001
             outcome = store.fail_pending(p["id"], _friendly_error(e))
             item["status"] = outcome
@@ -311,6 +417,7 @@ def _auto_orient(raw: bytes, content_type: str) -> tuple[str, bytes]:
 
 @app.post("/api/queue")
 async def queue(files: List[UploadFile] = File(...), user=Depends(auth.verify_token)):
+    _require_factory(user)
     fid = _fid(user)
     saved = []
     for f in files:
@@ -326,7 +433,10 @@ async def queue(files: List[UploadFile] = File(...), user=Depends(auth.verify_to
 
 @app.get("/api/pending")
 def pending(user=Depends(auth.verify_token)):
-    return {"pending": store.list_pending(factory_id=_fid(user))}
+    items = store.list_pending(factory_id=_fid(user))
+    if user["role"] == "staff":
+        items = [p for p in items if p.get("uploaded_by") == user["email"]]
+    return {"pending": items}
 
 
 @app.get("/api/pending/{pid}/preview")
@@ -334,6 +444,8 @@ def pending_preview(pid: str, user=Depends(auth.verify_token)):
     p = store.get_pending(pid)
     if not p:
         raise HTTPException(status_code=404, detail="ไม่พบไฟล์ในคิว")
+    if user["role"] == "staff" and p.get("uploaded_by") != user["email"]:
+        raise HTTPException(status_code=403, detail="ไม่มีสิทธิ์ดูรายการนี้")
     try:
         raw = store.download_bytes(p["storage_path"])
         ct = p.get("content_type") or "image/jpeg"
@@ -347,6 +459,8 @@ def pending_delete(pid: str, user=Depends(auth.verify_token)):
     p = store.get_pending(pid)
     if not p:
         raise HTTPException(status_code=404, detail="ไม่พบไฟล์ในคิว")
+    if user["role"] == "staff" and p.get("uploaded_by") != user["email"]:
+        raise HTTPException(status_code=403, detail="ไม่มีสิทธิ์ลบรายการนี้")
     if p.get("storage_path"):
         try:
             store.bucket().blob(p["storage_path"]).delete()
@@ -397,7 +511,14 @@ def process_one(pid: str, user=Depends(auth.verify_token)):
     p = store.get_pending(pid)
     if not p:
         raise HTTPException(status_code=404, detail="ไม่พบไฟล์ในคิว")
-    if p.get("status") != "pending":
+    # "failed" is a file waiting on another attempt, not a finished one — picking
+    # it from the queue is how a person retries it without waiting for the cron.
+    if p.get("status") == "held":
+        return {"status": "waiting",
+                "detail": f"Order {p.get('held_order_no') or '-'} หน้า "
+                          f"{p.get('held_page_no')}/{p.get('held_page_total')} "
+                          f"สแกนแล้ว — รอหน้าที่เหลือ ไม่ต้องสแกนซ้ำ"}
+    if p.get("status") not in ("pending", "failed"):
         return {"status": "skipped", "detail": "ไฟล์นี้ถูกประมวลผลแล้ว"}
     settings = store.get_settings()
     provider = settings["provider"]
@@ -410,21 +531,37 @@ def process_one(pid: str, user=Depends(auth.verify_token)):
         images, _ai = _prepare_images(raw, p.get("content_type") or "", p.get("filename") or "")
         data = extractor.extract(images, provider, key, model)
         pfid = p.get("factory_id") or _fid(user)
-        dup = store.find_by_order_no(data.get("order_no"), factory_id=pfid)
-        if dup:
-            store.delete_pending(pid)
-            return {"status": "skipped", "detail": f"Order No. {data.get('order_no')} มีในระบบแล้ว — ข้าม"}
-        store.add_order(data, p["storage_path"], provider,
-                        user_email=p.get("uploaded_by"), source_filename=p.get("filename"),
-                        factory_id=pfid)
-        store.delete_pending(pid)
-        store.log_activity("scan", user["email"], user["role"],
-                           f"สแกน {p.get('filename')} → Order {data.get('order_no')}",
-                           factory_id=pfid)
-        return {"status": "success", "detail": f"Order {data.get('order_no') or '-'} · {len(data.get('lines', []))} รายการ"}
+        status, detail = _file_queued_scan(data, p, provider, pfid)
+        if status == "success":
+            store.log_activity("scan", user["email"], user["role"],
+                               f"สแกน {p.get('filename')} → {detail}", factory_id=pfid)
+        return {"status": status, "detail": detail}
     except Exception as e:  # noqa: BLE001
         store.fail_pending(pid, _friendly_error(e))
         return {"status": "failed", "detail": _friendly_error(e)}
+
+
+CRON_BATCH_SIZE = int(os.environ.get("CRON_BATCH_SIZE", "10"))
+CRON_WORKERS = int(os.environ.get("CRON_WORKERS", "5"))
+
+
+def _process_one_pending(p, provider, key, model):
+    """Process a single pending item. Thread-safe — used by parallel cron."""
+    pfid = p.get("factory_id")
+    item = {"file": p.get("filename"), "status": "", "detail": ""}
+    try:
+        raw = store.download_bytes(p["storage_path"])
+        images, _ai = _prepare_images(raw, p.get("content_type") or "", p.get("filename") or "")
+        data = extractor.extract(images, provider, key, model)
+        status, detail = _file_queued_scan(data, p, provider, pfid)
+        item["status"] = status
+        item["detail"] = detail
+        return item, status
+    except Exception as e:  # noqa: BLE001
+        outcome = store.fail_pending(p["id"], _friendly_error(e))
+        item["status"] = outcome
+        item["detail"] = _friendly_error(e)
+        return item, outcome
 
 
 @app.post("/api/cron/process")
@@ -433,13 +570,44 @@ def cron_process(x_cron_key: str = Header(default="")):
     if not secret or x_cron_key != secret:
         raise HTTPException(status_code=403, detail="invalid cron key")
     pulled = _pull_drive()
-    r = _process_queue(trigger="schedule")
-    r["drive_pulled"] = pulled.get("pulled", 0)
+    settings = store.get_settings()
+    provider = settings["provider"]
+    model = settings["models"].get(provider, "")
+    key = _api_key(provider)
+    if not key:
+        return {"error": f"ยังไม่ได้ตั้งค่า API key ของ {provider}", "processed": 0,
+                "drive_pulled": pulled.get("pulled", 0)}
+    pending = [p for p in store.list_pending() if p.get("status") in ("pending", "failed")]
+    batch = pending[:CRON_BATCH_SIZE]
+    result = {"processed": 0, "succeeded": 0, "failed": 0, "dead": 0,
+              "skipped": 0, "items": [], "queue_remaining": max(0, len(pending) - len(batch))}
+    if batch:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=CRON_WORKERS) as pool:
+            futures = {pool.submit(_process_one_pending, p, provider, key, model): p for p in batch}
+            for f in concurrent.futures.as_completed(futures):
+                item, outcome = f.result()
+                result["items"].append(item)
+                result["processed"] += 1
+                if outcome == "success":
+                    result["succeeded"] += 1
+                elif outcome == "skipped":
+                    result["skipped"] += 1
+                elif outcome == "waiting":
+                    result["waiting"] = result.get("waiting", 0) + 1
+                elif outcome == "dead":
+                    result["dead"] += 1
+                else:
+                    result["failed"] += 1
+        try:
+            store.log_run("schedule", result)
+        except Exception:  # noqa: BLE001
+            pass
+    result["drive_pulled"] = pulled.get("pulled", 0)
     try:
-        r["logs_cleaned"] = store.cleanup_old_logs()
+        result["logs_cleaned"] = store.cleanup_old_logs()
     except Exception:  # noqa: BLE001
         pass
-    return r
+    return result
 
 
 @app.get("/api/schedule")
@@ -477,22 +645,34 @@ def set_schedule(body: ScheduleIn, user=Depends(admin_only)):
 @app.get("/api/report")
 def report(user=Depends(auth.verify_token)):
     import datetime
+    from collections import Counter
     fid = _fid(user)
-    orders, _ = store.list_orders(limit=500, factory_id=fid)
+    orders, _ = store.list_orders(limit=2000, factory_id=fid)
     today = datetime.datetime.utcnow().date().isoformat()
     today_count = sum(1 for o in orders if (o.get("scanned_at") or "").startswith(today))
+    runs = store.list_runs(limit=20, factory_id=fid)
+    total_skipped = sum(r.get("skipped", 0) for r in runs)
+
+    upload_counter = Counter()
+    for o in orders:
+        by = o.get("scanned_by") or "ระบบ"
+        upload_counter[by] += 1
+    uploaders = [{"email": k, "count": v} for k, v in upload_counter.most_common(20)]
+
+    approvals = store.list_activity(limit=50, factory_id=fid)
+    approval_logs = [a for a in approvals if a.get("action") in ("approve", "bulk_approve")]
+
+    approved = [o for o in orders if o.get("status") == "approved"]
+    variance = analytics.plan_variance(approved)
+
     return {
         "total_scanned": store.count_orders(factory_id=fid),
         "today_scanned": today_count,
-        "runs": store.list_runs(limit=20, factory_id=fid),
-        "recent": [
-            {"filename": o.get("source_filename"),
-             "order_no": o.get("order_no"),
-             "lines": len(o.get("lines", [])),
-             "scanned_at": o.get("scanned_at"),
-             "scanned_by": o.get("scanned_by")}
-            for o in orders[:20]
-        ],
+        "total_skipped": total_skipped,
+        "runs": runs,
+        "uploaders": uploaders,
+        "approval_logs": approval_logs[:20],
+        "variance": variance,
     }
 
 
@@ -509,20 +689,32 @@ def order_detail(order_id: str, user=Depends(auth.verify_token)):
     o = store.get_order(order_id)
     if not o:
         raise HTTPException(status_code=404, detail="ไม่พบรายการ")
-    o["has_image"] = bool(o.get("source_image"))
+    imgs = store.page_images_of(o)
+    o["image_pages"] = [i.get("page") for i in imgs]
+    o["has_image"] = bool(imgs)
     return o
 
 
 @app.get("/api/orders/{order_id}/image")
-def order_image(order_id: str, variant: str = "source",
+def order_image(order_id: str, variant: str = "source", page: int = 0,
                 user=Depends(auth.verify_token)):
-    """variant=ai returns the page as the model saw it, when cropping altered it."""
+    """variant=ai returns the page as the model saw it, when cropping altered it.
+
+    `page` picks one sheet of a multi-page form; without it the first is served.
+    """
     o = store.get_order(order_id)
-    field = "ai_image" if variant == "ai" else "source_image"
-    if not o or not o.get(field):
+    if not o:
+        raise HTTPException(status_code=404, detail="ไม่พบรายการ")
+    if variant == "ai":
+        path = o.get("ai_image")
+    else:
+        imgs = store.page_images_of(o)
+        path = next((i["path"] for i in imgs if i.get("page") == page), None) if page \
+            else (imgs[0]["path"] if imgs else None)
+    if not path:
         raise HTTPException(status_code=404, detail="ไม่พบรูปภาพ")
     try:
-        raw = store.download_bytes(o[field])
+        raw = store.download_bytes(path)
         return Response(content=raw, media_type="image/jpeg")
     except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=404, detail=f"โหลดรูปไม่ได้: {e}")
@@ -593,12 +785,16 @@ def order_delete(order_id: str, user=Depends(_require_perm("delete"))):
 @app.get("/api/export/status")
 def export_status(user=Depends(auth.verify_token)):
     """How many approved orders have not yet been handed to SAP."""
-    return store.export_status(factory_id=_fid(user))
+    ab = user["email"] if user["role"] == "supervisor" else None
+    return store.export_status(factory_id=_fid(user), approved_by=ab)
 
 
 @app.get("/api/export/batches")
 def export_batches(limit: int = 20, user=Depends(auth.verify_token)):
-    return {"batches": store.list_export_batches(limit, factory_id=_fid(user))}
+    batches = store.list_export_batches(limit, factory_id=_fid(user))
+    if user["role"] == "supervisor":
+        batches = [b for b in batches if b.get("user_email") == user["email"]]
+    return {"batches": batches}
 
 
 @app.post("/api/export/batches/{batch_id}/undo")
@@ -614,12 +810,18 @@ def export_batch_undo(batch_id: str, user=Depends(admin_only)):
 def export(from_date: Optional[str] = None, to_date: Optional[str] = None,
           field: str = "document_date", status: str = "approved",
           only_new: bool = False, mark: bool = True,
+          export_factory: Optional[str] = None,
           user=Depends(auth.verify_token)):
     from urllib.parse import quote
-    fid = _fid(user)
+    if export_factory and user["role"] in ("super_admin", "admin"):
+        fid = export_factory
+    else:
+        fid = _fid(user)
     data, _ = store.list_orders(limit=2000, factory_id=fid)
     if status and status != "all":
         data = [o for o in data if o.get("status") == status]
+    if user["role"] == "supervisor":
+        data = [o for o in data if o.get("approved_by") == user["email"]]
     if only_new:
         data = [o for o in data if not o.get("exported_at")]
     if field not in ("document_date", "scanned_at"):
@@ -645,9 +847,10 @@ def export(from_date: Optional[str] = None, to_date: Optional[str] = None,
         raise HTTPException(404, "ไม่พบรายการที่ตรงกับเงื่อนไข — ไม่มีอะไรให้ Export")
     xlsx = excel_export.build_workbook(data)
 
-    # Only approved orders count as handed over; a draft in the file is a
-    # preview, and marking it would hide it from the "not yet sent" count.
-    if mark:
+    # admin/super_admin exports are test-only — never mark orders as exported.
+    # Only supervisor exports count as handed over to SAP.
+    should_mark = mark and user["role"] == "supervisor"
+    if should_mark:
         ids = [o["id"] for o in data if o.get("status") == "approved" and o.get("id")]
         batch_id = store.mark_exported(ids, user["email"], {
             "from_date": from_date, "to_date": to_date,
@@ -658,9 +861,11 @@ def export(from_date: Optional[str] = None, to_date: Optional[str] = None,
             store.log_activity("export", user["email"], user["role"],
                                f"Export {len(ids)} รายการ", batch_id,
                                factory_id=fid)
-    # HTTP headers are latin-1 only, so encode the Thai filename per RFC 5987.
-    thai = quote("ใบเบิกวัตถุดิบ.xlsx")
-    cd = f"attachment; filename=\"requisition.xlsx\"; filename*=UTF-8''{thai}"
+    fac = store.get_factory(fid) if fid else None
+    fac_code = fac["code"] if fac else "ALL"
+    fac_name = fac["name"] if fac else "ทุกโรงงาน"
+    thai = quote(f"ใบเบิกวัตถุดิบ_{fac_name}.xlsx")
+    cd = f"attachment; filename=\"requisition_{fac_code}.xlsx\"; filename*=UTF-8''{thai}"
     return Response(
         content=xlsx,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -761,6 +966,21 @@ def update_factory(factory_id: str, body: FactoryIn, user=Depends(super_only)):
     store.log_activity("update_factory", user["email"], user["role"],
                        f"แก้ไข factory {result['code']} ({result['name']})")
     return result
+
+
+@app.delete("/api/factories/{factory_id}")
+def delete_factory(factory_id: str, user=Depends(super_only)):
+    fac = store.get_factory(factory_id)
+    if not fac:
+        raise HTTPException(status_code=404, detail="ไม่พบ factory")
+    linked = store.factory_linked_collections(factory_id)
+    if linked:
+        raise HTTPException(status_code=409,
+                            detail=f"ไม่สามารถลบได้ มีข้อมูลผูกอยู่: {', '.join(linked)}")
+    store.delete_factory(factory_id)
+    store.log_activity("delete_factory", user["email"], user["role"],
+                       f"ลบ factory {fac['code']} ({fac['name']})")
+    return {"ok": True}
 
 
 @app.get("/api/permissions")
@@ -967,12 +1187,20 @@ def activity_log(limit: int = 100, user=Depends(_require_perm("activity"))):
 # Dead letter queue (admin only)
 # ---------------------------------------------------------------------------
 @app.get("/api/dead-letter")
-def dead_letter(user=Depends(admin_only)):
-    return {"items": store.list_dead_letter(factory_id=_fid(user))}
+def dead_letter(user=Depends(auth.verify_token)):
+    items = store.list_dead_letter(factory_id=_fid(user))
+    if user["role"] == "staff":
+        items = [d for d in items if d.get("uploaded_by") == user["email"]]
+    return {"items": items}
 
 
 @app.post("/api/dead-letter/{dlq_id}/retry")
-def retry_dlq(dlq_id: str, user=Depends(admin_only)):
+def retry_dlq(dlq_id: str, user=Depends(auth.verify_token)):
+    dl = store.get_dead_letter(dlq_id)
+    if not dl:
+        raise HTTPException(status_code=404, detail="ไม่พบรายการใน dead letter queue")
+    if user["role"] == "staff" and dl.get("uploaded_by") != user["email"]:
+        raise HTTPException(status_code=403, detail="ไม่มีสิทธิ์ดำเนินการรายการนี้")
     result = store.retry_dead_letter(dlq_id)
     if not result:
         raise HTTPException(status_code=404, detail="ไม่พบรายการใน dead letter queue")
@@ -982,7 +1210,12 @@ def retry_dlq(dlq_id: str, user=Depends(admin_only)):
 
 
 @app.delete("/api/dead-letter/{dlq_id}")
-def delete_dlq(dlq_id: str, user=Depends(admin_only)):
+def delete_dlq(dlq_id: str, user=Depends(auth.verify_token)):
+    dl = store.get_dead_letter(dlq_id)
+    if not dl:
+        raise HTTPException(status_code=404, detail="ไม่พบรายการใน dead letter queue")
+    if user["role"] == "staff" and dl.get("uploaded_by") != user["email"]:
+        raise HTTPException(status_code=403, detail="ไม่มีสิทธิ์ดำเนินการรายการนี้")
     if not store.delete_dead_letter(dlq_id):
         raise HTTPException(status_code=404, detail="ไม่พบรายการใน dead letter queue")
     return {"deleted": dlq_id}

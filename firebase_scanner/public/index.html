@@ -347,6 +347,12 @@
     border-radius:10px;padding:11px 14px;font-size:14px;font-family:inherit;transition:.2s}
   input:focus,select:focus{outline:none;border-color:var(--indigo);box-shadow:0 0 0 3px rgba(99,102,241,.12)}
   input[type=date]{color-scheme:light}
+  .date-wrap{position:relative}
+  .date-wrap input[type=date].fmt-dmy{color:transparent}
+  .date-wrap input[type=date].fmt-dmy:focus{color:transparent}
+  .date-dmy-label{position:absolute;left:14px;top:50%;transform:translateY(-50%);pointer-events:none;
+    font-size:14px;font-family:inherit;color:var(--text)}
+  .date-dmy-label.placeholder{color:var(--muted)}
   .row{display:flex;gap:10px;flex-wrap:wrap}
   .row>*{flex:1;min-width:0}
   button{cursor:pointer;font-family:inherit;font-weight:600;border:none;border-radius:10px;
@@ -366,6 +372,7 @@
   .orow{display:flex;align-items:center;gap:10px}
   .orow .obody{flex:1;min-width:0}
   .orow .o-check{flex:none;width:18px;height:18px;accent-color:var(--indigo);cursor:pointer}
+  .q-table .p-check{width:17px;height:17px;accent-color:var(--indigo);cursor:pointer;vertical-align:middle}
   .batch-bar{display:flex;align-items:center;gap:14px;padding:10px 16px;margin-bottom:10px;border-radius:10px;background:rgba(99,102,241,.05);border:1px solid rgba(99,102,241,.12)}
   .paging{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:14px;flex-wrap:wrap}
   .paging:empty{display:none}
@@ -728,48 +735,89 @@
   /* ---- login ---- */
   .login-theme{position:fixed;top:18px;right:18px;z-index:20;width:38px;height:38px;
     padding:0;display:grid;place-items:center;border-radius:11px;cursor:pointer;
-    background:var(--surface2);border:1px solid var(--line);color:var(--muted);transition:.18s}
-  .login-theme:hover{color:var(--indigo);border-color:var(--indigo)}
+    background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);color:#fff;transition:.18s}
+  .login-theme:hover{background:rgba(255,255,255,.25);border-color:rgba(255,255,255,.4)}
   .login-theme svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;
     stroke-linecap:round;stroke-linejoin:round}
   .login-theme .ic-moon{display:none}
   :root[data-theme="dark"] .login-theme .ic-sun{display:none}
   :root[data-theme="dark"] .login-theme .ic-moon{display:block}
-  .login-wrap{min-height:100vh;display:grid;grid-template-columns:1fr 1fr;overflow:hidden}
-  .login-hero{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;
-    background:linear-gradient(135deg,#1e1b4b 0%,#312e81 40%,#4338ca 100%);color:#fff;position:relative;overflow:hidden}
+  .login-wrap{min-height:100vh;display:grid;grid-template-columns:1.15fr .85fr;overflow:hidden}
+  .login-hero{display:flex;flex-direction:column;justify-content:center;padding:56px 48px;
+    background:linear-gradient(160deg,#1e3a8a 0%,#2563eb 40%,#3b82f6 70%,#60a5fa 100%);color:#fff;position:relative;overflow:hidden}
   .login-hero::before{content:"";position:absolute;inset:0;
-    background:radial-gradient(circle at 30% 20%,rgba(99,102,241,.4),transparent 50%),
-    radial-gradient(circle at 70% 80%,rgba(6,182,212,.3),transparent 50%);pointer-events:none}
-  .login-hero-content{position:relative;z-index:1;text-align:center;max-width:420px}
-  .login-hero h2{font-size:28px;font-weight:800;margin:0 0 12px;line-height:1.3}
-  .login-hero p{font-size:14.5px;color:rgba(255,255,255,.7);line-height:1.7;margin:0 0 32px}
-  .login-hero-visual{position:relative;z-index:1;width:100%;max-width:380px}
-  .login-side{display:flex;align-items:center;justify-content:center;padding:60px 48px;background:var(--bg)}
-  .login-side>div{width:100%;max-width:480px}
-  .login-card{width:100%;padding:44px 40px}
-  .brand{display:flex;align-items:center;gap:14px;margin-bottom:28px}
-  .brand .logo{width:48px;height:48px;border-radius:14px;font-size:24px}
-  .brand h1{font-size:19px} .brand p{margin:2px 0 0;font-size:12.5px;color:var(--muted)}
-  .login-card label{font-size:13px;font-weight:600;color:var(--muted);margin-bottom:4px;display:block}
-  .login-card input{font-size:15px;padding:13px 16px}
-  .login-card .btn{font-size:15px;padding:14px;margin-top:6px}
-  .login-footer{margin-top:20px;text-align:center;font-size:12px;color:var(--faint)}
-  .login-footer b{color:var(--muted)}
+    background:radial-gradient(ellipse at 20% 0%,rgba(96,165,250,.5),transparent 55%),
+    radial-gradient(ellipse at 80% 100%,rgba(37,99,235,.4),transparent 55%);pointer-events:none}
+  .login-hero::after{content:"";position:absolute;right:-80px;bottom:-60px;width:380px;height:380px;
+    background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'%3E%3Ccircle cx='200' cy='200' r='180' fill='none' stroke='rgba(255,255,255,0.06)' stroke-width='40'/%3E%3Ccircle cx='200' cy='200' r='120' fill='none' stroke='rgba(255,255,255,0.04)' stroke-width='30'/%3E%3C/svg%3E") no-repeat center;pointer-events:none;opacity:.7}
+  .login-hero-content{position:relative;z-index:1;max-width:520px}
+  .login-hero-brand{display:flex;align-items:center;gap:10px;margin-bottom:40px;font-size:13px;font-weight:600;letter-spacing:.3px;opacity:.9}
+  .login-hero-brand svg{width:22px;height:22px}
+  .login-hero-sub{font-size:15px;color:rgba(255,255,255,.75);margin:0 0 6px;font-weight:500}
+  .login-hero h2{font-size:32px;font-weight:800;margin:0 0 14px;line-height:1.3}
+  .login-hero p{font-size:14px;color:rgba(255,255,255,.65);line-height:1.7;margin:0 0 36px}
 
-  /* hero illustration (inline SVG) */
-  .doc-flow{display:flex;align-items:center;gap:16px;margin:0 auto}
-  .doc-card{background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.15);
-    border-radius:16px;padding:20px 18px;width:130px;text-align:center;font-size:12px;color:rgba(255,255,255,.9);line-height:1.5}
-  .doc-card .dc-icon{font-size:32px;margin-bottom:8px}
-  .doc-card b{display:block;font-size:13px;margin-bottom:4px}
-  .doc-arrow{color:rgba(255,255,255,.4);font-size:24px;font-weight:700}
-  .hero-features{display:flex;gap:20px;margin-top:28px;flex-wrap:wrap;justify-content:center}
-  .hero-feat{display:flex;align-items:center;gap:8px;font-size:12.5px;color:rgba(255,255,255,.7)}
-  .hero-feat .hf-dot{width:8px;height:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan)}
+  /* 6-step workflow */
+  .login-steps{display:flex;align-items:flex-start;gap:0;margin:0 0 36px;position:relative}
+  .login-step{display:flex;flex-direction:column;align-items:center;text-align:center;flex:1;position:relative}
+  .login-step-icon{width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,.13);
+    backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.18);display:grid;place-items:center;
+    margin-bottom:8px;color:#fff;font-size:20px;transition:transform .2s}
+  .login-step-icon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .login-step-label{font-size:11px;color:rgba(255,255,255,.7);line-height:1.3;max-width:72px}
+  .login-step+.login-step::before{content:"";position:absolute;top:24px;right:calc(50% + 28px);
+    width:calc(100% - 56px);height:2px;background:rgba(255,255,255,.18)}
+  .login-step:hover .login-step-icon{transform:translateY(-3px)}
+
+  /* 4 feature highlights */
+  .hero-features{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .hero-feat{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;
+    background:rgba(255,255,255,.08);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.1);transition:background .2s}
+  .hero-feat:hover{background:rgba(255,255,255,.14)}
+  .hero-feat-icon{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;flex-shrink:0}
+  .hero-feat-icon svg{width:18px;height:18px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .hero-feat-text{font-size:12px;color:rgba(255,255,255,.85);font-weight:600;line-height:1.35}
+  .hero-feat-text small{display:block;font-weight:400;font-size:10.5px;color:rgba(255,255,255,.5);margin-top:1px}
+
+  /* right side login */
+  .login-side{display:flex;align-items:center;justify-content:center;padding:48px 40px;background:var(--bg)}
+  .login-side>div{width:100%;max-width:400px}
+  .login-card{width:100%;padding:40px 36px}
+  .login-card-icon{width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#7c3aed,#6d28d9);
+    display:grid;place-items:center;margin:0 auto 20px;box-shadow:0 8px 24px rgba(109,40,217,.25)}
+  .login-card-icon svg{width:28px;height:28px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .login-card h2{text-align:center;font-size:22px;font-weight:700;margin:0 0 4px;color:var(--text)}
+  .login-card .login-sub{text-align:center;font-size:13px;color:var(--muted);margin:0 0 28px}
+  .login-card label{font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:5px;display:block}
+  .login-input-wrap{position:relative;margin-bottom:14px}
+  .login-input-wrap svg.li-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);
+    width:18px;height:18px;fill:none;stroke:var(--muted);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+  .login-input-wrap input{padding:13px 44px 13px 42px;font-size:14px;width:100%;box-sizing:border-box}
+  .login-input-wrap .eye-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);
+    background:none;border:none;padding:4px;cursor:pointer;color:var(--muted);display:grid;place-items:center;
+    width:28px;height:28px;z-index:2}
+  .login-input-wrap .eye-toggle svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .login-row{display:flex;align-items:center;justify-content:space-between;margin:2px 0 18px}
+  .login-row label{font-size:12.5px;font-weight:500;color:var(--muted);display:flex;align-items:center;gap:6px;margin:0;cursor:pointer}
+  .login-row label input[type="checkbox"]{accent-color:#7c3aed;width:15px;height:15px;cursor:pointer}
+  .login-row a{font-size:12.5px;color:#7c3aed;text-decoration:none;font-weight:500}
+  .login-row a:hover{text-decoration:underline}
+  .login-card .btn{font-size:15px;padding:14px;margin-top:2px;
+    background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;box-shadow:0 4px 16px rgba(109,40,217,.3)}
+  .login-card .btn:hover{background:linear-gradient(135deg,#6d28d9,#5b21b6);box-shadow:0 6px 20px rgba(109,40,217,.4)}
+  .login-divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:var(--faint);font-size:12.5px}
+  .login-divider::before,.login-divider::after{content:"";flex:1;height:1px;background:var(--line)}
+  .login-ms-btn{width:100%;padding:12px;border-radius:var(--r);border:1px solid var(--line);background:var(--surface);
+    display:flex;align-items:center;justify-content:center;gap:10px;font-size:13.5px;font-weight:500;color:var(--text);
+    cursor:pointer;transition:border-color .18s,background .18s}
+  .login-ms-btn:hover{border-color:var(--muted);background:var(--surface2)}
+  .login-ms-btn svg{width:20px;height:20px;flex-shrink:0}
+  .login-footer{margin-top:24px;text-align:center;font-size:12px;color:var(--faint)}
+  .login-footer b{color:var(--muted)}
   @media(max-width:900px){
     .login-wrap{grid-template-columns:1fr}
     .login-hero{display:none}
+    .login-side{padding:32px 20px}
   }
   select option{background:var(--surface)}
 </style>
@@ -784,36 +832,63 @@
     <svg class="ic-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
   </button>
   <div class="login-wrap">
-    <!-- Left: Hero illustration -->
+    <!-- Left: Hero -->
     <div class="login-hero">
       <div class="login-hero-content">
-        <h2>Production Order<br>Digital Scanner</h2>
-        <p>แปลงเอกสารใบเบิกวัตถุดิบจากกระดาษให้เป็นข้อมูลดิจิทัล<br>ด้วยเทคโนโลยี AI อัตโนมัติ แม่นยำ รวดเร็ว</p>
+        <div class="login-hero-brand">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          PRODUCTION ORDER MANAGEMENT
+        </div>
+        <div class="login-hero-sub">ระบบจัดการใบผลิตอัจฉริยะ</div>
+        <h2>Production Order<br>Management</h2>
+        <p>แปลงเอกสารใบเบิกวัตถุดิบด้วย AI OCR จัดการ workflow อนุมัติ<br>ติดตามสถานะแบบ real-time และส่งออกรายงานอัตโนมัติ</p>
 
-        <div class="doc-flow">
-          <div class="doc-card">
-            <div class="dc-icon">
-              <svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect x="6" y="3" width="28" height="34" rx="4" stroke="rgba(255,255,255,.7)" stroke-width="1.5" fill="rgba(255,255,255,.08)"/><line x1="12" y1="12" x2="28" y2="12" stroke="rgba(255,255,255,.4)" stroke-width="1.5" stroke-linecap="round"/><line x1="12" y1="17" x2="24" y2="17" stroke="rgba(255,255,255,.3)" stroke-width="1.5" stroke-linecap="round"/><line x1="12" y1="22" x2="26" y2="22" stroke="rgba(255,255,255,.3)" stroke-width="1.5" stroke-linecap="round"/><line x1="12" y1="27" x2="20" y2="27" stroke="rgba(255,255,255,.3)" stroke-width="1.5" stroke-linecap="round"/><path d="M22 30 L28 24 L32 28" stroke="#06b6d4" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
-            </div>
-            <b>เอกสารกระดาษ</b>
-            สแกน / ถ่ายรูป
+        <!-- 6-step workflow -->
+        <div class="login-steps">
+          <div class="login-step">
+            <div class="login-step-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+            <span class="login-step-label">สร้างใบผลิต</span>
           </div>
-          <div class="doc-arrow">
-            <svg width="40" height="24" viewBox="0 0 40 24" fill="none"><path d="M2 12h32m0 0l-8-7m8 7l-8 7" stroke="rgba(255,255,255,.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div class="login-step">
+            <div class="login-step-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div>
+            <span class="login-step-label">สแกนเอกสาร</span>
           </div>
-          <div class="doc-card" style="border-color:rgba(6,182,212,.4)">
-            <div class="dc-icon">
-              <svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect x="4" y="6" width="32" height="28" rx="4" stroke="#06b6d4" stroke-width="1.5" fill="rgba(6,182,212,.1)"/><rect x="8" y="2" width="24" height="8" rx="3" stroke="rgba(255,255,255,.5)" stroke-width="1.5" fill="rgba(99,102,241,.2)"/><circle cx="15" cy="6" r="1.5" fill="rgba(255,255,255,.6)"/><circle cx="20" cy="6" r="1.5" fill="rgba(255,255,255,.6)"/><circle cx="25" cy="6" r="1.5" fill="rgba(255,255,255,.6)"/><line x1="10" y1="16" x2="22" y2="16" stroke="rgba(6,182,212,.6)" stroke-width="1.5" stroke-linecap="round"/><line x1="10" y1="21" x2="30" y2="21" stroke="rgba(6,182,212,.4)" stroke-width="1.5" stroke-linecap="round"/><line x1="10" y1="26" x2="26" y2="26" stroke="rgba(6,182,212,.4)" stroke-width="1.5" stroke-linecap="round"/><rect x="26" y="13" width="6" height="6" rx="1.5" stroke="#10b981" stroke-width="1.5" fill="rgba(16,185,129,.15)"/><path d="M27.5 16 L29 17.5 L31 14.5" stroke="#10b981" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </div>
-            <b>ข้อมูลดิจิทัล</b>
-            ตรวจสอบ / อนุมัติ
+          <div class="login-step">
+            <div class="login-step-icon"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+            <span class="login-step-label">ตรวจสอบข้อมูล</span>
+          </div>
+          <div class="login-step">
+            <div class="login-step-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></div>
+            <span class="login-step-label">อนุมัติออนไลน์</span>
+          </div>
+          <div class="login-step">
+            <div class="login-step-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+            <span class="login-step-label">ติดตามสถานะ</span>
+          </div>
+          <div class="login-step">
+            <div class="login-step-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+            <span class="login-step-label">ส่งออกรายงาน</span>
           </div>
         </div>
 
+        <!-- 4 feature highlights -->
         <div class="hero-features">
-          <div class="hero-feat"><span class="hf-dot"></span> AI อ่านลายมือ</div>
-          <div class="hero-feat"><span class="hf-dot"></span> ตรวจสอบอัตโนมัติ</div>
-          <div class="hero-feat"><span class="hf-dot"></span> Export Excel</div>
+          <div class="hero-feat">
+            <div class="hero-feat-icon" style="background:rgba(99,102,241,.3)"><svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+            <div class="hero-feat-text">AI OCR<small>อ่านลายมืออัตโนมัติ</small></div>
+          </div>
+          <div class="hero-feat">
+            <div class="hero-feat-icon" style="background:rgba(16,185,129,.3)"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+            <div class="hero-feat-text">Approval Workflow<small>อนุมัติหลายระดับ</small></div>
+          </div>
+          <div class="hero-feat">
+            <div class="hero-feat-icon" style="background:rgba(245,158,11,.3)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+            <div class="hero-feat-text">Real-time Tracking<small>ติดตามสถานะทันที</small></div>
+          </div>
+          <div class="hero-feat">
+            <div class="hero-feat-icon" style="background:rgba(6,182,212,.3)"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+            <div class="hero-feat-text">Export Report<small>ส่งออก Excel อัตโนมัติ</small></div>
+          </div>
         </div>
       </div>
     </div>
@@ -825,19 +900,35 @@
           ⚠️ ยังไม่ได้ใส่ค่า Firebase config — แก้ <b>FIREBASE_CONFIG</b> ใน public/index.html
         </div>
         <div class="login-card card">
-          <div class="brand">
-            <div class="logo"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
-            <div><h1>ใบเบิกวัตถุดิบ</h1><p>Production Order Scanner</p></div>
+          <div class="login-card-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           </div>
+          <h2>เข้าสู่ระบบ</h2>
+          <p class="login-sub">Production Order Management</p>
+
           <label>อีเมล</label>
-          <input id="email" type="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="you@company.com" onkeydown="if(event.key==='Enter')doLogin()">
-          <div class="mt"></div>
+          <div class="login-input-wrap">
+            <svg class="li-icon" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 7L2 7"/></svg>
+            <input id="email" type="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="you@company.com" onkeydown="if(event.key==='Enter')$('password').focus()">
+          </div>
+
           <label>รหัสผ่าน</label>
-          <input id="password" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
-          <div class="mt"></div>
+          <div class="login-input-wrap">
+            <svg class="li-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <input id="password" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+            <button class="eye-toggle" type="button" onclick="const p=$('password');const t=p.type==='password'?'text':'password';p.type=t;this.querySelector('.eye-on').style.display=t==='text'?'none':'block';this.querySelector('.eye-off').style.display=t==='text'?'block':'none'" aria-label="แสดง/ซ่อนรหัสผ่าน">
+              <svg class="eye-on" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg class="eye-off" viewBox="0 0 24 24" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </div>
+
+          <div class="login-row">
+            <label><input type="checkbox" id="rememberMe"> จดจำการเข้าสู่ระบบ</label>
+          </div>
+
           <button class="btn" onclick="doLogin()">เข้าสู่ระบบ</button>
-          <p class="hint" style="text-align:center">บัญชีสร้างโดยผู้ดูแลระบบ</p>
-          <div class="login-footer">
+
+          <div class="login-footer" style="margin-top:20px">
             Powered by <b>Arnon Arpaket</b><br>
             <span style="font-size:11px;color:var(--faint)">Licensed to NSL Foods Public Company Limited</span>
           </div>
@@ -975,25 +1066,32 @@
             <div class="tile c"><b id="pendingCount">0</b><span>คิวรอสแกน</span></div>
             <div class="tile d"><b id="pendingApprovalCount">0</b><span>รออนุมัติ</span></div>
             <div class="tile a"><b id="approvedCount">0</b><span>อนุมัติแล้ว</span></div>
+            <div class="tile" style="background:rgba(239,68,68,.12)"><b id="skippedCount" style="color:#f87171">0</b><span style="color:rgba(248,113,113,.8)">ซ้ำ (ข้าม)</span></div>
+            <div id="deadTile" class="tile hidden" style="background:rgba(244,63,94,.15);cursor:pointer" onclick="showPage('scan')"><b id="deadCount" style="color:#fb7185">0</b><span style="color:rgba(251,113,133,.8)">สแกนล้มเหลว</span></div>
           </div>
         </section>
 
         <!-- what needs attention -->
         <div id="dashActions" class="kpi3" style="margin-bottom:20px"></div>
 
-        <!-- report -->
-        <div class="card panel">
-          <div class="phead"><span class="pico" style="background:rgba(56,189,248,.16);color:var(--sky)"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span><h2>รายงานการสแกน</h2></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-            <div>
-              <div class="faint" style="font-size:12px;margin-bottom:6px">ประวัติรอบสแกน</div>
-              <div id="runsList" class="list"><span class="muted">—</span></div>
-            </div>
-            <div>
-              <div class="faint" style="font-size:12px;margin-bottom:6px">ไฟล์ที่สแกนล่าสุด</div>
-              <div id="reportList" class="list"><span class="muted">—</span></div>
-            </div>
+        <!-- uploader + approval dashboard -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+          <div class="card panel">
+            <div class="phead"><span class="pico" style="background:rgba(129,140,248,.18);color:var(--indigo)"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span><h2>ผู้อัปโหลด</h2></div>
+            <div id="uploadersChart" style="min-height:180px;display:flex;align-items:flex-end;gap:6px;padding:8px 0"></div>
+            <div id="uploadersList" style="margin-top:12px"></div>
           </div>
+          <div class="card panel">
+            <div class="phead"><span class="pico" style="background:rgba(16,185,129,.16);color:var(--emerald)"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span><h2>การอนุมัติล่าสุด</h2></div>
+            <div id="approvalList" class="list" style="max-height:280px;overflow-y:auto"><span class="muted">—</span></div>
+          </div>
+        </div>
+
+        <!-- variance chart -->
+        <div class="card panel">
+          <div class="phead"><span class="pico" style="background:rgba(251,191,36,.16);color:var(--amber)"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span><h2>สัดส่วนวัตถุดิบที่ผิดจากมาตรฐาน</h2></div>
+          <div id="varianceChart" style="min-height:260px;position:relative"></div>
+          <div id="varianceEmpty" class="muted" style="text-align:center;padding:32px;display:none">ยังไม่มีข้อมูลเพียงพอ (ต้องมีวัตถุดิบปรากฏอย่างน้อย 5 ใบสั่งผลิต)</div>
         </div>
 
       </section>
@@ -1001,8 +1099,19 @@
       <!-- ======== PAGE: Scan ======== -->
       <section id="page-scan" class="page-section hidden">
 
+        <!-- no factory warning -->
+        <div id="noFactoryWarn" class="card panel hidden" style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25)">
+          <div style="display:flex;align-items:center;gap:12px;padding:8px 0">
+            <svg style="width:24px;height:24px;flex:none;stroke:#ef4444;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <div>
+              <div style="font-weight:700;color:#ef4444;font-size:14px">ยังไม่ได้สังกัดโรงงาน</div>
+              <div style="font-size:13px;color:var(--muted);margin-top:2px">กรุณาติดต่อ Admin เพื่อกำหนดโรงงานให้บัญชีของคุณก่อนจึงจะอัปโหลดเอกสารได้</div>
+            </div>
+          </div>
+        </div>
+
         <!-- upload bar -->
-        <div class="card panel">
+        <div id="uploadPanel" class="card panel">
           <div class="phead"><span class="pico" style="background:rgba(129,140,248,.18);color:var(--indigo)"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span><h2>อัปโหลดเอกสารเข้าคิว</h2></div>
           <input id="camInput" type="file" accept="image/*" capture="environment" class="hidden">
           <input id="fileInput" type="file" accept="image/*,application/pdf" multiple class="hidden">
@@ -1019,17 +1128,33 @@
             <div class="phead" style="margin:0"><span class="pico" style="background:rgba(251,191,36,.16);color:var(--amber)"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v3"/></svg></span><h2>คิวรอสแกน</h2><span id="pendingBadge" class="q-badge">0</span></div>
             <div class="row" style="gap:8px">
               <button class="ghost sm" onclick="loadPending()">รีเฟรช</button>
+              <button class="btn sm hidden" id="processSelBtn" onclick="processSelected()">สแกนที่เลือก</button>
               <button class="btn sm" id="processBtn" onclick="processAll()">สแกนทั้งหมด</button>
             </div>
           </div>
           <div id="processResult"></div>
           <div style="overflow-x:auto">
             <table class="q-table" id="pendingTable">
-              <thead><tr><th style="width:36px">#</th><th>ชื่อไฟล์</th><th>สถานะ</th><th>วันที่อัปโหลด</th><th style="width:90px;text-align:center">ดำเนินการ</th></tr></thead>
-              <tbody id="pendingBody"><tr><td colspan="5" class="muted" style="text-align:center;padding:24px">— ไม่มีไฟล์ในคิว —</td></tr></tbody>
+              <thead><tr><th style="width:34px;text-align:center"><input type="checkbox" id="pendAll" class="p-check" title="เลือกทั้งหมด" onchange="togglePendAll(this.checked)"></th><th style="width:36px">#</th><th>ชื่อไฟล์</th><th>สถานะ</th><th>วันที่อัปโหลด</th><th style="width:90px;text-align:center">ดำเนินการ</th></tr></thead>
+              <tbody id="pendingBody"><tr><td colspan="6" class="muted" style="text-align:center;padding:24px">— ไม่มีไฟล์ในคิว —</td></tr></tbody>
             </table>
           </div>
-          <p class="hint" style="margin-top:12px">ระบบสแกนคิวอัตโนมัติตามเวลาที่ตั้งไว้</p>
+          <p class="hint" style="margin-top:12px">ระบบสแกนคิวอัตโนมัติทุก 5 นาที</p>
+        </div>
+
+        <!-- Dead letter (failed 3+ times) -->
+        <div id="deadLetterPanel" class="card panel hidden" style="border-left:3px solid var(--rose)">
+          <div class="between" style="margin-bottom:12px">
+            <div class="phead" style="margin:0"><span class="pico" style="background:rgba(244,63,94,.16);color:var(--rose)"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span><h2>สแกนล้มเหลว</h2><span id="deadBadge" class="q-badge" style="background:var(--rose);color:#fff">0</span></div>
+            <button class="ghost sm" onclick="loadDeadLetter()">รีเฟรช</button>
+          </div>
+          <p style="font-size:12.5px;color:var(--muted);margin:0 0 12px">ไฟล์ที่ AI สแกนไม่สำเร็จ 3 ครั้ง — ตรวจสอบแล้วลองใหม่หรือลบทิ้ง</p>
+          <div style="overflow-x:auto">
+            <table class="q-table">
+              <thead><tr><th style="width:36px">#</th><th>ชื่อไฟล์</th><th>สาเหตุ</th><th>วันที่อัปโหลด</th><th style="width:120px;text-align:center">ดำเนินการ</th></tr></thead>
+              <tbody id="deadBody"><tr><td colspan="5" class="muted" style="text-align:center;padding:24px">—</td></tr></tbody>
+            </table>
+          </div>
         </div>
 
       </section>
@@ -1046,7 +1171,7 @@
           <div class="ord-filters">
             <div>
               <label for="ordSearch">ค้นหา</label>
-              <input type="search" id="ordSearch" placeholder="เลขที่ / ชื่อสินค้า / ผู้อนุมัติ" oninput="applyOrderFilters()">
+              <input type="search" id="ordSearch" placeholder="เลขที่ / ชื่อสินค้า / ผู้อนุมัติ" oninput="debouncedOrderFilter()">
             </div>
             <div>
               <label for="statusFilter">สถานะ</label>
@@ -1061,11 +1186,17 @@
             </div>
             <div>
               <label for="ordFrom">ตั้งแต่วันที่</label>
-              <input type="date" id="ordFrom" onchange="applyOrderFilters()">
+              <div class="date-wrap">
+                <input type="date" id="ordFrom" class="fmt-dmy" onchange="applyOrderFilters();syncDateLabel('ordFrom')">
+                <span class="date-dmy-label placeholder" data-for="ordFrom">dd/mm/yyyy</span>
+              </div>
             </div>
             <div>
               <label for="ordTo">ถึงวันที่</label>
-              <input type="date" id="ordTo" onchange="applyOrderFilters()">
+              <div class="date-wrap">
+                <input type="date" id="ordTo" class="fmt-dmy" onchange="applyOrderFilters();syncDateLabel('ordTo')">
+                <span class="date-dmy-label placeholder" data-for="ordTo">dd/mm/yyyy</span>
+              </div>
             </div>
           </div>
           <div class="quick-range">
@@ -1126,7 +1257,7 @@
           <div class="ord-filters" style="grid-template-columns:1.6fr .9fr 1.1fr .9fr">
             <div>
               <label for="fcSearch">ค้นหาวัตถุดิบ</label>
-              <input type="search" id="fcSearch" placeholder="ชื่อวัตถุดิบ หรือ รหัส" oninput="renderForecast()">
+              <input type="search" id="fcSearch" placeholder="ชื่อวัตถุดิบ หรือ รหัส" oninput="debouncedForecast()">
             </div>
             <div>
               <label for="fcConf">ความเชื่อมั่น</label>
@@ -1199,7 +1330,7 @@
         <div class="card panel">
           <div class="between" style="margin-bottom:16px">
             <div class="phead" style="margin:0"><span class="pico" style="background:rgba(245,158,11,.16);color:var(--amber)"><svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span><h2>ส่วนเกินจากแผน — ใช้ตั้ง buffer การสั่งซื้อ</h2></div>
-            <input type="search" id="hlSearch" placeholder="ค้นหาวัตถุดิบ" style="max-width:260px;font-size:13px;padding:8px 11px" oninput="renderVariance()">
+            <input type="search" id="hlSearch" placeholder="ค้นหาวัตถุดิบ" style="max-width:260px;font-size:13px;padding:8px 11px" oninput="debouncedVariance()">
           </div>
           <div id="hlVariance" class="scroll-x"><div class="sk-row"><div class="sk"></div><div class="sk"></div><div class="sk"></div></div><div class="sk-row"><div class="sk"></div><div class="sk"></div><div class="sk"></div></div><div class="sk-row"><div class="sk"></div><div class="sk"></div><div class="sk"></div></div></div>
         </div>
@@ -1255,6 +1386,13 @@
                   <option value="draft">ฉบับร่าง</option>
                 </select>
               </div>
+            </div>
+
+            <div id="expFactoryWrap" class="mt hidden">
+              <label>โรงงาน</label>
+              <select id="expFactory">
+                <option value="">ทุกโรงงาน</option>
+              </select>
             </div>
 
             <div class="mt">
@@ -1380,34 +1518,11 @@
         </div>
 
         <div class="set-two">
-          <!-- schedule -->
+          <!-- schedule (fixed every 5 min) -->
           <div class="card panel">
-            <div class="phead"><span class="pico" style="background:rgba(192,132,252,.16);color:var(--violet)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span><h2>ตั้งเวลาสแกนอัตโนมัติ</h2></div>
-
-            <label>รูปแบบ</label>
-            <select id="schedMode" onchange="schedModeChange()">
-              <option value="interval">ทุกๆ N ชั่วโมง</option>
-              <option value="minutes">ทุกๆ N นาที (ทดสอบ)</option>
-              <option value="daily">เวลารายวัน (ระบุชั่วโมง)</option>
-              <option value="off">ปิดสแกนอัตโนมัติ</option>
-            </select>
-            <div id="schedInterval" class="mt">
-              <label>ทุกๆ กี่ชั่วโมง</label>
-              <input id="intervalHours" type="number" min="1" max="24" value="3" oninput="schedPreview()">
-            </div>
-            <div id="schedMinutes" class="hidden mt">
-              <label>ทุกๆ กี่นาที</label>
-              <input id="intervalMins" type="number" min="1" max="59" value="5" oninput="schedPreview()">
-            </div>
-            <div id="schedDaily" class="hidden mt">
-              <label>ชั่วโมงที่ให้สแกน (คั่นด้วย , เช่น 8,13,17)</label>
-              <input id="dailyHours" placeholder="8,13,17" oninput="schedPreview()">
-            </div>
+            <div class="phead"><span class="pico" style="background:rgba(192,132,252,.16);color:var(--violet)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span><h2>สแกนอัตโนมัติ</h2></div>
+            <p style="color:var(--text-secondary);margin:8px 0">ระบบสแกนคิวอัตโนมัติ <b>ทุก 5 นาที</b> ตลอด 24 ชม.</p>
             <div id="schedPreviewText" class="set-preview"></div>
-            <div class="set-actions">
-              <button class="btn" onclick="saveSchedule()">บันทึกเวลา</button>
-              <button class="ghost" id="resetSchedBtn" onclick="resetSchedule()" title="เริ่มนับเวลาใหม่">Reset</button>
-            </div>
           </div>
 
           <!-- Google Drive -->
@@ -1742,8 +1857,12 @@
               </thead>
               <tbody>
                 <tr>
+                  <td><span class="m-badge" style="background:rgba(139,92,246,.12);color:var(--violet)">Super Admin</span></td>
+                  <td>เห็นข้อมูลทุกโรงงาน จัดการโรงงาน กำหนดสังกัด และใช้งานได้ทุกฟีเจอร์เหมือน Admin</td>
+                </tr>
+                <tr>
                   <td><span class="m-badge" style="background:rgba(244,63,94,.12);color:var(--rose)">Admin</span></td>
-                  <td>ใช้งานได้ทุกฟีเจอร์ — สแกน, อนุมัติ, จัดการผู้ใช้, ตั้งค่า AI, ตั้งเวลาสแกนอัตโนมัติ, Export, ดูประวัติ, ปรับ Permission Matrix, <b>ล้างข้อมูลเพื่อเริ่มระบบใหม่</b></td>
+                  <td>ใช้งานได้ทุกฟีเจอร์ — สแกน, อนุมัติ, จัดการผู้ใช้, ตั้งค่า AI, Export, ดูประวัติ, ปรับ Permission Matrix, <b>ล้างข้อมูลเพื่อเริ่มระบบใหม่</b></td>
                 </tr>
                 <tr>
                   <td><span class="m-badge" style="background:rgba(245,158,11,.12);color:var(--amber)">Supervisor</span></td>
@@ -1756,6 +1875,11 @@
               </tbody>
             </table>
             <p class="m-hint">Admin ปรับสิทธิ์แต่ละ Role ได้ที่หน้า "ผู้ใช้งาน" → Permission Matrix</p>
+            <div class="m-note">
+              <b>สังกัดโรงงาน:</b> ผู้ใช้ทุกคน (ยกเว้น Super Admin) ต้องมีสังกัดโรงงาน จึงจะอัปโหลดและดูข้อมูลได้
+              — ข้อมูลจะถูกแยกตามโรงงาน ผู้ใช้จะเห็นเฉพาะข้อมูลของโรงงานตัวเอง<br>
+              Super Admin กำหนดสังกัดให้ผู้ใช้ได้ที่หน้า "ผู้ใช้งาน" โดยกดเลือกโรงงานในคอลัมน์สังกัด
+            </div>
             <div class="m-note">หน้า <b>ถามน้อง Order</b>, <b>พยากรณ์</b> และ <b>สุขภาพการผลิต</b> เปิดให้ทุกบทบาทใช้ได้ เพราะเป็นการดูข้อมูลอย่างเดียว ไม่มีการแก้ไขใด ๆ</div>
           </div>
 
@@ -1797,19 +1921,38 @@
           <!-- 4. Dashboard -->
           <div id="m-dashboard" class="m-section">
             <h3 class="m-title">4. แดชบอร์ด</h3>
-            <p>หน้าแรกหลัง Login แสดงสถานะภาพรวม:</p>
+            <p>หน้าแรกหลัง Login แสดงสถานะภาพรวม ข้อมูลจะ<b>โหลดใหม่ทุกครั้งที่คลิกเมนู</b></p>
+
+            <h4 style="margin:16px 0 8px;font-size:14px">4.1 ตัวเลขสรุป</h4>
             <table class="m-table">
               <thead><tr><th style="width:160px">ข้อมูล</th><th>คำอธิบาย</th></tr></thead>
               <tbody>
                 <tr><td><b>สแกนสะสม</b></td><td>จำนวนใบสั่งผลิตที่สแกนสำเร็จทั้งหมด</td></tr>
                 <tr><td><b>วันนี้</b></td><td>จำนวนที่สแกนในวันนี้</td></tr>
+                <tr><td><b>ซ้ำ (ข้าม)</b></td><td>จำนวนไฟล์ที่ถูกข้ามเพราะเลข Production Order ซ้ำ</td></tr>
                 <tr><td><b>คิวรอสแกน</b></td><td>ไฟล์ที่อัปโหลดแล้ว รอ AI ประมวลผล</td></tr>
                 <tr><td><b>รออนุมัติ</b></td><td>รายการที่สแกนสำเร็จ รอ Supervisor/Admin ตรวจสอบ</td></tr>
                 <tr><td><b>อนุมัติแล้ว</b></td><td>รายการที่ตรวจสอบผ่านแล้ว พร้อม Export</td></tr>
-                <tr><td><b>ประวัติรอบสแกน</b></td><td>บันทึกการสแกนแต่ละรอบ (manual หรืออัตโนมัติ)</td></tr>
-                <tr><td><b>นับถอยหลัง</b></td><td>เวลาจนถึงรอบสแกนอัตโนมัติถัดไป</td></tr>
               </tbody>
             </table>
+
+            <h4 style="margin:16px 0 8px;font-size:14px">4.2 กราฟและรายงาน</h4>
+            <table class="m-table">
+              <thead><tr><th style="width:200px">ส่วน</th><th>คำอธิบาย</th></tr></thead>
+              <tbody>
+                <tr><td><b>ผู้อัปโหลด</b></td><td>กราฟแท่งแสดงจำนวนเอกสารที่แต่ละ user อัปโหลด — ใช้ดูภาระงานของทีม</td></tr>
+                <tr><td><b>กิจกรรมการอนุมัติ</b></td><td>ประวัติการอนุมัติล่าสุด แสดงใคร อนุมัติรายการอะไร เมื่อไหร่</td></tr>
+                <tr><td><b>สัดส่วนวัตถุดิบที่ผิดจากมาตรฐาน</b></td><td>กราฟแท่งแนวนอนแสดงวัตถุดิบที่เบิกเกิน/ต่ำกว่าแผน — <b>นับเฉพาะรายการที่อนุมัติแล้ว</b>เท่านั้น</td></tr>
+              </tbody>
+            </table>
+            <div class="m-note">
+              <b>กราฟสัดส่วนวัตถุดิบ</b>จะแสดงเฉพาะรายการที่มีข้อมูลอย่างน้อย 5 ใบ
+              และใช้ค่ามัธยฐานเพื่อไม่ให้การคีย์ผิดครั้งเดียวทำให้ตัวเลขเพี้ยน<br>
+              <span style="color:var(--emerald)">&#9632;</span> ปกติ (&le;5%) &nbsp;
+              <span style="color:var(--amber)">&#9632;</span> เกิน 5-10% &nbsp;
+              <span style="color:var(--red)">&#9632;</span> เกิน &gt;10% &nbsp;
+              <span style="color:var(--indigo)">&#9632;</span> ใช้น้อยกว่า Plan
+            </div>
           </div>
 
           <!-- 5. Scan -->
@@ -1850,7 +1993,7 @@
             <p class="m-hint">ไฟล์ที่ล้มเหลวซ้ำหลายครั้งจะถูกย้ายไปรายการ "สแกนล้มเหลว" ซึ่ง Admin สั่งลองใหม่หรือลบทิ้งได้</p>
 
             <h4 style="margin:16px 0 8px;font-size:14px">5.5 สแกนอัตโนมัติ</h4>
-            <p>Admin ตั้งเวลาสแกนอัตโนมัติได้ที่หน้า "ตั้งค่า" — ระบบจะดึงไฟล์จาก Google Drive แล้วประมวลผลคิวตามเวลาที่กำหนด</p>
+            <p>ระบบสแกนคิวอัตโนมัติทุก 5 นาที — ไฟล์ที่อัปโหลดหรือดึงจาก Google Drive จะถูกประมวลผลโดยอัตโนมัติ</p>
           </div>
 
           <!-- 6. Orders -->
@@ -1862,7 +2005,7 @@
             <table class="m-table">
               <tbody>
                 <tr><td style="width:150px"><b>ค้นหา</b></td><td>พิมพ์เลขที่ ชื่อสินค้า หรืออีเมลผู้อนุมัติ</td></tr>
-                <tr><td><b>สถานะ</b></td><td>ทั้งหมด / รออนุมัติ / Draft / อนุมัติแล้ว</td></tr>
+                <tr><td><b>สถานะ</b></td><td>ทั้งหมด / รออนุมัติ / ต้องตรวจสอบ / Draft / อนุมัติแล้ว</td></tr>
                 <tr><td><b>ช่วงวันที่</b></td><td>ตั้งแต่วันที่ – ถึงวันที่ (อ้างอิงวันที่บนเอกสาร)</td></tr>
                 <tr><td><b>ปุ่มลัด</b></td><td>7 วัน · 30 วัน · เดือนนี้ · เดือนที่แล้ว · ทั้งหมด</td></tr>
               </tbody>
@@ -1875,7 +2018,7 @@
             <h4 style="margin:16px 0 8px;font-size:14px">6.2 แก้ไขรายการ</h4>
             <p>กดปุ่ม <b>แก้ไข</b> ที่รายการนั้น → หน้าต่างแก้ไขแสดง:</p>
             <ul class="m-list">
-              <li><b>ส่วนหัว</b> — Production Order, วันที่, Series No., ชื่อผลิตภัณฑ์, คลังรับเข้า</li>
+              <li><b>ส่วนหัว</b> — Production Order, วันที่, Item No., ชื่อผลิตภัณฑ์, คลังรับเข้า</li>
               <li><b>ยอดผลิต Plan</b> และหน่วยผลิต</li>
               <li><b>ตารางรายการ</b> — ลำดับ, รหัส, รายการวัตถุดิบ, Type, Qty, Plan, คลัง, หน่วย</li>
               <li><b>MFG / EXP Date</b> — ตาราง batch วันผลิต–วันหมดอายุ (ดูข้อ 6.5)</li>
@@ -1950,14 +2093,31 @@
               <div class="m-step" style="border-color:var(--emerald)"><span class="m-num" style="background:var(--emerald)">3</span><b>อนุมัติแล้ว</b><br><span class="muted">ข้อมูลพร้อมใช้งาน</span></div>
             </div>
 
-            <h4 style="margin:16px 0 8px;font-size:14px">7.1 ยืนยันค่าต่าง</h4>
+            <h4 style="margin:16px 0 8px;font-size:14px">7.1 สถานะ "ต้องตรวจสอบ"</h4>
+            <p>บางรายการจะมีป้ายเตือน <span class="m-badge" style="background:rgba(245,158,11,.14);color:var(--amber)">ต้องตรวจสอบ</span> ซึ่งเกิดจาก AI อ่านข้อมูลได้ไม่ครบหรือพบความขัดแย้ง:</p>
+            <table class="m-table">
+              <thead><tr><th style="width:250px">สาเหตุ</th><th>ความหมาย</th></tr></thead>
+              <tbody>
+                <tr><td><b>ไม่พบยอดผลิต Plan</b></td><td>AI อ่านตัวเลข Plan Total จากเอกสารไม่ได้</td></tr>
+                <tr><td><b>ไม่พบยอดผลิตจริง</b></td><td>AI อ่านตัวเลข Actual Total ไม่ได้</td></tr>
+                <tr><td><b>ไม่พบคอลัมน์ปริมาณที่ต้องใช้ทั้งใบ</b></td><td>ทุกแถวไม่มีค่า Plan — อาจถ่ายไม่ครบหน้า</td></tr>
+                <tr><td><b>ไม่พบคอลัมน์หน่วยทั้งใบ</b></td><td>ทุกแถวไม่มีหน่วย (Unit)</td></tr>
+                <tr><td><b>วันหมดอายุมาก่อนวันผลิต</b></td><td>EXP Date &lt; MFG Date — มักเกิดจาก AI อ่านเลขเดือนผิด</td></tr>
+              </tbody>
+            </table>
+            <div class="m-note">
+              รายการที่ขึ้น "ต้องตรวจสอบ" ยังสามารถแก้ไข บันทึก และอนุมัติได้ตามปกติ
+              — ป้ายนี้เป็นเพียงคำเตือนให้ Supervisor ตรวจสอบกับเอกสารต้นฉบับก่อนอนุมัติ
+            </div>
+
+            <h4 style="margin:16px 0 8px;font-size:14px">7.2 ยืนยันค่าต่าง</h4>
             <p>แต่ละแถวมี <b>checkbox "✓ ยืนยันค่าต่าง"</b> — ต้อง Tick ครบทุกแถวก่อนจึงอนุมัติได้</p>
             <ul class="m-list">
               <li>เปรียบเทียบ <b>Qty</b> (ที่เขียนด้วยมือ) กับ <b>Plan</b> (ตามแผน)</li>
               <li>หาก Qty ≠ Plan แถวจะไฮไลต์สีเหลืองเพื่อเตือนให้ตรวจสอบ</li>
             </ul>
 
-            <h4 style="margin:16px 0 8px;font-size:14px">7.2 การอนุมัติ</h4>
+            <h4 style="margin:16px 0 8px;font-size:14px">7.3 การอนุมัติ</h4>
             <div class="m-note">
               <b>เมื่ออนุมัติแล้ว:</b>
               <ul class="m-list" style="margin-bottom:0">
@@ -1977,8 +2137,10 @@
               <li>เลือกช่วงวันที่ (เว้นว่าง = ทั้งหมด)</li>
               <li>เลือกกรองตาม "วันที่บนเอกสาร" หรือ "วันที่สแกน"</li>
               <li>เลือก<b>สถานะ</b>ที่ต้องการ Export</li>
+              <li>Admin/Super Admin สามารถ<b>เลือกโรงงาน</b>ที่ต้องการ Export ได้ (ค่าเริ่มต้น = โรงงานของตัวเอง)</li>
               <li>กดปุ่ม <b>"Export เป็น Excel"</b></li>
             </ol>
+            <p class="m-hint">ชื่อไฟล์ Excel จะมีชื่อโรงงานต่อท้ายให้อัตโนมัติ เช่น "ใบเบิกวัตถุดิบ_PHASE8.xlsx" เพื่อให้ทราบว่าเป็นข้อมูลของโรงงานไหน</p>
             <div class="m-note">
               ค่าเริ่มต้นคือ <b>เฉพาะรายการที่อนุมัติแล้ว</b> หากต้องการรวมรายการที่ยังไม่อนุมัติ ให้เปลี่ยนตัวเลือกสถานะเป็น "ทั้งหมด"<br>
               ตัวเลือก <b>"วันที่สแกน"</b> คิดตาม<b>เวลาประเทศไทย</b> — ใบที่สแกนตอนดึกจะอยู่ในวันเดียวกับที่เห็นบนหน้าจอ
@@ -2220,7 +2382,14 @@
             <h4 style="margin:16px 0 8px;font-size:14px">12.3 แก้ไข Role</h4>
             <p>ในตารางผู้ใช้ กด Dropdown ข้าง Role เพื่อเปลี่ยนบทบาท → ระบบบันทึกทันที</p>
 
-            <h4 style="margin:16px 0 8px;font-size:14px">12.4 Permission Matrix</h4>
+            <h4 style="margin:16px 0 8px;font-size:14px">12.4 กำหนดสังกัดโรงงาน</h4>
+            <p>Super Admin สามารถกำหนดสังกัดโรงงานให้ผู้ใช้ได้โดยกด Dropdown ในคอลัมน์ "สังกัด"</p>
+            <div class="m-note">
+              ผู้ใช้ที่ยังไม่มีสังกัดโรงงานจะ<b>ไม่สามารถอัปโหลดเอกสารได้</b>
+              — ระบบจะแสดงข้อความ "ยังไม่ได้สังกัดโรงงาน กรุณาติดต่อ Admin เพื่อกำหนดโรงงาน"
+            </div>
+
+            <h4 style="margin:16px 0 8px;font-size:14px">12.5 Permission Matrix</h4>
             <p>ตาราง Checkbox แสดงสิทธิ์แต่ละ Role — Tick/Untick แล้วกด <b>"บันทึกสิทธิ์"</b></p>
             <p>ตารางครอบคลุมทุกหน้าในระบบ: แดชบอร์ด · สแกน · รายการ · ถามน้อง Order · พยากรณ์ ·
               สุขภาพการผลิต · Export · ผู้ใช้งาน · ประวัติการใช้งาน · ตั้งค่า
@@ -2234,15 +2403,8 @@
           <div id="m-settings" class="m-section">
             <h3 class="m-title">13. ตั้งค่าระบบ (Admin)</h3>
 
-            <h4 style="margin:16px 0 8px;font-size:14px">13.1 ตั้งเวลาสแกนอัตโนมัติ</h4>
-            <table class="m-table">
-              <tbody>
-                <tr><td style="width:180px"><b>ทุกๆ N ชั่วโมง</b></td><td>สแกนคิวอัตโนมัติตามช่วงเวลาที่กำหนด (เช่น ทุก 3 ชม.)</td></tr>
-                <tr><td><b>ทุกๆ N นาที</b></td><td>สำหรับทดสอบ — สแกนถี่ขึ้น</td></tr>
-                <tr><td><b>เวลารายวัน</b></td><td>ระบุชั่วโมง เช่น 8,13,17 = สแกนวันละ 3 รอบ</td></tr>
-                <tr><td><b>ปิด</b></td><td>ปิดสแกนอัตโนมัติ — สแกน manual เท่านั้น</td></tr>
-              </tbody>
-            </table>
+            <h4 style="margin:16px 0 8px;font-size:14px">13.1 สแกนอัตโนมัติ</h4>
+            <p>ระบบสแกนคิวอัตโนมัติ <b>ทุก 5 นาที</b> ตลอด 24 ชม. ไม่ต้องตั้งค่าใดๆ</p>
 
             <h4 style="margin:16px 0 8px;font-size:14px">13.2 โฟลเดอร์ Google Drive</h4>
             <ol class="m-list" style="padding-left:20px">
@@ -2374,6 +2536,18 @@
               <div class="m-q">Q: อัปโหลดหลายไฟล์แล้วขึ้นว่าไม่สำเร็จ ทั้งที่ไฟล์เข้าคิวครบ?</div>
               <div class="m-a">A: แก้แล้ว — เดิมการอัปโหลดหลายไฟล์พร้อมกันใช้เวลานานจนหมดเวลารอ ทำให้ขึ้นว่าล้มเหลวทั้งที่เข้าคิวได้จริง ตอนนี้อัปโหลดทีละไฟล์พร้อมตัวนับความคืบหน้า และสรุปจำนวนที่สำเร็จจริงเมื่อจบ</div>
             </div>
+            <div class="m-faq">
+              <div class="m-q">Q: สถานะ "ต้องตรวจสอบ" คืออะไร เกิดจากอะไร?</div>
+              <div class="m-a">A: ระบบจะ flag "ต้องตรวจสอบ" เมื่อ AI อ่านข้อมูลได้ไม่ครบหรือพบความขัดแย้ง เช่น ไม่พบยอด Plan, ไม่พบหน่วย, หรือวันหมดอายุมาก่อนวันผลิต — ไม่ได้หมายความว่าข้อมูลผิดเสมอ แต่ควรตรวจสอบกับเอกสารต้นฉบับก่อนอนุมัติ (ดูข้อ 7.1)</div>
+            </div>
+            <div class="m-faq">
+              <div class="m-q">Q: ปิดเครื่อง / ปิด browser แล้วเอกสารในคิวจะถูกสแกนไหม?</div>
+              <div class="m-a">A: ได้ — ระบบสแกนอัตโนมัติทุก 5 นาทีบน Cloud ไม่ต้องเปิดเครื่องทิ้งไว้ เอกสารที่อยู่ในคิวจะถูกสแกนภายไม่เกิน 5 นาที เปิด browser กลับมาเมื่อไหร่ก็เห็นผลสแกนเรียบร้อย</div>
+            </div>
+            <div class="m-faq">
+              <div class="m-q">Q: อัปโหลดไม่ได้ ขึ้นว่า "ยังไม่ได้สังกัดโรงงาน"?</div>
+              <div class="m-a">A: ติดต่อ Super Admin ให้กำหนดสังกัดโรงงานให้ที่หน้า "ผู้ใช้งาน" — เมื่อมีสังกัดแล้วจะอัปโหลดได้ทันที</div>
+            </div>
           </div>
 
         </div>
@@ -2416,8 +2590,13 @@
       </div>
       <div class="two">
         <div><label>Production Order</label><input id="e_order"></div>
-        <div><label>วันที่</label><input id="e_date" type="date"></div>
-        <div><label>Series No.</label><input id="e_series"></div>
+        <div><label>วันที่</label>
+          <div class="date-wrap">
+            <input id="e_date" type="date" class="fmt-dmy" onchange="syncDateLabel('e_date')">
+            <span class="date-dmy-label placeholder" data-for="e_date">dd/mm/yyyy</span>
+          </div>
+        </div>
+        <div><label>Item No.</label><input id="e_series"></div>
         <div><label>ผลิตภัณฑ์</label><input id="e_product"></div>
         <div><label>คลังรับเข้า</label><input id="e_whse" placeholder="เช่น DW-1001"></div>
       </div>
@@ -2452,7 +2631,7 @@
       <!-- source image -->
       <div id="editImageWrap" class="hidden" style="margin-bottom:14px">
         <label style="margin-bottom:8px">ภาพต้นฉบับ (คลิกเพื่อขยาย)</label>
-        <img id="editImage" style="max-width:100%;max-height:300px;border-radius:10px;border:1px solid var(--line);cursor:pointer;object-fit:contain" onclick="this.style.maxHeight=this.style.maxHeight==='300px'?'none':'300px'" alt="source">
+        <div id="editImages" style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start"></div>
       </div>
       <!-- approval status -->
       <div id="editApproval" style="margin-bottom:14px;padding:12px 16px;border-radius:12px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2)">
@@ -2483,7 +2662,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut }
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 // ▼▼▼ กรอกค่าจาก Firebase Console → Project settings → Web app ▼▼▼
@@ -2615,6 +2794,9 @@ window.showPage = (page) => {
   document.querySelector(`.nav-item[data-page="${page}"]`)?.classList.add('active');
   document.querySelectorAll('.tab-item').forEach(n => n.classList.remove('active'));
   document.querySelector(`.tab-item[data-page="${page}"]`)?.classList.add('active');
+  if(page==='dashboard') loadReport();
+  if(page==='scan'){ loadPending(); loadSchedule(); loadDeadLetter(); }
+  if(page==='orders') loadOrders();
   if(page==='factories') loadFactories();
   if(page==='users'){ loadUsers(); renderPermMatrix(); }
   if(page==='activity') loadActivity();
@@ -2667,6 +2849,13 @@ window.doLogin = async () => {
   }
 };
 window.doLogout = () => signOut(auth);
+window.forgotPassword = async () => {
+  const em = ($("email").value||"").trim().toLowerCase();
+  if(!em){ toast("กรุณากรอกอีเมลก่อน แล้วกดลืมรหัสผ่าน"); return; }
+  try{ await sendPasswordResetEmail(auth, em); toast("ส่งลิงก์รีเซ็ตรหัสผ่านไปที่ "+em+" แล้ว"); }
+  catch(e){ toast(e.code==="auth/user-not-found"?"ไม่พบอีเมลนี้ในระบบ":"เกิดข้อผิดพลาด: "+e.code); }
+};
+window.doMicrosoftLogin = () => { toast("ระบบรองรับการเข้าสู่ระบบด้วยอีเมลและรหัสผ่านเท่านั้น"); };
 
 async function init(){
   await loadConfig();
@@ -2731,6 +2920,20 @@ window.loadConfig = async () => {
         fc.classList.remove("hidden");
       } else { fc.classList.add("hidden"); }
     }
+    // block upload if no factory assigned (non-super_admin)
+    const needsFactory = c.role !== "super_admin" && !c.factory_id;
+    const nfw = $("noFactoryWarn"), upP = $("uploadPanel");
+    if(nfw) nfw.classList.toggle("hidden", !needsFactory);
+    if(upP) upP.classList.toggle("hidden", needsFactory);
+    // export factory selector (super_admin/admin only)
+    const efw = $("expFactoryWrap"), efs = $("expFactory");
+    if(efw && efs){
+      const facs = c.factories || [];
+      if((c.role === "super_admin" || c.role === "admin") && facs.length){
+        efs.innerHTML = '<option value="">ทุกโรงงาน</option>' + facs.map(f => `<option value="${f.id}">${f.code} — ${f.name}</option>`).join("");
+        efw.classList.remove("hidden");
+      } else { efw.classList.add("hidden"); }
+    }
     if(!$("provider")) return;
     $("provider").value = c.provider;
     const ok = c.keys_configured[c.provider];
@@ -2789,11 +2992,9 @@ function paintSettingsHero(c){
 window.paintScheduleHero = () => {
   const el = $("stSched");
   if(!el) return;
-  const mode = $("schedMode") ? $("schedMode").value : "off";
-  const txt = ($("schedPreviewText")?.textContent || "").replace(/^[^ก-๙A-Za-z]+/, "").trim();
-  el.textContent = mode === "off" ? "ปิดอยู่" : (txt || "เปิดอยู่");
-  el.style.color = mode === "off" ? "var(--muted)" : "";
-  $("stSchedSub").textContent = mode === "off" ? "สแกนด้วยปุ่มเท่านั้น" : "ทำงานตามเวลาที่ตั้งไว้";
+  el.textContent = "ทุก 5 นาที";
+  el.style.color = "";
+  $("stSchedSub").textContent = "ทำงานอัตโนมัติตลอด 24 ชม.";
 };
 
 window.saveAutoCrop = async () => {
@@ -2858,23 +3059,46 @@ window.loadPending = async () => {
   try{
     const j = await (await api("/pending")).json();
     const list = j.pending||[];
+    const failedItems = list.filter(p => p.status==="failed");
+    _lastPendingCount = list.length;
     $("pendingCount").textContent = list.length;
     $("pendingBadge").textContent = list.length;
+    if(failedItems.length) toast(`⚠️ มี ${failedItems.length} ไฟล์สแกนล้มเหลว — ระบบจะลองใหม่อัตโนมัติ`);
     $("pendingBody").innerHTML = list.length ? list.map((p,i) => {
       const isFail = p.status==="failed";
-      const st = isFail ? `<span class="st-fail">ล้มเหลว</span>` : `<span class="st-ok">รอสแกน</span>`;
-      const dt = p.uploaded_at ? p.uploaded_at.slice(0,16).replace("T"," ") : "—";
+      const isHeld = p.status==="held";
+      const st = isFail ? `<span class="st-fail">ล้มเหลว (ลองครั้งที่ ${p.retry_count||1}/3)</span>`
+        : isHeld ? `<span style="color:#b45309;font-weight:600">สแกนแล้ว · รอหน้าที่เหลือ</span><div style="font-size:11px;color:var(--faint);font-weight:400;margin-top:2px">Order ${p.held_order_no||"-"} · หน้า ${p.held_page_no}/${p.held_page_total}</div>`
+        : `<span class="st-ok">รอสแกน</span>`;
+      const dt = fmtTs(p.uploaded_at);
       const fn = (p.filename||"(ไฟล์)").replace(/</g,"&lt;");
       const fnSafe = (p.filename||"").replace(/'/g,"");
       return `<tr>
+        <td style="text-align:center"><input type="checkbox" class="p-check" data-pid="${p.id}" data-fname="${fnSafe.replace(/"/g,'')}" onchange="updatePendBar()"></td>
         <td style="text-align:center;color:var(--faint)">${i+1}</td>
         <td class="fname">${fn}${isFail?`<div style="font-size:11px;color:var(--rose);font-weight:400;margin-top:2px">${(p.error||"").slice(0,80)}</div>`:""}</td>
         <td>${st}</td>
         <td style="white-space:nowrap">${dt}</td>
         <td><div class="act-btns"><button title="ดูตัวอย่าง" onclick="previewPending('${p.id}')">⌕</button><button title="ลบ" onclick="deletePending('${p.id}','${fnSafe}')">✕</button></div></td>
       </tr>`;
-    }).join("") : '<tr><td colspan="5" class="muted" style="text-align:center;padding:24px">— ไม่มีไฟล์ในคิว —</td></tr>';
-  }catch(e){ $("pendingBody").innerHTML = '<tr><td colspan="5" class="muted" style="text-align:center;padding:24px">โหลดไม่สำเร็จ</td></tr>'; }
+    }).join("") : '<tr><td colspan="6" class="muted" style="text-align:center;padding:24px">— ไม่มีไฟล์ในคิว —</td></tr>';
+    $("pendAll").checked = false;
+    updatePendBar();
+  }catch(e){ $("pendingBody").innerHTML = '<tr><td colspan="6" class="muted" style="text-align:center;padding:24px">โหลดไม่สำเร็จ</td></tr>'; }
+};
+window.togglePendAll = (checked) => {
+  document.querySelectorAll('#pendingBody .p-check').forEach(cb => cb.checked = checked);
+  updatePendBar();
+};
+window.updatePendBar = () => {
+  const all = document.querySelectorAll('#pendingBody .p-check');
+  const n = document.querySelectorAll('#pendingBody .p-check:checked').length;
+  const btn = $("processSelBtn");
+  btn.classList.toggle("hidden", n === 0);
+  btn.textContent = `สแกนที่เลือก (${n})`;
+  const head = $("pendAll");
+  head.checked = n > 0 && n === all.length;
+  head.indeterminate = n > 0 && n < all.length;
 };
 window.previewPending = async (pid) => {
   try{
@@ -2898,38 +3122,93 @@ window.deletePending = async (pid, name) => {
   }catch(e){ toast("เชื่อมต่อไม่สำเร็จ"); }
 };
 
-window.processAll = async () => {
-  const btn = $("processBtn"); btn.disabled = true;
-  // get current pending list
-  let pending = [];
+// --- Dead letter (failed 3+ times) ---
+window.loadDeadLetter = async () => {
   try{
-    const pj = await (await api("/pending")).json();
-    pending = (pj.pending||[]).filter(p => p.status === "pending");
-  }catch(e){ $("processResult").textContent = "❌ โหลดคิวไม่สำเร็จ"; btn.disabled=false; return; }
-  if(!pending.length){ $("processResult").textContent = "ไม่มีไฟล์ในคิว"; btn.disabled=false; return; }
-  const total = pending.length;
-  let succeeded=0, failed=0, skipped=0;
+    const j = await (await api("/dead-letter")).json();
+    const items = j.items||[];
+    const panel = $("deadLetterPanel");
+    if(!items.length){ panel.classList.add("hidden"); $("deadBadge").textContent="0"; return; }
+    panel.classList.remove("hidden");
+    $("deadBadge").textContent = items.length;
+    $("deadBody").innerHTML = items.map((d,i) => {
+      const fn = (d.filename||"(ไฟล์)").replace(/</g,"&lt;");
+      const err = (d.error||"ไม่ทราบสาเหตุ").replace(/</g,"&lt;");
+      const dt = fmtTs(d.uploaded_at);
+      return `<tr>
+        <td style="text-align:center;color:var(--faint)">${i+1}</td>
+        <td class="fname">${fn}</td>
+        <td style="font-size:12px;color:var(--rose)">${err.slice(0,100)}</td>
+        <td style="white-space:nowrap">${dt}</td>
+        <td><div class="act-btns"><button title="ลองสแกนใหม่" onclick="retryDead('${d.id}')">↻</button><button title="ลบ" onclick="deleteDead('${d.id}','${fn.replace(/'/g,"")}')">✕</button></div></td>
+      </tr>`;
+    }).join("");
+  }catch(e){}
+};
+window.retryDead = async (dlqId) => {
+  try{
+    const r = await api("/dead-letter/"+dlqId+"/retry", {method:"POST"});
+    if(r.ok){ toast("ย้ายกลับคิวแล้ว ระบบจะลองสแกนใหม่ในรอบถัดไป"); loadDeadLetter(); loadPending(); }
+    else toast("ลองใหม่ไม่สำเร็จ");
+  }catch(e){ toast("เชื่อมต่อไม่สำเร็จ"); }
+};
+window.deleteDead = async (dlqId, name) => {
+  if(!confirm("ลบไฟล์ "+(name||dlqId)+" ที่สแกนล้มเหลว?")) return;
+  try{
+    const r = await api("/dead-letter/"+dlqId, {method:"DELETE"});
+    if(r.ok){ toast("ลบแล้ว ✓"); loadDeadLetter(); }
+    else toast("ลบไม่สำเร็จ");
+  }catch(e){ toast("เชื่อมต่อไม่สำเร็จ"); }
+};
+
+/** Scan a chosen set of queued files, one at a time, reporting as it goes. */
+async function runScan(files){
+  const btns = [$("processBtn"), $("processSelBtn")];
+  btns.forEach(b => b.disabled = true);
+  const total = files.length;
+  let succeeded=0, failed=0, skipped=0, waiting=0;
   const details = [];
-  for(let i=0; i<pending.length; i++){
-    const p = pending[i];
-    $("processResult").innerHTML = `<span class="spin"></span> กำลังสแกน ${i+1}/${total} — ${p.filename||"(ไฟล์)"}`;
+  for(let i=0; i<total; i++){
+    const p = files[i];
+    const name = p.filename || "(ไฟล์)";
+    $("processResult").innerHTML = `<span class="spin"></span> กำลังสแกน ${i+1}/${total} — ${name}`;
     try{
       const r = await api("/process/"+p.id, {method:"POST"});
       const j = await r.json();
       if(r.ok){
         if(j.status==="success") succeeded++;
+        else if(j.status==="waiting"){ waiting++; details.push("⏳ "+j.detail); }
         else if(j.status==="skipped"){ skipped++; details.push("⚠️ "+j.detail); }
-        else { failed++; details.push("❌ "+p.filename+": "+j.detail); }
-      } else { failed++; details.push("❌ "+p.filename+": "+(j.detail||"error")); }
-    }catch(e){ failed++; details.push("❌ "+p.filename+": เชื่อมต่อไม่สำเร็จ"); }
+        else { failed++; details.push("❌ "+name+": "+j.detail); }
+      } else { failed++; details.push("❌ "+name+": "+(j.detail||"error")); }
+    }catch(e){ failed++; details.push("❌ "+name+": เชื่อมต่อไม่สำเร็จ"); }
   }
   let html = `<span class="pill">สำเร็จ ${succeeded}</span>`;
+  if(waiting) html += `<span class="pill" style="background:rgba(245,158,11,.16);color:#b45309">รอหน้าที่เหลือ ${waiting}</span>`;
   if(skipped) html += `<span class="pill" style="background:rgba(234,179,8,.15);color:#ca8a04">ซ้ำ/ข้าม ${skipped}</span>`;
   if(failed) html += `<span class="pill" style="background:rgba(239,68,68,.15);color:#f87171">ล้มเหลว ${failed}</span>`;
   if(details.length) html += '<div class="hint mt" style="white-space:pre-line">'+details.join('\n')+'</div>';
   $("processResult").innerHTML = html;
-  loadPending(); loadOrders(); loadReport();
-  btn.disabled = false;
+  loadPending(); loadOrders(); loadReport(); loadDeadLetter();
+  btns.forEach(b => b.disabled = false);
+}
+window.processAll = async () => {
+  let pending = [];
+  try{
+    const pj = await (await api("/pending")).json();
+    pending = (pj.pending||[]).filter(p => p.status === "pending" || p.status === "failed");
+  }catch(e){ $("processResult").textContent = "❌ โหลดคิวไม่สำเร็จ"; return; }
+  if(!pending.length){ $("processResult").textContent = "ไม่มีไฟล์ในคิว"; return; }
+  runScan(pending);
+};
+window.processSelected = () => {
+  // Read the ticked rows straight off the table — the queue may have changed
+  // since it was drawn, and the per-file endpoint reports anything stale.
+  const picked = [...document.querySelectorAll('#pendingBody .p-check:checked')]
+    .map(cb => ({id: cb.dataset.pid, filename: cb.dataset.fname}));
+  if(!picked.length){ toast("ยังไม่ได้เลือกไฟล์"); return; }
+  if(!confirm(`สแกน ${picked.length} ไฟล์ที่เลือก?`)) return;
+  runScan(picked);
 };
 
 let allOrders = [];
@@ -2953,6 +3232,13 @@ function renderOrderRow(o){
   const reviewBadge = o.needs_review
     ? `<span class="pill" style="font-size:10px;padding:2px 7px;background:rgba(239,68,68,.14);color:var(--red)" title="${esc((o.review_reasons||[]).join(" · "))}">ต้องตรวจสอบ</span>`
     : '';
+  // A multi-page requisition is filed as one order; say how many sheets went in
+  // so a missing page is visible before anyone approves the order.
+  const pgTotal = o.page_total || 1;
+  const pgSeen = (o.pages || []).length || 1;
+  const pageBadge = pgTotal > 1
+    ? `<span class="pill" style="font-size:10px;padding:2px 7px;background:${pgSeen>=pgTotal?'rgba(16,185,129,.14);color:var(--emerald)':'rgba(245,158,11,.16);color:#b45309'}" title="${pgSeen>=pgTotal?'รวมครบทุกหน้าแล้ว':'ยังขาดบางหน้า — รอสแกนหน้าที่เหลือ'}">${pgSeen}/${pgTotal} หน้า</span>`
+    : '';
   const sapBadge = o.exported_at
     ? '<span class="pill" style="font-size:10px;padding:2px 7px;background:rgba(14,165,233,.14);color:#0284c7" title="อยู่ในไฟล์ Export แล้ว">SAP ✓</span>'
     : approved
@@ -2960,8 +3246,8 @@ function renderOrderRow(o){
       : '';
   const borderClr = approved ? 'var(--emerald)' : isDraft ? 'var(--indigo)' : 'var(--amber)';
   const chk = hasPerm("delete") ? `<input type="checkbox" class="o-check" data-oid="${o.id}" data-label="${po.replace(/"/g,'')}" onchange="updateBatchBar()">` : '';
-  return `<div class="order orow" style="border-left-color:${borderClr}">${chk}<div class="obody"><b>${po} ${statusBadge} ${reviewBadge} ${sapBadge} <span class="muted" style="font-weight:400">${dt?' · '+dt:''} ${o.product_name?' · '+o.product_name:''}</span></b>
-    <div class="meta">${o.scanned_at ? o.scanned_at.slice(0,16).replace("T"," ") : ""}
+  return `<div class="order orow" style="border-left-color:${borderClr}">${chk}<div class="obody"><b>${po} ${statusBadge} ${reviewBadge} ${pageBadge} ${sapBadge} <span class="muted" style="font-weight:400">${dt?' · '+dt:''} ${o.product_name?' · '+o.product_name:''}</span></b>
+    <div class="meta">${fmtTs(o.scanned_at)}
     · ${(o.lines||[]).length} รายการ${planTag}${o.approved_by?' · อนุมัติโดย '+o.approved_by:''}</div></div>
     <button class="del" title="${approved?'ดู':'แก้ไข'}" onclick="openEdit('${o.id}')">${approved?'⌕':'✎'}</button>
     ${hasPerm("delete")?`<button class="del" title="ลบรายการนี้" onclick="deleteOrder('${o.id}','${po.replace(/'/g,"")}')">✕</button>`:''}</div>`;
@@ -3034,10 +3320,24 @@ window.deleteSelected = async () => {
   toast(`ลบสำเร็จ ${ok} รายการ` + (fail ? ` · ล้มเหลว ${fail}` : ''));
   loadOrders(); loadReport();
 };
+window.syncDateLabel = function(id){
+  const inp = document.getElementById(id);
+  const label = document.querySelector(`.date-dmy-label[data-for="${id}"]`);
+  if(!inp || !label) return;
+  if(inp.value){
+    const [y,m,d] = inp.value.split("-");
+    label.textContent = `${d}/${m}/${y}`;
+    label.classList.remove("placeholder");
+  } else {
+    label.textContent = "dd/mm/yyyy";
+    label.classList.add("placeholder");
+  }
+}
 function orderDate(o){ return (o.document_date || o.scanned_at || "").slice(0,10); }
 function filtersActive(){
   return !!($("ordSearch")?.value.trim() || $("ordFrom")?.value || $("ordTo")?.value);
 }
+window.debouncedOrderFilter = debounce(() => applyOrderFilters(), 200);
 window.applyOrderFilters = () => {
   const status = $("statusFilter").value;
   const q = ($("ordSearch")?.value || "").trim().toLowerCase();
@@ -3100,6 +3400,8 @@ window.quickRange = (kind, btn) => {
   }
   $("ordFrom").value = from;
   $("ordTo").value = to;
+  syncDateLabel('ordFrom');
+  syncDateLabel('ordTo');
   applyOrderFilters();
 };
 
@@ -3195,10 +3497,14 @@ function askHero(){
 }
 
 // ---- Ask AI ----------------------------------------------------------------
+function debounce(fn, ms = 200){
+  let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+}
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c =>
   ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const fmt = n => (typeof n === "number")
   ? n.toLocaleString("th-TH", {maximumFractionDigits: 2}) : esc(n);
+const fmtTs = s => { if(!s) return "—"; try{ return new Date(s).toLocaleString("th-TH",{timeZone:"Asia/Bangkok",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}); }catch(e){ return s.slice(0,16).replace("T"," "); } };
 
 // Column header with a hover/tap explanation. Every analytics column gets one:
 // these tables carry derived figures, and a heading alone does not say how a
@@ -3521,7 +3827,7 @@ window.loadForecast = async () => {
 
     prod.innerHTML = `<table class="q-table">
       <thead><tr>
-        ${th("ผลิตภัณฑ์","ชื่อสินค้าและรหัส Series No. จากใบสั่งผลิต")}
+        ${th("ผลิตภัณฑ์","ชื่อสินค้าและรหัส Item No. จากใบสั่งผลิต")}
         ${th("เฉลี่ย/เดือน","ยอดผลิตเฉลี่ยต่อเดือนของสินค้านี้ จากเดือนที่ผ่านมาทั้งหมด","class=\"num\"")}
         ${th("พยากรณ์","ยอดผลิตที่คาดว่าจะเกิดในช่วงที่เลือก ประมาณจากเส้นแนวโน้มของยอดผลิตย้อนหลัง และถูกจำกัดไม่ให้เหวี่ยงเกินช่วงที่สมเหตุสมผล","class=\"num\"")}
         ${th("ย้อนหลัง","กราฟยอดผลิตรายเดือนย้อนหลัง แท่งขวาสุดคือเดือนล่าสุด","style=\"width:110px\"")}
@@ -3607,7 +3913,7 @@ function renderMix(f){
   if(!rows.length){ box.innerHTML = '<span class="muted">ไม่มีข้อมูล</span>'; return; }
   box.innerHTML = `<table class="q-table">
     <thead><tr>
-      ${th("ผลิตภัณฑ์","สินค้าสำเร็จรูปที่ผลิต อ้างอิงจาก Series No. ในใบสั่งผลิต")}
+      ${th("ผลิตภัณฑ์","สินค้าสำเร็จรูปที่ผลิต อ้างอิงจาก Item No. ในใบสั่งผลิต")}
       ${th("สัดส่วน","สัดส่วนยอดผลิตของสินค้านี้ต่อยอดผลิตรวมทั้งหมดในช่วงที่พยากรณ์ บรรทัดล่างคือสัดส่วนของเดือนล่าสุดเพื่อเทียบ","class=\"num\"")}
       ${th("เปลี่ยนแปลง","ผลต่างของสัดส่วนเทียบเดือนล่าสุด หน่วยเป็นจุดเปอร์เซ็นต์ — ค่านี้คือคำอธิบายว่าทำไมวัตถุดิบบางตัวถึงขยับ ทั้งที่ยอดผลิตรวมเท่าเดิม","class=\"num\"")}
       ${th("","แถบแสดงสัดส่วนที่พยากรณ์ไว้","style=\"width:28%\"")}
@@ -3622,6 +3928,7 @@ function renderMix(f){
     <div class="method">สัดส่วนที่เปลี่ยนคือสาเหตุที่ทำให้ความต้องการวัตถุดิบบางตัวขยับ ทั้งที่ยอดผลิตรวมเท่าเดิม</div>`;
 }
 
+window.debouncedForecast = debounce(() => renderForecast(), 200);
 window.renderForecast = () => {
   const f = fcData;
   if(!f || !f.ready) return;
@@ -3807,7 +4114,7 @@ function renderYield(y){
       — ควรตรวจสอบไลน์ผลิตหรือคุณภาพวัตถุดิบก่อนที่จะกลายเป็นต้นทุนสะสม</div>` : ""}
     <table class="q-table">
       <thead><tr>
-        ${th("ผลิตภัณฑ์","ชื่อสินค้า รหัส Series No. และจำนวนเดือนที่มีข้อมูลให้คำนวณ")}
+        ${th("ผลิตภัณฑ์","ชื่อสินค้า รหัส Item No. และจำนวนเดือนที่มีข้อมูลให้คำนวณ")}
         ${th("เดือนล่าสุด","Yield ของเดือนที่จบล่าสุด = ยอดผลิตจริง ÷ ยอดผลิตตามแผน × 100 ค่ายิ่งต่ำแปลว่าสูญเสียระหว่างผลิตมาก","class=\"num\"")}
         ${th("เฉลี่ย","Yield เฉลี่ยของสินค้าตัวนี้ตลอดช่วงข้อมูล ใช้เป็นเกณฑ์ของตัวเอง ไม่ได้เทียบข้ามสินค้า เพราะแต่ละสูตรมีอัตราสูญเสียปกติต่างกัน","class=\"num\"")}
         ${th("ต่าง","ผลต่างระหว่างเดือนล่าสุดกับค่าเฉลี่ยของตัวเอง ค่าติดลบแปลว่าเดือนนี้แย่กว่าปกติ","class=\"num\"")}
@@ -3830,6 +4137,7 @@ function renderYield(y){
     </div>`;
 }
 
+window.debouncedVariance = debounce(() => renderVariance(), 200);
 window.renderVariance = () => {
   const box = $("hlVariance");
   const v = hlData && hlData.variance;
@@ -4064,12 +4372,16 @@ window.updatePlanCompare = () => {
   }
 };
 window.addLine = () => $("e_lines").insertAdjacentHTML("beforeend", lineRow());
-window.closeEdit = () => $("editModal").classList.add("hidden");
+window.closeEdit = () => {
+  $("editImages").querySelectorAll("img[src^='blob:']").forEach(img => URL.revokeObjectURL(img.src));
+  $("editModal").classList.add("hidden");
+};
 
 function loadEditForm(o){
   editId = o.id;
   $("e_order").value = o.order_no||"";
   $("e_date").value = o.document_date||"";
+  syncDateLabel('e_date');
   $("e_series").value = o.series_no||"";
   $("e_product").value = o.product_name||"";
   $("e_whse").value = o.product_whse||"";
@@ -4089,19 +4401,34 @@ function loadEditForm(o){
   $("e_batches").querySelectorAll(".brow").forEach(r=>r.remove());
   batchSec.classList.remove("hidden");
   batches.forEach(b=>$("e_batches").insertAdjacentHTML("beforeend", batchRow(b, o.order_no, o.series_no, o.plan_total)));
-  // source image
-  if(o.has_image){
-    $("editImageWrap").classList.remove("hidden");
-    const img = $("editImage");
-    img.style.maxHeight = "300px";
-    (async()=>{
-      try{
-        const r = await api("/orders/"+o.id+"/image");
-        if(r.ok){ const b=await r.blob(); img.src=URL.createObjectURL(b); }
-        else { $("editImageWrap").classList.add("hidden"); }
-      }catch(e){ $("editImageWrap").classList.add("hidden"); }
-    })();
-  } else { $("editImageWrap").classList.add("hidden"); }
+  // source images — a multi-page form keeps one photo per sheet, all shown here
+  // so every page can be checked against the order it was folded into.
+  const wrap = $("editImageWrap"), gallery = $("editImages");
+  gallery.querySelectorAll("img[src^='blob:']").forEach(img => URL.revokeObjectURL(img.src));
+  gallery.innerHTML = "";
+  const pages = (o.image_pages && o.image_pages.length) ? o.image_pages : (o.has_image ? [0] : []);
+  if(pages.length){
+    wrap.classList.remove("hidden");
+    pages.forEach(pg => {
+      const cell = document.createElement("div");
+      cell.style.cssText = "display:flex;flex-direction:column;gap:4px";
+      if(pages.length > 1)
+        cell.innerHTML = `<span style="font-size:11px;color:var(--faint);font-weight:600">หน้า ${pg}</span>`;
+      const img = document.createElement("img");
+      img.alt = "source page " + pg;
+      img.style.cssText = "max-width:100%;max-height:300px;border-radius:10px;border:1px solid var(--line);cursor:pointer;object-fit:contain";
+      img.onclick = () => { img.style.maxHeight = img.style.maxHeight==="300px" ? "none" : "300px"; };
+      cell.appendChild(img);
+      gallery.appendChild(cell);
+      (async()=>{
+        try{
+          const r = await api(`/orders/${o.id}/image${pg?`?page=${pg}`:""}`);
+          if(r.ok){ img.src = URL.createObjectURL(await r.blob()); }
+          else { cell.remove(); if(!gallery.children.length) wrap.classList.add("hidden"); }
+        }catch(e){ cell.remove(); if(!gallery.children.length) wrap.classList.add("hidden"); }
+      })();
+    });
+  } else { wrap.classList.add("hidden"); }
   // approval status
   const approved = o.status === "approved";
   const ap = $("editApproval");
@@ -4234,8 +4561,8 @@ function batchRow(b={}, orderNo, seriesNo, planTotal){
     <input class="b-mfg" type="date" value="${b.mfg_date||''}" style="font-size:12px" onchange="updateShelf(this)">
     <input class="b-exp" type="date" value="${b.exp_date||''}" style="font-size:12px" onchange="updateShelf(this)">
     <span class="b-shelf" style="font-size:11px;text-align:center;font-weight:600;color:${shelf.color||'var(--faint)'}">${shelf.text}</span>
-    <input class="b-qty" type="number" step="any" value="${b.batch_qty??''}" placeholder="Qty" style="font-size:12px;text-align:right">
-    <input class="b-unit" value="${b.batch_unit||''}" placeholder="หน่วย" style="font-size:12px">
+    <input class="b-qty" type="number" step="any" min="0" value="${b.batch_qty??''}" placeholder="Qty" style="font-size:12px;text-align:right" oninput="autoUnit(this)">
+    <input class="b-unit" value="${b.batch_unit||''}" placeholder="หน่วย" style="font-size:12px" oninput="validateUnit(this)">
     <button class="del" onclick="this.closest('.brow').remove()" style="width:28px;height:28px;font-size:14px;padding:0">×</button>
   </div>`;
 }
@@ -4250,6 +4577,13 @@ window.updateShelf = (el) => {
   row.dataset.shelfLevel = s.level || "";
   row.classList.toggle("brow-bad", s.level === "error");
 };
+window.autoUnit = (el) => {
+  const v = parseFloat(el.value);
+  if(v < 0) el.value = 0;
+};
+window.validateUnit = (el) => {
+  el.value = el.value.replace(/[0-9]/g, "");
+};
 window.addBatch = () => { $("e_batches").insertAdjacentHTML("beforeend", batchRow({}, $("e_order").value, $("e_series").value, $("e_plan_total").value)); $("batchSection").classList.remove("hidden"); };
 function collectBatches(){
   return [...$("e_batches").querySelectorAll(".brow")].map(r=>({
@@ -4263,11 +4597,20 @@ function collectBatches(){
 
 function checkBatchShelf(){
   const rows = [...$("e_batches").querySelectorAll(".brow")];
+  const noUnit = rows.filter(r=>{
+    const q = parseFloat(r.querySelector(".b-qty").value);
+    const u = (r.querySelector(".b-unit").value||"").trim();
+    return q > 0 && !u;
+  });
+  if(noUnit.length){
+    const first = noUnit[0];
+    first.scrollIntoView({behavior:"smooth", block:"center"});
+    alert("❌ กรุณากรอกหน่วยให้ครบทุก batch ที่มี Receive Qty");
+    setTimeout(()=>{const u=first.querySelector(".b-unit");if(u)u.focus();},400);
+    return false;
+  }
   const errors = rows.filter(r=>r.dataset.shelfLevel==="error");
   const warns = rows.filter(r=>r.dataset.shelfLevel==="warn");
-  // A date that runs backwards is not a judgement call — it cannot be what the
-  // paper says, so there is nothing for anyone to confirm.  Refuse outright and
-  // point at the row to fix, rather than offering an OK that saves it anyway.
   if(errors.length > 0){
     errors.forEach(r => r.classList.add("brow-bad"));
     const first = errors[0];
@@ -4352,7 +4695,7 @@ window.loadExportBatches = async () => {
           ? `${esc(m.from_date || "เริ่มต้น")} – ${esc(m.to_date || "ล่าสุด")}`
           : "ทั้งหมด";
         return `<tr style="${b.undone ? "opacity:.5" : ""}">
-          <td>${esc((b.created_at || "").slice(0,16).replace("T"," "))}</td>
+          <td>${fmtTs(b.created_at)}</td>
           <td>${esc(b.user_email || "-")}</td>
           <td class="num"><b>${fmt(b.count)}</b></td>
           <td class="muted" style="font-size:12px">${range}${m.only_new ? " · เฉพาะที่ยังไม่ส่ง" : ""}</td>
@@ -4394,6 +4737,8 @@ window.exportExcel = async (onlyNew) => {
   const st = useOnlyNew ? "approved" : $("expStatus").value;
   if(st !== "all") p.set("status", st);
   if(useOnlyNew) p.set("only_new", "true");
+  const ef = $("expFactory");
+  if(ef && ef.value) p.set("export_factory", ef.value);
 
   const prog = $("exportProgress");
   prog.innerHTML = '<span class="spin"></span> กำลังสร้างไฟล์…';
@@ -4407,7 +4752,9 @@ window.exportExcel = async (onlyNew) => {
   const blob = await r.blob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = url; a.download = "ใบเบิกวัตถุดิบ.xlsx"; a.click();
+  const facSel = $("expFactory");
+  const facLabel = facSel && facSel.value ? facSel.options[facSel.selectedIndex].text : (window._factoryCode || "ทุกโรงงาน");
+  a.href = url; a.download = "ใบเบิกวัตถุดิบ_"+facLabel+".xlsx"; a.click();
   URL.revokeObjectURL(url);
   prog.textContent = "";
   toast("ดาวน์โหลดไฟล์แล้ว — ระบบบันทึกว่าใบเหล่านี้ส่งออกแล้ว");
@@ -4444,7 +4791,6 @@ window.loadUsers = async () => {
   try{
     const j = await (await api("/users")).json();
     const list = j.users||[];
-    const isSA = currentRole === "super_admin";
     const roleOpts = (sel) => {
       let html = `<option value="staff" ${sel==="staff"?"selected":""}>Staff</option>`;
       html += `<option value="supervisor" ${sel==="supervisor"?"selected":""}>Supervisor</option>`;
@@ -4457,7 +4803,16 @@ window.loadUsers = async () => {
       const rc = ROLE_COLORS[u.role]||"var(--muted)";
       const bg = ROLE_BG[u.role]||"rgba(100,116,139,.08)";
       const initials = (u.display_name || u.email || "?").slice(0,2).toUpperCase();
-      const facLabel = u.factory_code ? `<span style="font-size:12px;color:var(--emerald);font-weight:600">${u.factory_code}</span>` : '<span style="font-size:12px;color:var(--faint)">—</span>';
+      const facs = window._allFactories || [];
+      let facCell;
+      if(isSA && u.role !== "super_admin"){
+        const facOpts = '<option value=""' + (!u.factory_id?' selected':'') + '>— ยังไม่ระบุ —</option>' + facs.map(f => `<option value="${f.id}"${u.factory_id===f.id?' selected':''}>${f.code} — ${f.name}</option>`).join("");
+        facCell = `<select style="width:auto;padding:5px 10px;font-size:12px;border-radius:20px;background:rgba(16,185,129,.08);color:var(--emerald);font-weight:600;border:1px solid transparent;cursor:pointer" onchange="changeFactory('${u.uid}',this.value)" title="เปลี่ยนโรงงาน">${facOpts}</select>`;
+      } else if(u.factory_code){
+        facCell = `<span style="font-size:12px;color:var(--emerald);font-weight:600">${u.factory_code}</span>`;
+      } else {
+        facCell = u.role === "super_admin" ? '<span style="font-size:11px;color:var(--muted)">ทุกโรงงาน</span>' : '<span style="font-size:12px;color:var(--faint)">—</span>';
+      }
       return `<tr style="border-bottom:1px solid var(--line);transition:.15s">
         <td style="padding:12px 14px">
           <div style="display:flex;align-items:center;gap:12px">
@@ -4473,7 +4828,7 @@ window.loadUsers = async () => {
             ${roleOpts(u.role)}
           </select>
         </td>
-        <td style="padding:12px 14px">${facLabel}</td>
+        <td style="padding:12px 14px">${facCell}</td>
         <td style="padding:12px 14px;font-size:12.5px;color:var(--muted)">${u.created_at?u.created_at.slice(0,10):"-"}</td>
         <td style="padding:12px 14px;text-align:right">
           <div style="display:flex;gap:6px;justify-content:flex-end">
@@ -4512,6 +4867,14 @@ window.changeRole = async (uid,role) => {
     else { const e=await r.json().catch(()=>({})); toast("เปลี่ยนไม่สำเร็จ: "+(e.detail||"")); loadUsers(); }
   }catch(e){ toast("เชื่อมต่อไม่สำเร็จ"); }
 };
+window.changeFactory = async (uid,factoryId) => {
+  if(!factoryId){ toast("กรุณาเลือกโรงงาน"); loadUsers(); return; }
+  try{
+    const r = await api("/users/"+uid,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({factory_id:factoryId})});
+    if(r.ok){ toast("เปลี่ยนโรงงานแล้ว ✓"); loadUsers(); }
+    else { const e=await r.json().catch(()=>({})); toast("เปลี่ยนไม่สำเร็จ: "+(e.detail||"")); loadUsers(); }
+  }catch(e){ toast("เชื่อมต่อไม่สำเร็จ"); }
+};
 window.deleteUser = async (uid,email) => {
   if(!confirm("ลบผู้ใช้ "+email+" ?\nจะลบบัญชีออกจากระบบถาวร")) return;
   try{
@@ -4545,6 +4908,7 @@ window.loadFactories = async () => {
         <td style="padding:12px 14px;font-size:12.5px;color:var(--muted)">${f.created_at?f.created_at.slice(0,10):"-"}</td>
         <td style="padding:12px 14px;text-align:right">
           <button class="ghost sm" title="แก้ไข" onclick="editFactory('${f.id}','${f.code.replace(/'/g,"")}','${f.name.replace(/'/g,"")}')" style="padding:6px 10px"><svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          <button class="ghost sm" title="ลบ" onclick="deleteFactory('${f.id}','${f.code.replace(/'/g,"")}')" style="padding:6px 10px;color:var(--red,#ef4444)"><svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
         </td>
       </tr>`;
     }).join("") : '<tr><td colspan="4" class="muted" style="padding:16px">ยังไม่มีโรงงาน</td></tr>';
@@ -4571,6 +4935,14 @@ window.editFactory = async (id,code,name) => {
     const r = await api("/factories/"+id,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({code,name:newName})});
     if(r.ok){ toast("แก้ไขโรงงาน "+code+" แล้ว ✓"); loadFactories(); loadConfig(); }
     else { const e=await r.json().catch(()=>({})); toast("แก้ไขไม่สำเร็จ: "+(e.detail||"")); }
+  }catch(e){ toast("เชื่อมต่อไม่สำเร็จ"); }
+};
+window.deleteFactory = async (id,code) => {
+  if(!confirm("ลบโรงงาน "+code+" ?\n(ลบได้เฉพาะกรณีที่ยังไม่มีข้อมูลผูกอยู่)")) return;
+  try{
+    const r = await api("/factories/"+id,{method:"DELETE"});
+    if(r.ok){ toast("ลบโรงงาน "+code+" แล้ว ✓"); loadFactories(); loadConfig(); }
+    else { const e=await r.json().catch(()=>({})); toast(e.detail||"ลบไม่สำเร็จ"); }
   }catch(e){ toast("เชื่อมต่อไม่สำเร็จ"); }
 };
 
@@ -4672,111 +5044,53 @@ window.loadActivity = async () => {
 
 // ---- dashboard countdown + schedule + report ----
 let nextRunTs = null;
+let _cronPolling = false;
+let _lastPendingCount = null;
 setInterval(() => {
   const el = $("countdown"); if(!el) return;
+  if(document.hidden) return;
   if(!nextRunTs){ el.textContent = "—"; return; }
   let diff = Math.floor((nextRunTs - Date.now())/1000);
-  if(diff <= 0){ el.textContent = "กำลังจะสแกน…"; return; }
+  if(diff <= 0){
+    el.textContent = "กำลังสแกน…";
+    if(!_cronPolling){ _cronPolling = true; _pollAfterCron(); }
+    return;
+  }
+  _cronPolling = false;
   const h=Math.floor(diff/3600), m=Math.floor((diff%3600)/60), s=diff%60;
   el.textContent = (h>0?h+":":"") + String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");
 }, 1000);
+async function _pollAfterCron(){
+  let tries = 0;
+  while(_cronPolling && tries < 12){
+    tries++;
+    await new Promise(r => setTimeout(r, 5000));
+    try{
+      const j = await (await api("/pending")).json();
+      const cnt = (j.pending||[]).length;
+      if(_lastPendingCount !== null && cnt < _lastPendingCount){
+        loadPending(); loadReport(); loadSchedule(); loadOrders();
+        _cronPolling = false; _lastPendingCount = cnt; return;
+      }
+      _lastPendingCount = cnt;
+      if(cnt === 0){
+        loadReport(); loadSchedule(); loadOrders();
+        _cronPolling = false; return;
+      }
+    }catch(e){}
+  }
+  loadPending(); loadReport(); loadSchedule();
+  _cronPolling = false;
+}
 
 window.loadSchedule = async () => {
   try{
     const s = await (await api("/schedule")).json();
     nextRunTs = s.next_run ? new Date(s.next_run).getTime() : null;
-    const paused = s.state === "PAUSED";
-    parseCronToUI(s.cron, paused); schedPreview();
+    const el = $("schedPreviewText");
+    if(el) el.textContent = s.state === "PAUSED" ? "⏸ หยุดอยู่" : "✓ ทำงานปกติ";
+    paintScheduleHero();
   }catch(e){}
-};
-function parseCronToUI(cron, paused){
-  if(paused){ $("schedMode").value="off"; schedModeChange(); return; }
-  if(!cron) return;
-  const minIv = cron.match(/^\*\/(\d+) \* \* \* \*$/);
-  const hrIv = cron.match(/^0 \*\/(\d+) \* \* \*$/);
-  const daily = cron.match(/^0 ([\d,]+) \* \* \*$/);
-  if(minIv){ $("schedMode").value="minutes"; $("intervalMins").value=minIv[1]; }
-  else if(daily){ $("schedMode").value="daily"; $("dailyHours").value=daily[1]; }
-  else if(hrIv){ $("schedMode").value="interval"; $("intervalHours").value=hrIv[1]; }
-  else { $("schedMode").value="interval"; }
-  schedModeChange();
-}
-window.schedModeChange = () => {
-  const m = $("schedMode").value;
-  $("schedInterval").classList.toggle("hidden", m!=="interval");
-  $("schedMinutes").classList.toggle("hidden", m!=="minutes");
-  $("schedDaily").classList.toggle("hidden", m!=="daily");
-  $("resetSchedBtn").disabled = m==="off";
-  schedPreview();
-};
-function buildCron(){
-  const m = $("schedMode").value;
-  if(m==="off") return null;
-  if(m==="daily"){
-    const hrs=($("dailyHours").value||"").split(",").map(x=>parseInt(x.trim())).filter(x=>x>=0&&x<=23);
-    return hrs.length ? `0 ${hrs.join(",")} * * *` : null;
-  }
-  if(m==="minutes"){
-    const n=Math.max(1,Math.min(59,parseInt($("intervalMins").value)||5));
-    return `*/${n} * * * *`;
-  }
-  const n=Math.max(1,Math.min(24,parseInt($("intervalHours").value)||3));
-  return `0 */${n} * * *`;
-}
-window.schedPreview = () => {
-  const m = $("schedMode").value;
-  if(m==="off"){
-    $("schedPreviewText").textContent = "⏸ สแกนอัตโนมัติปิดอยู่"; paintScheduleHero();
-    return;
-  }
-  const c = buildCron();
-  if(m==="daily"){
-    $("schedPreviewText").textContent = c ? "✓ สแกนทุกวันเวลา "+$("dailyHours").value+" น." : "⚠️ ระบุชั่วโมง เช่น 8,13,17"; paintScheduleHero();
-  } else if(m==="minutes"){
-    $("schedPreviewText").textContent = "✓ สแกนทุกๆ "+(parseInt($("intervalMins").value)||5)+" นาที (โหมดทดสอบ)"; paintScheduleHero();
-  } else {
-    $("schedPreviewText").textContent = "✓ สแกนทุกๆ "+(parseInt($("intervalHours").value)||3)+" ชั่วโมง"; paintScheduleHero();
-  }
-};
-function cronIntervalMs(){
-  const m = $("schedMode").value;
-  if(m==="minutes") return (parseInt($("intervalMins").value)||5)*60*1000;
-  if(m==="interval") return (parseInt($("intervalHours").value)||3)*3600*1000;
-  if(m==="daily"){
-    const hrs=($("dailyHours").value||"").split(",").map(x=>parseInt(x.trim())).filter(x=>x>=0&&x<=23).sort((a,b)=>a-b);
-    if(!hrs.length) return null;
-    const now=new Date(), curH=now.getHours(), curM=now.getMinutes();
-    for(const h of hrs){ if(h>curH||(h===curH&&curM<0)){ return (h-curH)*3600*1000 - curM*60*1000; } }
-    return ((24-curH+hrs[0])*3600 - curM*60)*1000;
-  }
-  return null;
-}
-window.resetSchedule = async () => {
-  const m = $("schedMode").value;
-  if(m==="off"){ toast("ยังไม่ได้ตั้งเวลา"); return; }
-  try{
-    const c = buildCron();
-    if(!c){ toast("รูปแบบเวลาไม่ถูกต้อง"); return; }
-    await api("/schedule", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({action:"pause"})});
-    await api("/schedule", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({cron:c})});
-    const ms = cronIntervalMs();
-    nextRunTs = ms ? Date.now() + ms : null;
-    toast("เริ่มนับเวลาใหม่แล้ว ✓");
-  }catch(e){ toast("reset ไม่สำเร็จ"); }
-};
-window.saveSchedule = async () => {
-  const m = $("schedMode").value;
-  let body;
-  if(m==="off"){
-    body = {action:"pause"};
-  } else {
-    const c = buildCron();
-    if(!c){ toast("รูปแบบเวลาไม่ถูกต้อง"); return; }
-    body = {cron:c};
-  }
-  const r = await api("/schedule", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)});
-  if(r.ok){ const s=await r.json(); nextRunTs = (m==="off") ? null : (s.next_run ? new Date(s.next_run).getTime():null); toast(m==="off" ? "ปิดสแกนอัตโนมัติแล้ว ✓" : "บันทึกเวลาแล้ว ✓"); }
-  else { const e=await r.json().catch(()=>({})); toast("ไม่สำเร็จ: "+(e.detail||"")); }
 };
 // Numbers land rather than blink into place; the eye follows the change.
 function countTo(el, value){
@@ -4807,38 +5121,38 @@ window.loadDashActions = async () => {
   const box = $("dashActions");
   if(!box) return;
   const cards = [];
+  const fetches = [];
 
   if(hasPerm("export")){
-    try{
-      const j = await (await api("/export/status")).json();
+    fetches.push(api("/export/status").then(r=>r.json()).then(j=>{
       if(j.pending > 0) cards.push({
         tone:"amber", n:j.pending, unit:"ใบ", label:"ยังไม่ได้ส่งเข้า SAP",
         sub:j.oldest_pending ? "ค้างมาตั้งแต่ " + esc(j.oldest_pending) : "",
-        go:"export", cta:"ไป Export →"});
-    }catch(e){}
+        go:"export", cta:"ไป Export →", order:0});
+    }).catch(()=>{}));
   }
   if(hasPerm("health")){
-    try{
-      const j = await (await api("/analytics/health")).json();
+    fetches.push(api("/analytics/health").then(r=>r.json()).then(j=>{
       const n = j.yield?.alert_count || 0;
       if(n > 0) cards.push({
         tone:"rose", n, unit:"รายการ", label:"ผลผลิตต่ำกว่าปกติ",
-        sub:"ควรตรวจไลน์ผลิตหรือคุณภาพวัตถุดิบ", go:"health", cta:"ดูรายละเอียด →"});
-    }catch(e){}
+        sub:"ควรตรวจไลน์ผลิตหรือคุณภาพวัตถุดิบ", go:"health", cta:"ดูรายละเอียด →", order:1});
+    }).catch(()=>{}));
   }
   if(hasPerm("forecast")){
-    try{
-      const j = await (await api("/analytics/forecast?months=1")).json();
+    fetches.push(api("/analytics/forecast?months=1").then(r=>r.json()).then(j=>{
       if(j.ready){
         const risky = (j.materials||[]).filter(m => m.confidence === "low").length;
         cards.push({
           tone:"indigo", n:(j.materials||[]).length, unit:"รายการ",
           label:"ต้องเตรียมเดือนหน้า",
           sub:risky ? `ในนั้นผันผวน ${risky} รายการ` : "ทุกรายการเชื่อมั่นได้",
-          go:"forecast", cta:"ดูพยากรณ์ →"});
+          go:"forecast", cta:"ดูพยากรณ์ →", order:2});
       }
-    }catch(e){}
+    }).catch(()=>{}));
   }
+  await Promise.all(fetches);
+  cards.sort((a,b) => a.order - b.order);
 
   const COLOR = {amber:"var(--amber)", rose:"var(--rose)", indigo:"var(--indigo)"};
   box.innerHTML = cards.length ? cards.map(c => `
@@ -4852,25 +5166,96 @@ window.loadDashActions = async () => {
 
 window.loadReport = async () => {
   try{
-    const r = await (await api("/report")).json();
+    const [r, dj] = await Promise.all([
+      api("/report").then(x => x.json()),
+      api("/dead-letter").then(x => x.json()).catch(() => ({items:[]})),
+    ]);
     countTo($("totalScanned"), r.total_scanned);
     countTo($("todayScanned"), r.today_scanned);
+    countTo($("skippedCount"), r.total_skipped||0);
+    const dc = (dj.items||[]).length;
+    $("deadCount").textContent = dc;
+    $("deadTile").classList.toggle("hidden", dc===0);
+    if(dc) toast(`⚠️ มี ${dc} ไฟล์สแกนล้มเหลว — ตรวจสอบที่หน้า "สแกน"`);
     loadDashActions();
     const runs = r.runs||[];
     if(runs.length){
       const l = runs[0];
-      $("lastRunInfo").textContent = "รอบล่าสุด: "+(l.ran_at?l.ran_at.slice(0,16).replace("T"," "):"-")
-        +" ("+(l.trigger==="schedule"?"อัตโนมัติ":"manual")+") · สแกน "+l.succeeded+" สำเร็จ"+(l.failed?(", "+l.failed+" ล้มเหลว"):"");
+      let info = "รอบล่าสุด: "+fmtTs(l.ran_at)
+        +" ("+(l.trigger==="schedule"?"อัตโนมัติ":"manual")+") · สแกน "+l.succeeded+" สำเร็จ";
+      if(l.failed) info += ", "+l.failed+" ล้มเหลว";
+      if(l.skipped) info += ", "+l.skipped+" ซ้ำ";
+      $("lastRunInfo").textContent = info;
     } else { $("lastRunInfo").textContent = "ยังไม่มีรอบสแกน"; }
-    $("runsList").innerHTML = runs.length ? runs.map(x=>`
-      <div class="order"><b>${x.trigger==="schedule"?"อัตโนมัติ":"manual"}</b>
-      <div class="meta">${x.ran_at?x.ran_at.slice(0,16).replace("T"," "):""} · สำเร็จ ${x.succeeded} · ล้มเหลว ${x.failed}</div></div>`).join("")
-      : emptyState("ยังไม่มีรอบสแกน", "กดปุ่มสแกนหรือรอรอบอัตโนมัติรอบถัดไปค่ะ");
-    const rec = r.recent||[];
-    $("reportList").innerHTML = rec.length ? rec.map(o=>`
-      <div class="order"><b>${o.order_no||"(ไม่มีเลขที่)"}</b>
-      <div class="meta">${o.filename||""} · ${o.lines} รายการ · ${o.scanned_at?o.scanned_at.slice(0,16).replace("T"," "):""}</div></div>`).join("")
-      : emptyState("ยังไม่มีไฟล์ที่สแกน", "อัปโหลดเอกสารที่หน้าสแกนเพื่อเริ่มใช้งานค่ะ");
+
+    // uploaders bar chart
+    const ups = r.uploaders||[];
+    if(ups.length){
+      const maxC = Math.max(...ups.map(u=>u.count));
+      const colors = ["#818cf8","#6366f1","#4f46e5","#4338ca","#3730a3"];
+      $("uploadersChart").innerHTML = ups.map((u,i) => {
+        const pct = Math.max(8, (u.count/maxC)*100);
+        const c = colors[i % colors.length];
+        const label = u.email.split("@")[0];
+        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+          <span style="font-size:13px;font-weight:700;color:var(--fg)">${u.count}</span>
+          <div style="width:100%;height:${pct}%;min-height:8px;max-height:160px;background:${c};border-radius:6px 6px 0 0;transition:height .5s"></div>
+          <span style="font-size:10px;color:var(--muted);writing-mode:horizontal-tb;text-align:center;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${u.email}">${label}</span>
+        </div>`;
+      }).join("");
+      $("uploadersChart").style.height = "180px";
+    } else {
+      $("uploadersChart").innerHTML = '<span class="muted" style="margin:auto">ยังไม่มีข้อมูล</span>';
+    }
+
+    // approval activity
+    const apps = r.approval_logs||[];
+    $("approvalList").innerHTML = apps.length ? apps.map(a => {
+      const ts = a.timestamp ? new Date(a.timestamp).toLocaleString("th-TH",{timeZone:"Asia/Bangkok",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}) : "";
+      const who = a.user_email || "—";
+      const detail = a.detail || "";
+      return `<div style="padding:10px 0;border-bottom:1px solid var(--line)">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-weight:600;font-size:13px">${who.split("@")[0]}</span>
+          <span style="font-size:11px;color:var(--muted)">${ts}</span>
+        </div>
+        <div style="font-size:12.5px;color:var(--muted);margin-top:2px">${detail}</div>
+      </div>`;
+    }).join("") : '<span class="muted" style="padding:24px;display:block;text-align:center">ยังไม่มีการอนุมัติ</span>';
+
+    // variance chart
+    const v = r.variance||{};
+    const mats = (v.materials||[]).slice(0,15);
+    const vc = $("varianceChart");
+    const ve = $("varianceEmpty");
+    if(mats.length){
+      ve.style.display = "none";
+      const maxPct = Math.max(...mats.map(m=>Math.abs(m.over_pct)), 5);
+      vc.innerHTML = `<div style="display:flex;flex-direction:column;gap:6px;padding:8px 0">
+        ${mats.map(m => {
+          const isOver = m.over_pct > 0;
+          const barColor = isOver ? (m.over_pct > 10 ? '#ef4444' : m.over_pct > 5 ? '#f59e0b' : '#22c55e') : '#3b82f6';
+          const barW = Math.max(2, (Math.abs(m.over_pct)/maxPct)*100);
+          const sign = isOver ? '+' : '';
+          return `<div style="display:grid;grid-template-columns:200px 1fr 70px;align-items:center;gap:8px">
+            <div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${m.item_no} ${m.item_description}">${m.item_description||m.item_no}</div>
+            <div style="position:relative;height:20px;background:var(--line);border-radius:4px;overflow:hidden">
+              <div style="position:absolute;left:0;top:0;height:100%;width:${barW}%;background:${barColor};border-radius:4px;transition:width .6s"></div>
+            </div>
+            <div style="font-size:12px;font-weight:700;color:${barColor};text-align:right">${sign}${m.over_pct}%</div>
+          </div>`;
+        }).join("")}
+      </div>
+      <div style="display:flex;gap:16px;margin-top:12px;justify-content:center">
+        <span style="font-size:11px;display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#22c55e;display:inline-block"></span> ปกติ (&le;5%)</span>
+        <span style="font-size:11px;display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#f59e0b;display:inline-block"></span> เกิน 5-10%</span>
+        <span style="font-size:11px;display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#ef4444;display:inline-block"></span> เกิน &gt;10%</span>
+        <span style="font-size:11px;display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#3b82f6;display:inline-block"></span> ใช้น้อยกว่า Plan</span>
+      </div>`;
+    } else {
+      vc.innerHTML = "";
+      ve.style.display = "block";
+    }
   }catch(e){}
 };
 </script>
