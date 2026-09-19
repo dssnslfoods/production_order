@@ -2019,7 +2019,7 @@
             <table class="m-table">
               <tbody>
                 <tr><td style="width:150px"><b>ค้นหา</b></td><td>พิมพ์เลขที่ ชื่อสินค้า หรืออีเมลผู้อนุมัติ</td></tr>
-                <tr><td><b>สถานะ</b></td><td>ทั้งหมด / รออนุมัติ / ต้องตรวจสอบ / Draft / อนุมัติแล้ว</td></tr>
+                <tr><td><b>สถานะ</b></td><td>ทั้งหมด / ร่าง — รอส่งตรวจ / รอตรวจสอบ / ตีกลับ — รอแก้ไข / รออนุมัติ / อนุมัติแล้ว / อนุมัติแล้ว · ยังไม่ส่ง SAP / ต้องตรวจสอบ (ดูความหมายในข้อ 7)</td></tr>
                 <tr><td><b>ช่วงวันที่</b></td><td>ตั้งแต่วันที่ – ถึงวันที่ (อ้างอิงวันที่บนเอกสาร)</td></tr>
                 <tr><td><b>ปุ่มลัด</b></td><td>7 วัน · 30 วัน · เดือนนี้ · เดือนที่แล้ว · ทั้งหมด</td></tr>
               </tbody>
@@ -2042,11 +2042,11 @@
             <p class="m-hint">ยอดผลิตจริงไม่มีช่องกรอกในส่วนหัวแล้ว เพราะยอดที่รับเข้าจริงถูกบันทึกเป็นราย batch
               ในตาราง MFG/EXP (คอลัมน์ Receive Qty.) ซึ่งละเอียดกว่าและตรงกับเอกสารมากกว่า</p>
 
-            <h4 style="margin:16px 0 8px;font-size:14px">6.3 บันทึกฉบับร่าง (Draft)</h4>
+            <h4 style="margin:16px 0 8px;font-size:14px">6.3 บันทึกฉบับร่าง (Draft) / บันทึกการแก้ไข</h4>
             <ul class="m-list">
-              <li>บันทึกทุกการเปลี่ยนแปลงรวมถึงการ Tick ยืนยันค่าต่าง</li>
-              <li>สถานะเปลี่ยนเป็น <span class="m-badge" style="background:rgba(99,102,241,.12);color:var(--indigo)">ฉบับร่าง</span></li>
-              <li>กลับมาแก้ไขเพิ่มเติมได้ภายหลัง</li>
+              <li>บันทึกทุกการเปลี่ยนแปลงรวมถึงการ Tick ยืนยันค่าต่าง แล้วกลับมาแก้ไขต่อได้ภายหลัง</li>
+              <li><b>ไม่เปลี่ยนสถานะ</b> และ<b>ยังไม่ส่งต่อ</b> — ใบร่างยังเป็นร่าง ใบที่อยู่ระหว่างตรวจสอบก็ยังอยู่ที่ Reviewer</li>
+              <li>ปุ่ม <b>"ส่งตรวจสอบ"</b> และ <b>"ตรวจสอบแล้ว ส่งต่อไปอนุมัติ"</b> บันทึกให้ก่อนส่งอยู่แล้ว ไม่ต้องกดบันทึกก่อน</li>
             </ul>
 
             <h4 style="margin:16px 0 8px;font-size:14px">6.4 นำทางระหว่างรายการ</h4>
@@ -2100,12 +2100,19 @@
             <h3 class="m-title">7. ขั้นตอนการอนุมัติ</h3>
 
             <div class="m-flow" style="margin-bottom:16px">
-              <div class="m-step" style="border-color:var(--amber)"><span class="m-num" style="background:var(--amber)">1</span><b>รออนุมัติ</b><br><span class="muted">สแกนเข้ามาใหม่</span></div>
+              <div class="m-step" style="border-color:var(--indigo)"><span class="m-num" style="background:var(--indigo)">1</span><b>ร่าง</b><br><span class="muted">สแกนเข้ามาใหม่ — Staff ตรวจแล้วกด "ส่งตรวจสอบ"</span></div>
               <div class="m-arrow">→</div>
-              <div class="m-step" style="border-color:var(--indigo)"><span class="m-num" style="background:var(--indigo)">2</span><b>ฉบับร่าง</b><br><span class="muted">แก้ไข/บันทึกแล้ว</span></div>
+              <div class="m-step" style="border-color:var(--sky)"><span class="m-num" style="background:var(--sky)">2</span><b>รอตรวจสอบ</b><br><span class="muted">Reviewer ตรวจ/แก้ แล้วส่งต่อไปอนุมัติ</span></div>
               <div class="m-arrow">→</div>
-              <div class="m-step" style="border-color:var(--emerald)"><span class="m-num" style="background:var(--emerald)">3</span><b>อนุมัติแล้ว</b><br><span class="muted">ข้อมูลพร้อมใช้งาน</span></div>
+              <div class="m-step" style="border-color:var(--amber)"><span class="m-num" style="background:var(--amber)">3</span><b>รออนุมัติ</b><br><span class="muted">Approver อนุมัติ หรือตีกลับ</span></div>
+              <div class="m-arrow">→</div>
+              <div class="m-step" style="border-color:var(--emerald)"><span class="m-num" style="background:var(--emerald)">4</span><b>อนุมัติแล้ว</b><br><span class="muted">พร้อม Export เข้า SAP</span></div>
             </div>
+            <ul class="m-list">
+              <li>Approver ตีกลับได้โดย<b>ต้องระบุเหตุผล</b> — ใบจะเป็น <b>"ตีกลับ — รอแก้ไข"</b> ให้ Reviewer แก้แล้วส่งต่อไปอนุมัติใหม่</li>
+              <li>Reviewer เปิดใบร่างแล้วกด "ตรวจสอบแล้ว ส่งต่อไปอนุมัติ" ได้เลยโดยไม่ต้องรอ Staff ส่ง (ประวัติจะบันทึกว่า "จากฉบับร่าง")</li>
+              <li>แต่ละขั้นแก้ไขได้เฉพาะผู้รับผิดชอบขั้นนั้น — ตั้งแต่ "รออนุมัติ" ขึ้นไปแก้ไขข้อมูลไม่ได้แล้ว</li>
+            </ul>
 
             <h4 style="margin:16px 0 8px;font-size:14px">7.1 สถานะ "ต้องตรวจสอบ"</h4>
             <p>บางรายการจะมีป้ายเตือน <span class="m-badge" style="background:rgba(245,158,11,.14);color:var(--amber)">ต้องตรวจสอบ</span> ซึ่งเกิดจาก AI อ่านข้อมูลได้ไม่ครบหรือพบความขัดแย้ง:</p>
@@ -2125,7 +2132,7 @@
             </div>
 
             <h4 style="margin:16px 0 8px;font-size:14px">7.2 ยืนยันค่าต่าง</h4>
-            <p>แต่ละแถวมี <b>checkbox "✓ ยืนยันค่าต่าง"</b> — ต้อง Tick ครบทุกแถวก่อนจึงอนุมัติได้</p>
+            <p>แถวที่ค่าต่างจากแผนจะมี <b>checkbox "✓ ยืนยันค่าต่าง"</b> — ต้อง Tick ครบทุกแถวก่อนจึงกด "ส่งตรวจสอบ" หรือ "ส่งต่อไปอนุมัติ" ได้</p>
             <ul class="m-list">
               <li>เปรียบเทียบ <b>Qty</b> (ที่เขียนด้วยมือ) กับ <b>Plan</b> (ตามแผน)</li>
               <li>หาก Qty ≠ Plan แถวจะไฮไลต์สีเหลืองเพื่อเตือนให้ตรวจสอบ</li>
@@ -2135,7 +2142,7 @@
             <div class="m-note">
               <b>เมื่ออนุมัติแล้ว:</b>
               <ul class="m-list" style="margin-bottom:0">
-                <li>ระบบบันทึกการแก้ไขล่าสุดทั้งหมดก่อนอนุมัติ</li>
+                <li>อนุมัติตามข้อมูลที่ Reviewer ส่งมา (Approver แก้ไขข้อมูลไม่ได้ — ถ้าไม่ถูกต้องให้ตีกลับ)</li>
                 <li>สถานะเปลี่ยนเป็น <span class="m-badge" style="background:rgba(16,185,129,.12);color:var(--emerald)">อนุมัติแล้ว</span></li>
                 <li>ภาพต้นฉบับถูกลบเพื่อประหยัดพื้นที่</li>
                 <li>รายการเป็น <b>แบบอ่านอย่างเดียว</b> — ดูได้แต่แก้ไขไม่ได้</li>
@@ -2199,7 +2206,9 @@
               การ Export ซ้ำไม่เปลี่ยนสถานะของใบที่ส่งไปแล้ว และไม่ทำให้ตัวเลข "ยังไม่ได้ส่ง" ผิด<br>
               <b>หากกด Export แล้วไฟล์ไม่ได้ดาวน์โหลดจริง</b> (เช่น เน็ตหลุด) ให้ Admin กด
               <b>"ยกเลิกการทำเครื่องหมาย"</b> ที่แถวนั้นในประวัติ ใบเหล่านั้นจะกลับมานับรวมใน "ยังไม่ได้ส่งเข้า SAP" อีกครั้ง<br>
-              เฉพาะใบที่ <b>อนุมัติแล้ว</b> เท่านั้นที่ถูกทำเครื่องหมาย — ใบที่ยังไม่อนุมัติที่หลุดเข้าไฟล์จะไม่ถูกนับว่าส่งแล้ว
+              เฉพาะใบที่ <b>อนุมัติแล้ว</b> เท่านั้นที่ถูกทำเครื่องหมาย — ใบที่ยังไม่อนุมัติที่หลุดเข้าไฟล์จะไม่ถูกนับว่าส่งแล้ว<br>
+              <b>นับว่าส่งเข้า SAP เฉพาะเมื่อ Approver เป็นผู้ Export</b> และจะรวมเฉพาะใบที่ Approver คนนั้นอนุมัติเอง —
+              Export โดย Admin หรือ Role อื่นใช้ดูข้อมูลได้ แต่ไม่ถูกนับว่าส่งแล้ว
             </div>
           </div>
 
@@ -2900,6 +2909,9 @@ function applyRole(role, perms){
   ["statusFilter","expStatus"].forEach(id => $(id).querySelectorAll('option[value="draft"],option[value="pending_review"]')
     .forEach(o => { o.hidden = approverView; o.disabled = approverView; }));
   if(approverView && !approverFilterSet){ $("statusFilter").value = "pending_approval"; approverFilterSet = true; }
+  // Logout does not reload the page, so on a shared device the next user would
+  // inherit the approver's default filter and not see their own stage's orders.
+  else if(!approverView && approverFilterSet){ $("statusFilter").value = "all"; approverFilterSet = false; }
   const labels = {super_admin:"Super Admin",admin:"Admin",approver:"Approver",reviewer:"Reviewer",staff:"Staff"};
   const colors = {super_admin:"#a78bfa",admin:"#fb7185",approver:"#fbbf24",reviewer:"#34d399",staff:"#38bdf8"};
   $("roleChip").textContent = labels[role]||role;
@@ -3248,9 +3260,12 @@ let allOrders = [];
 function renderOrderRow(o){
   const po = (o.order_no||"(ไม่มีเลขที่)");
   const dt = o.document_date||"";
-  const approved = o.status === "approved";
+  // "exported" is a pre-workflow status for an approved order already sent to SAP.
+  const approved = o.status === "approved" || o.status === "exported";
   const returned = o.status === "returned_to_review";
   const isDraft = o.status === "draft";
+  const canEdit = (isDraft && hasPerm("edit_order"))
+    || ((o.status === "pending_review" || returned) && hasPerm("confirm_review"));
   const STATUS_BADGES = {
     draft: '<span class="pill" style="font-size:10.5px;padding:2px 8px;background:rgba(99,102,241,.12);color:#6366f1">📝 ร่าง — รอส่งตรวจ</span>',
     approved: '<span class="pill" style="font-size:10.5px;padding:2px 8px">✓ อนุมัติ</span>',
@@ -3258,7 +3273,7 @@ function renderOrderRow(o){
     pending_review: '<span class="pill" style="font-size:10.5px;padding:2px 8px;background:rgba(56,189,248,.15);color:#0284c7">รอตรวจสอบ</span>',
     returned_to_review: '<span class="pill" style="font-size:10.5px;padding:2px 8px;background:rgba(239,68,68,.15);color:#dc2626" title="'+esc(o.rejection_reason||'')+'">↩ ตีกลับ — รอแก้ไข</span>',
   };
-  const statusBadge = STATUS_BADGES[o.status] || STATUS_BADGES.pending_approval;
+  const statusBadge = STATUS_BADGES[approved ? "approved" : o.status] || STATUS_BADGES.pending_approval;
   let planTag = "";
   if(o.plan_total!=null && o.actual_total!=null && o.plan_total>0){
     const pct = (o.actual_total/o.plan_total*100).toFixed(1);
@@ -3287,7 +3302,7 @@ function renderOrderRow(o){
     <div class="meta">${fmtTs(o.scanned_at)}
     · ${(o.lines||[]).length} รายการ${planTag}${o.approved_by?' · อนุมัติโดย '+o.approved_by:''}</div>
     ${returned && o.rejection_reason ? `<div class="meta" style="color:#dc2626;font-weight:600">↩ เหตุผลที่ตีกลับ: ${esc(o.rejection_reason)}${o.returned_by?' · โดย '+esc(o.returned_by):''}</div>` : ''}</div>
-    <button class="del" title="${approved?'ดู':'แก้ไข'}" onclick="openEdit('${o.id}')">${approved?'⌕':'✎'}</button>
+    <button class="del" title="${canEdit?'แก้ไข':'ดู'}" onclick="openEdit('${o.id}')">${canEdit?'✎':'⌕'}</button>
     ${hasPerm("delete")?`<button class="del" title="ลบรายการนี้" onclick="deleteOrder('${o.id}','${po.replace(/'/g,"")}')">✕</button>`:''}</div>`;
 }
 const PAGE_SIZE = 15;
@@ -3387,6 +3402,8 @@ window.applyOrderFilters = () => {
       if(o.status !== "approved" || o.exported_at) return false;
     } else if(status === "needs_review"){
       if(!o.needs_review) return false;
+    } else if(status === "approved"){
+      if(o.status !== "approved" && o.status !== "exported") return false;
     } else if(status !== "all"){
       if(o.status !== status) return false;
     }
@@ -4464,7 +4481,7 @@ function loadEditForm(o){
   } else { wrap.classList.add("hidden"); }
   // workflow: draft (staff) -> pending_review (reviewer) -> pending_approval (approver) -> approved
   //           approver may return pending_approval -> returned_to_review (reviewer)
-  const approved = o.status === "approved";
+  const approved = o.status === "approved" || o.status === "exported";
   const isDraft = o.status === "draft";
   const inReview = o.status === "pending_review";
   const returned = o.status === "returned_to_review";
@@ -4509,6 +4526,8 @@ function loadEditForm(o){
   const modal = $("editModal");
   modal.querySelectorAll("input, select, textarea").forEach(el => { el.readOnly = !editableNow; el.disabled = !editableNow; });
   $("saveEditBtn").classList.toggle("hidden", !editableNow);
+  // Saving never changes the stage, so only a draft save is a "draft".
+  $("saveEditBtn").textContent = isDraft ? "บันทึกฉบับร่าง (Draft)" : "บันทึกการแก้ไข";
   modal.querySelectorAll(".del").forEach(el => { if(el.textContent.trim()==="×") el.style.display = editableNow ? "" : "none"; });
   const addLineBtn = modal.querySelector('[onclick="addLine()"]');
   if(addLineBtn) addLineBtn.style.display = editableNow ? "" : "none";
@@ -4742,7 +4761,13 @@ window.saveEdit = async () => {
   const body = collectFormData();
   try{
     const r = await api("/orders/"+editId, {method:"PUT", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)});
-    if(r.ok){ toast("บันทึกฉบับร่างแล้ว ✓ (รออนุมัติ)"); const o=await r.json(); loadEditForm(o); loadOrders(); loadReport(); }
+    if(r.ok){
+      const o=await r.json();
+      toast(o.status === "draft"
+        ? "บันทึกฉบับร่างแล้ว ✓ — ยังไม่ได้ส่งตรวจสอบ"
+        : "บันทึกการแก้ไขแล้ว ✓ — ยังไม่ได้ส่งต่อไปอนุมัติ");
+      loadEditForm(o); loadOrders(); loadReport();
+    }
     else { const e=await r.json().catch(()=>({})); toast("บันทึกไม่สำเร็จ: "+(e.detail||"")); }
   }catch(e){ toast("เชื่อมต่อไม่สำเร็จ"); }
 };
@@ -4867,7 +4892,10 @@ window.exportExcel = async (onlyNew) => {
   a.href = url; a.download = "ใบเบิกวัตถุดิบ_"+facLabel+".xlsx"; a.click();
   URL.revokeObjectURL(url);
   prog.textContent = "";
-  toast("ดาวน์โหลดไฟล์แล้ว — ระบบบันทึกว่าใบเหล่านี้ส่งออกแล้ว");
+  // Only an approver's export counts as handed over to SAP (main.export).
+  toast(currentRole === "approver"
+    ? "ดาวน์โหลดไฟล์แล้ว — ระบบบันทึกว่าใบเหล่านี้ส่งเข้า SAP แล้ว"
+    : "ดาวน์โหลดไฟล์แล้ว — ไม่นับเป็นการส่งเข้า SAP (นับเฉพาะ Export ของ Approver)");
   loadExportStatus(); loadExportBatches(); loadOrders();
 };
 
@@ -4968,7 +4996,12 @@ window.createUser = async () => {
       $("createUserResult").innerHTML='✅ <b>'+email+'</b> เข้าสู่ระบบได้แล้ว · รหัสผ่าน: <b>'+pw+'</b>';
       $("newUserEmail").value=""; $("newUserPw").value=""; if($("newUserName"))$("newUserName").value="";
       loadUsers();
-    } else { const e=await r.json().catch(()=>({})); $("createUserResult").textContent="❌ "+(e.detail||"สร้างไม่สำเร็จ"); }
+    } else {
+      const e=await r.json().catch(()=>({})); $("createUserResult").textContent="❌ "+(e.detail||"สร้างไม่สำเร็จ");
+      // The account may exist even though the request failed (it tells the admin
+      // to use the key button on its row), so show it.
+      loadUsers();
+    }
   }catch(e){ $("createUserResult").textContent="❌ เชื่อมต่อไม่สำเร็จ"; }
 };
 window.changeRole = async (uid,role) => {
