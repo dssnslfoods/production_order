@@ -1872,7 +1872,7 @@
                 </tr>
                 <tr>
                   <td><span class="m-badge" style="background:rgba(16,185,129,.12);color:var(--emerald)">Reviewer</span></td>
-                  <td>ตรวจสอบ/แก้ไขรายการที่ Staff ส่งมา, ยืนยันส่งอนุมัติ, แก้ไขรายการที่ถูกตีกลับ, ดูประวัติการใช้งาน, Export Excel</td>
+                  <td>ตรวจสอบ/แก้ไขฉบับร่างหรือรายการที่ Staff ส่งมา แล้วส่งต่อไปอนุมัติ, แก้ไขรายการที่ถูกตีกลับ, ดูประวัติการใช้งาน, Export Excel</td>
                 </tr>
                 <tr>
                   <td><span class="m-badge" style="background:rgba(245,158,11,.12);color:var(--amber)">Approver</span></td>
@@ -1942,8 +1942,8 @@
                 <tr><td><b>ซ้ำ (ข้าม)</b></td><td>จำนวนไฟล์ที่ถูกข้ามเพราะเลข Production Order ซ้ำ</td></tr>
                 <tr><td><b>คิวรอสแกน</b></td><td>ไฟล์ที่อัปโหลดแล้ว รอ AI ประมวลผล</td></tr>
                 <tr><td><b>ร่าง — รอส่งตรวจ</b></td><td>สแกนสำเร็จแล้ว รอ Staff ตรวจสอบและกดส่งตรวจสอบ</td></tr>
-                <tr><td><b>รอตรวจสอบ</b></td><td>Staff ส่งแล้ว รอ Reviewer ตรวจสอบและยืนยันส่งอนุมัติ</td></tr>
-                <tr><td><b>ตีกลับ — รอแก้ไข</b></td><td>Approver ตีกลับพร้อมเหตุผล รอ Reviewer แก้ไขแล้วยืนยันส่งอนุมัติใหม่</td></tr>
+                <tr><td><b>รอตรวจสอบ</b></td><td>Staff ส่งแล้ว รอ Reviewer ตรวจสอบแล้วส่งต่อไปอนุมัติ</td></tr>
+                <tr><td><b>ตีกลับ — รอแก้ไข</b></td><td>Approver ตีกลับพร้อมเหตุผล รอ Reviewer แก้ไขแล้วส่งต่อไปอนุมัติใหม่</td></tr>
                 <tr><td><b>รออนุมัติ</b></td><td>Reviewer ยืนยันแล้ว รอ Approver อนุมัติหรือตีกลับ</td></tr>
                 <tr><td><b>อนุมัติแล้ว</b></td><td>รายการที่ตรวจสอบผ่านแล้ว พร้อม Export</td></tr>
               </tbody>
@@ -2652,7 +2652,7 @@
           <span id="editStatusText" style="font-size:13px;font-weight:600;color:#d97706">รออนุมัติ</span>
           <span style="display:flex;gap:8px;flex-wrap:wrap">
             <button class="btn sm hidden" id="submitReviewBtn" onclick="submitReviewOrder()" style="width:auto;background:var(--sky);box-shadow:0 4px 12px -4px rgba(56,189,248,.4)">📤 ส่งตรวจสอบ</button>
-            <button class="btn sm hidden" id="confirmReviewBtn" onclick="confirmReviewOrder()" style="width:auto;background:var(--sky);box-shadow:0 4px 12px -4px rgba(56,189,248,.4)">✓ ยืนยันส่งอนุมัติ</button>
+            <button class="btn sm hidden" id="confirmReviewBtn" onclick="confirmReviewOrder()" style="width:auto;background:var(--sky);box-shadow:0 4px 12px -4px rgba(56,189,248,.4)">✓ ตรวจสอบแล้ว ส่งต่อไปอนุมัติ</button>
             <button class="btn sm hidden" id="returnToReviewBtn" onclick="returnToReviewOrder()" style="width:auto;background:var(--red);box-shadow:0 4px 12px -4px rgba(239,68,68,.4)">↩ ตีกลับ</button>
             <button class="btn sm hidden" id="approveBtn" onclick="approveOrder()" style="width:auto;background:var(--emerald);box-shadow:0 4px 12px -4px rgba(16,185,129,.4)">✓ อนุมัติรายการนี้</button>
           </span>
@@ -4462,11 +4462,14 @@ function loadEditForm(o){
   const inApproval = o.status === "pending_approval";
   const editableNow = (isDraft && hasPerm("edit_order"))
     || ((inReview || returned) && hasPerm("confirm_review"));
+  const isReviewer = hasPerm("confirm_review");
   const ap = $("editApproval");
   const STAGE = {
-    draft:              ["📝 ร่าง — ตรวจสอบข้อมูลที่สแกนแล้วกด “ส่งตรวจสอบ”", "#6366f1", "99,102,241"],
-    pending_review:     ["รอตรวจสอบ — Reviewer ตรวจสอบก่อนส่งอนุมัติ", "#0284c7", "56,189,248"],
-    returned_to_review: ["↩ ถูกตีกลับ — Reviewer แก้ไขแล้วยืนยันส่งอนุมัติใหม่", "#dc2626", "239,68,68"],
+    draft:              [isReviewer
+                           ? "📝 ร่าง — หากตรวจสอบแล้ว กด “ตรวจสอบแล้ว ส่งต่อไปอนุมัติ”"
+                           : "📝 ร่าง — ตรวจสอบข้อมูลที่สแกนแล้วกด “ส่งตรวจสอบ”", "#6366f1", "99,102,241"],
+    pending_review:     ["รอตรวจสอบ — Reviewer ตรวจสอบก่อนส่งต่อไปอนุมัติ", "#0284c7", "56,189,248"],
+    returned_to_review: ["↩ ถูกตีกลับ — Reviewer แก้ไขแล้วส่งต่อไปอนุมัติใหม่", "#dc2626", "239,68,68"],
     pending_approval:   ["รออนุมัติ — ผ่านการตรวจสอบแล้ว", "#d97706", "245,158,11"],
   };
   if(approved){
@@ -4488,9 +4491,8 @@ function loadEditForm(o){
     reasonBox.classList.remove("hidden");
   } else { reasonBox.classList.add("hidden"); }
   // action buttons — one role, one action, gated by both status and permission
-  $("submitReviewBtn").classList.toggle("hidden", !(isDraft && hasPerm("edit_order")));
-  $("confirmReviewBtn").classList.toggle("hidden",
-    !((inReview || returned) && hasPerm("confirm_review")));
+  $("submitReviewBtn").classList.toggle("hidden", !(isDraft && hasPerm("edit_order") && !isReviewer));
+  $("confirmReviewBtn").classList.toggle("hidden", !((isDraft || inReview || returned) && isReviewer));
   $("approveBtn").classList.toggle("hidden", !(inApproval && hasPerm("approve")));
   $("returnToReviewBtn").classList.toggle("hidden", !(inApproval && hasPerm("return_to_review")));
   updateSaveBtn();
@@ -4556,16 +4558,16 @@ window.confirmReviewOrder = async () => {
   const unacked = [...$("e_lines").querySelectorAll('.l-confirm.show')]
     .filter(el => !el.querySelector('.l-ack').checked);
   if(unacked.length > 0){
-    toast("กรุณายืนยันค่าต่างทั้งหมดก่อนยืนยันส่งอนุมัติ (เหลือ "+unacked.length+" รายการ)");
+    toast("กรุณายืนยันค่าต่างทั้งหมดก่อนส่งต่อไปอนุมัติ (เหลือ "+unacked.length+" รายการ)");
     return;
   }
   if(!checkBatchShelf()) return;
-  if(!confirm("ยืนยันส่งรายการนี้ให้ผู้อนุมัติ?")) return;
+  if(!confirm("ตรวจสอบแล้ว ส่งรายการนี้ต่อไปให้ผู้อนุมัติ?")) return;
   try{
     if(!await _saveFormIfEditable()) return;
     const r = await api("/orders/"+editId+"/confirm-review", {method:"POST"});
     if(r.ok){
-      toast("ยืนยันส่งอนุมัติแล้ว ✓");
+      toast("ส่งต่อไปอนุมัติแล้ว ✓");
       closeEdit();
       loadOrders(); loadReport();
     } else { const e=await r.json().catch(()=>({})); toast("ยืนยันไม่สำเร็จ: "+(e.detail||"")); }
@@ -5059,7 +5061,7 @@ const PERM_ITEMS = [
   {key:"users",     label:"ผู้ใช้งาน", group:"หน้าจอ"},
   {key:"activity",  label:"ประวัติการใช้งาน", group:"หน้าจอ"},
   {key:"settings",  label:"ตั้งค่า", group:"หน้าจอ"},
-  {key:"confirm_review",   label:"ยืนยันส่งอนุมัติ", group:"สิทธิ์การดำเนินการ"},
+  {key:"confirm_review",   label:"ตรวจสอบแล้ว ส่งต่อไปอนุมัติ", group:"สิทธิ์การดำเนินการ"},
   {key:"approve",          label:"อนุมัติ record", group:"สิทธิ์การดำเนินการ"},
   {key:"return_to_review", label:"ตีกลับให้ตรวจสอบใหม่", group:"สิทธิ์การดำเนินการ"},
   {key:"edit_order",       label:"แก้ไขฉบับร่าง / ส่งตรวจสอบ", group:"สิทธิ์การดำเนินการ"},
@@ -5143,7 +5145,7 @@ window.savePermissions = async () => {
 // ---- activity log ----
 const ACTION_LABELS = {
   scan:"สแกน", upload_queue:"อัปโหลด", approve:"อนุมัติ",
-  submit_review:"ส่งตรวจสอบ", confirm_review:"ยืนยันส่งอนุมัติ", return_to_review:"ตีกลับ",
+  submit_review:"ส่งตรวจสอบ", confirm_review:"ตรวจสอบแล้ว ส่งต่อไปอนุมัติ", return_to_review:"ตีกลับ",
   edit_order:"แก้ไข", delete_order:"ลบ", create_user:"สร้างผู้ใช้",
   change_role:"เปลี่ยน Role", delete_user:"ลบผู้ใช้", reset_password:"รีเซ็ตรหัสผ่าน",
 };

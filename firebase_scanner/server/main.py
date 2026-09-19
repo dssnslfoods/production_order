@@ -772,11 +772,14 @@ def order_submit_review(order_id: str, user=Depends(_require_perm("edit_order"))
 @app.post("/api/orders/{order_id}/confirm-review")
 def order_confirm_review(order_id: str, user=Depends(_require_perm("confirm_review"))):
     o = _factory_order(order_id, user)
-    if o.get("status") not in REVIEW_STATUSES:
+    # A reviewer who opens a draft has checked it themselves; routing it through
+    # their own pending_review queue first would just be an extra click.
+    if o.get("status") not in ("draft",) + REVIEW_STATUSES:
         raise HTTPException(status_code=400,
-                            detail="ยืนยันตรวจสอบได้เฉพาะรายการที่รอตรวจสอบ หรือถูกตีกลับ")
+                            detail="ส่งต่อไปอนุมัติได้เฉพาะฉบับร่าง รายการที่รอตรวจสอบ หรือถูกตีกลับ")
     result = store.confirm_review(order_id, user["email"])
-    _log_stage("confirm_review", "ยืนยันตรวจสอบ", o, order_id, user)
+    _log_stage("confirm_review", "ตรวจสอบแล้ว ส่งต่อไปอนุมัติ", o, order_id, user,
+               " (จากฉบับร่าง)" if o.get("status") == "draft" else "")
     return result
 
 

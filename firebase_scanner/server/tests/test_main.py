@@ -222,6 +222,21 @@ class TestOrders:
                                headers={"Authorization": "Bearer test"})
         assert resp.status_code == 200
 
+    def test_reviewer_forwards_draft_straight_to_approval(self, client):
+        async def fake_verify(auth_header=""):
+            return _mock_user(role="reviewer")
+        with patch("auth.verify_token", new=fake_verify), \
+             patch("main.store") as mock_store:
+            mock_store.get_permissions.return_value = {"reviewer": ["confirm_review"]}
+            mock_store.get_order.return_value = {"id": "abc", "order_no": "OD001",
+                                                 "status": "draft"}
+            mock_store.confirm_review.return_value = {"id": "abc", "status": "pending_approval"}
+            resp = client.post("/api/orders/abc/confirm-review",
+                               headers={"Authorization": "Bearer test"})
+        assert resp.status_code == 200
+        mock_store.confirm_review.assert_called_once()
+        assert "จากฉบับร่าง" in mock_store.log_activity.call_args[0][3]
+
     def test_confirm_review_wrong_status_rejected(self, client):
         async def fake_verify(auth_header=""):
             return _mock_user(role="reviewer")
