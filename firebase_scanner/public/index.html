@@ -1064,7 +1064,8 @@
             <div class="tile a"><b id="totalScanned">—</b><span>สแกนสะสม</span></div>
             <div class="tile b"><b id="todayScanned">—</b><span>วันนี้</span></div>
             <div class="tile c"><b id="pendingCount">0</b><span>คิวรอสแกน</span></div>
-            <div class="tile d" title="ร่าง + รอตรวจสอบ + ถูกตีกลับ"><b id="inReviewCount">0</b><span>รอตรวจสอบ</span></div>
+            <div class="tile d" title="ร่าง + รอตรวจสอบ"><b id="inReviewCount">0</b><span>รอตรวจสอบ</span></div>
+            <div class="tile" title="Approver ตีกลับ รอ Reviewer แก้ไขแล้วส่งอนุมัติใหม่ — กดเพื่อดูรายการ" style="background:rgba(239,68,68,.12);cursor:pointer" onclick="showOrdersWithStatus('returned_to_review')"><b id="returnedCount" style="color:#f87171">0</b><span style="color:rgba(248,113,113,.8)">ถูกตีกลับ</span></div>
             <div class="tile d"><b id="pendingApprovalCount">0</b><span>รออนุมัติ</span></div>
             <div class="tile a"><b id="approvedCount">0</b><span>อนุมัติแล้ว</span></div>
             <div class="tile" style="background:rgba(239,68,68,.12)"><b id="skippedCount" style="color:#f87171">0</b><span style="color:rgba(248,113,113,.8)">ซ้ำ (ข้าม)</span></div>
@@ -1755,7 +1756,7 @@
               </div>
               <div style="padding:14px 16px;border-radius:10px;border:1px solid rgba(16,185,129,.12);background:rgba(16,185,129,.03)">
                 <div style="font-weight:700;font-size:13px;color:var(--emerald);margin-bottom:4px;display:flex;align-items:center;gap:6px"><svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Reviewer</div>
-                <div style="font-size:12.5px;color:var(--muted);line-height:1.6">ตรวจสอบ/แก้ไขรายการที่ Staff ส่งมา แล้วยืนยันส่งให้ Approver, แก้รายการที่ถูกตีกลับ</div>
+                <div style="font-size:12.5px;color:var(--muted);line-height:1.6">ตรวจสอบ/แก้ไขรายการที่ Staff ส่งมา แล้วส่งต่อไปให้ Approver อนุมัติ, แก้ไขรายการที่ Approver ตีกลับ (ดูได้จากช่อง “ถูกตีกลับ” ในแดชบอร์ด) แล้วส่งอนุมัติอีกครั้ง</div>
               </div>
               <div style="padding:14px 16px;border-radius:10px;border:1px solid rgba(245,158,11,.12);background:rgba(245,158,11,.03)">
                 <div style="font-weight:700;font-size:13px;color:var(--amber);margin-bottom:4px;display:flex;align-items:center;gap:6px"><svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Approver</div>
@@ -2805,6 +2806,11 @@ window.toggleSidebar = (force) => {
   $("sidebarBackdrop").classList.toggle('show', open);
 };
 
+window.showOrdersWithStatus = (status) => {
+  showPage("orders");
+  $("statusFilter").value = status;
+  applyOrderFilters();
+};
 window.showPage = (page) => {
   toggleSidebar(false);   // picking a destination closes the mobile drawer
   document.querySelectorAll('.page-section').forEach(s => s.classList.add('hidden'));
@@ -3271,7 +3277,8 @@ function renderOrderRow(o){
   const chk = hasPerm("delete") ? `<input type="checkbox" class="o-check" data-oid="${o.id}" data-label="${po.replace(/"/g,'')}" onchange="updateBatchBar()">` : '';
   return `<div class="order orow" style="border-left-color:${borderClr}">${chk}<div class="obody"><b>${po} ${statusBadge} ${reviewBadge} ${pageBadge} ${sapBadge} <span class="muted" style="font-weight:400">${dt?' · '+dt:''} ${o.product_name?' · '+o.product_name:''}</span></b>
     <div class="meta">${fmtTs(o.scanned_at)}
-    · ${(o.lines||[]).length} รายการ${planTag}${o.approved_by?' · อนุมัติโดย '+o.approved_by:''}</div></div>
+    · ${(o.lines||[]).length} รายการ${planTag}${o.approved_by?' · อนุมัติโดย '+o.approved_by:''}</div>
+    ${returned && o.rejection_reason ? `<div class="meta" style="color:#dc2626;font-weight:600">↩ เหตุผลที่ตีกลับ: ${esc(o.rejection_reason)}${o.returned_by?' · โดย '+esc(o.returned_by):''}</div>` : ''}</div>
     <button class="del" title="${approved?'ดู':'แก้ไข'}" onclick="openEdit('${o.id}')">${approved?'⌕':'✎'}</button>
     ${hasPerm("delete")?`<button class="del" title="ลบรายการนี้" onclick="deleteOrder('${o.id}','${po.replace(/'/g,"")}')">✕</button>`:''}</div>`;
 }
@@ -3456,7 +3463,8 @@ window.loadOrders = async (append) => {
     else allOrders = items;
     applyOrderFilters();
     const approved = allOrders.filter(o => o.status === "approved").length;
-    const inReview = allOrders.filter(o => ["draft","pending_review","returned_to_review"].includes(o.status)).length;
+    const inReview = allOrders.filter(o => ["draft","pending_review"].includes(o.status)).length;
+    $("returnedCount").textContent = allOrders.filter(o => o.status === "returned_to_review").length;
     const pending = allOrders.filter(o => o.status === "pending_approval").length;
     $("approvedCount").textContent = approved;
     $("inReviewCount").textContent = inReview;
