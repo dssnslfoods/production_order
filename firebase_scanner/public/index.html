@@ -1661,6 +1661,22 @@
         </div>
 
         <div class="card panel">
+          <div class="phead"><span class="pico" style="background:rgba(99,102,241,.16);color:var(--indigo)"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span><h2>ผู้ที่นับว่า "ส่งเข้า SAP แล้ว"</h2></div>
+          <label>role ที่กด Export แล้วระบบจะทำเครื่องหมายว่าส่งเข้า SAP</label>
+          <select id="sapExportRole" onchange="saveSapExportRole()">
+            <option value="super_admin">Super Admin</option>
+            <option value="admin">Admin</option>
+            <option value="approver">Approver</option>
+            <option value="reviewer">Reviewer</option>
+            <option value="staff">Staff</option>
+          </select>
+          <div class="method">
+            role อื่นที่ไม่ตรงกับที่เลือกไว้ กด Export ได้ตามปกติแต่จะ<b style="color:var(--text)">ไม่ถูกนับว่าส่งเข้า SAP</b>
+            — ใช้แยกไฟล์ที่ดาวน์โหลดไปตรวจสอบ/ทดสอบ ออกจากไฟล์ที่ถูกคีย์เข้า SAP จริง
+          </div>
+        </div>
+
+        <div class="card panel">
           <div class="phead"><span class="pico" style="background:rgba(245,158,11,.16);color:var(--amber)"><svg viewBox="0 0 24 24"><path d="M6.13 1 6 16a2 2 0 0 0 2 2h15"/><path d="M1 6.13 16 6a2 2 0 0 1 2 2v15"/></svg></span><h2>ตัดภาพอัตโนมัติที่เส้นปะ</h2></div>
           <label class="l-confirm" style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13.5px;line-height:1.7">
             <input type="checkbox" id="autoCrop" onchange="saveAutoCrop()" style="margin-top:3px">
@@ -2312,8 +2328,10 @@
               <b>หากกด Export แล้วไฟล์ไม่ได้ดาวน์โหลดจริง</b> (เช่น เน็ตหลุด) ให้ Admin กด
               <b>"ยกเลิกการทำเครื่องหมาย"</b> ที่แถวนั้นในประวัติ ใบเหล่านั้นจะกลับมานับรวมใน "ยังไม่ได้ส่งเข้า SAP" อีกครั้ง<br>
               เฉพาะใบที่ <b>อนุมัติแล้ว</b> เท่านั้นที่ถูกทำเครื่องหมาย — ใบที่ยังไม่อนุมัติที่หลุดเข้าไฟล์จะไม่ถูกนับว่าส่งแล้ว<br>
-              <b>นับว่าส่งเข้า SAP เฉพาะเมื่อ Approver เป็นผู้ Export</b> — Approver คนใดในโรงงานก็ Export ใบที่อนุมัติแล้วได้ทุกใบ ไม่จำกัดเฉพาะใบที่ตัวเองอนุมัติ ·
-              Export โดย Admin หรือ Role อื่นใช้ดูข้อมูลได้ แต่ไม่ถูกนับว่าส่งแล้ว<br>
+              <b>นับว่าส่งเข้า SAP เฉพาะเมื่อ role ที่ Admin กำหนดไว้เป็นผู้ Export</b> — ตั้งค่าได้ที่หน้า
+              <b>ตั้งค่าระบบ → "ผู้ที่นับว่าส่งเข้า SAP แล้ว"</b> (ค่าเริ่มต้นคือ Approver)
+              role นั้นคนไหนในโรงงานก็ Export ใบที่อนุมัติแล้วได้ทุกใบ ไม่จำกัดเฉพาะใบที่ตัวเองอนุมัติ ·
+              Export โดย role อื่นใช้ดูข้อมูลได้ แต่ไม่ถูกนับว่าส่งแล้ว<br>
               <b>Reviewer Export ได้เฉพาะรายการที่อนุมัติแล้วเท่านั้น</b> — ตัวเลือกสถานะอื่นจะถูกซ่อน
             </div>
           </div>
@@ -3128,6 +3146,8 @@ window.loadConfig = async () => {
     if($("driveFolder")) $("driveFolder").value = c.drive_folder_id||"";
     if($("driveSA")) $("driveSA").value = c.drive_sa_email||"";
     if($("autoCrop")) $("autoCrop").checked = !!c.auto_crop;
+    window._sapExportRole = c.sap_export_role || "approver";
+    if($("sapExportRole")) $("sapExportRole").value = window._sapExportRole;
     paintProviders(c.provider, c.keys_configured);
     paintSettingsHero(c);
   }catch(e){}
@@ -3177,6 +3197,12 @@ window.paintScheduleHero = () => {
   $("stSchedSub").textContent = "ทำงานอัตโนมัติตลอด 24 ชม.";
 };
 
+window.saveSapExportRole = async () => {
+  const role = $("sapExportRole").value;
+  const r = await api("/config", {method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({sap_export_role: role})});
+  if(r.ok){ window._sapExportRole = role; toast("บันทึกแล้ว ✓"); } else toast("บันทึกไม่สำเร็จ");
+};
 window.saveAutoCrop = async () => {
   const on = $("autoCrop").checked;
   const r = await api("/config", {method:"POST", headers:{"Content-Type":"application/json"},
@@ -5238,10 +5264,11 @@ window.exportExcel = async (onlyNew) => {
   a.href = url; a.download = "ใบเบิกวัตถุดิบ_"+facLabel+".xlsx"; a.click();
   URL.revokeObjectURL(url);
   prog.textContent = "";
-  // Only an approver's export counts as handed over to SAP (main.export).
-  toast(currentRole === "approver"
+  // Only the admin-designated role's export counts as handed over to SAP (main.export).
+  const sapRole = window._sapExportRole || "approver";
+  toast(currentRole === sapRole
     ? "ดาวน์โหลดไฟล์แล้ว — ระบบบันทึกว่าใบเหล่านี้ส่งเข้า SAP แล้ว"
-    : "ดาวน์โหลดไฟล์แล้ว — ไม่นับเป็นการส่งเข้า SAP (นับเฉพาะ Export ของ Approver)");
+    : `ดาวน์โหลดไฟล์แล้ว — ไม่นับเป็นการส่งเข้า SAP (นับเฉพาะ Export ของ ${ROLE_LABELS[sapRole]||sapRole})`);
   loadExportStatus(); loadExportBatches(); loadOrders();
 };
 

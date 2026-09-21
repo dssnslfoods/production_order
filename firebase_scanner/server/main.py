@@ -136,6 +136,7 @@ def _masked_config(user_email=None):
         "keys_masked": {p: masked(p) for p in _ENV_KEY},
         "drive_folder_id": s.get("drive_folder_id", ""),
         "auto_crop": bool(s.get("auto_crop")),
+        "sap_export_role": s.get("sap_export_role") or "approver",
         "drive_sa_email": drive_puller.sa_email(),
         "user": user_email,
     }
@@ -196,12 +197,16 @@ def get_config(user=Depends(auth.verify_token)):
     return cfg
 
 
+SAP_EXPORT_ROLES = ("super_admin", "admin", "approver", "reviewer", "staff")
+
+
 class ConfigIn(BaseModel):
     provider: Optional[str] = None
     models: Optional[dict] = None
     api_keys: Optional[dict] = None
     drive_folder_id: Optional[str] = None
     auto_crop: Optional[bool] = None
+    sap_export_role: Optional[str] = None
 
 
 @app.post("/api/config")
@@ -214,6 +219,8 @@ def set_config(body: ConfigIn, user=Depends(admin_only)):
     if "drive_folder_id" in patch:
         import drive_puller
         patch["drive_folder_id"] = drive_puller.parse_folder_id(patch["drive_folder_id"])
+    if "sap_export_role" in patch and patch["sap_export_role"] not in SAP_EXPORT_ROLES:
+        raise HTTPException(status_code=400, detail="role ไม่ถูกต้อง")
     store.save_settings(patch)
     return _masked_config(user["email"])
 
@@ -964,9 +971,11 @@ def export(from_date: Optional[str] = None, to_date: Optional[str] = None,
         raise HTTPException(404, "ไม่พบรายการที่ตรงกับเงื่อนไข — ไม่มีอะไรให้ Export")
     xlsx = excel_export.build_workbook(data)
 
-    # admin/super_admin exports are test-only — never mark orders as exported.
-    # Only approver exports count as handed over to SAP.
-    should_mark = mark and user["role"] == "approver"
+    # Only the role an admin has designated (Settings > sap_export_role,
+    # default "approver") as the one who actually keys orders into SAP marks
+    # them exported. Everyone else's export just downloads a file.
+    sap_role = store.get_settings().get("sap_export_role") or "approver"
+    should_mark = mark and user["role"] == sap_role
     if should_mark:
         ids = [o["id"] for o in data if o.get("status") == "approved" and o.get("id")]
         batch_id = store.mark_exported(ids, user["email"], {

@@ -59,6 +59,10 @@ DEFAULT_SETTINGS = {
     # than the tokens it saves.
     "auto_crop": False,
     "role_permissions": dict(DEFAULT_PERMISSIONS),
+    # Which role's export actually counts as "handed over to SAP". Configurable
+    # because different factories assign the physical SAP entry to different
+    # roles — some to the approver, some to the reviewer.
+    "sap_export_role": "approver",
 }
 
 
