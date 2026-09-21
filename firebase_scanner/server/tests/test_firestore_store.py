@@ -486,3 +486,17 @@ class TestListOrdersStatusFilter:
         assert [o["id"] for o in out] == ["o5", "o6", "o7"]
         assert cursor == "o7"
         q.limit.assert_not_called()
+
+
+class TestFutureDocumentDate:
+    def test_date_weeks_ahead_is_flagged_as_a_likely_day_month_swap(self):
+        with patch("firestore_store._days_from_today", return_value="2026-09-28"):
+            reasons = store._review_reasons({"document_date": "2026-10-09", "lines": []})
+        assert any("อยู่ในอนาคต" in r for r in reasons)
+
+    def test_date_within_the_grace_period_is_not_flagged(self):
+        with patch("firestore_store._days_from_today", return_value="2026-09-28"):
+            assert store._review_reasons({"document_date": "2026-09-25", "lines": []}) == []
+
+    def test_missing_date_is_not_flagged_here(self):
+        assert store._review_reasons({"document_date": None, "lines": []}) == []

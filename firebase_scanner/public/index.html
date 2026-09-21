@@ -5198,8 +5198,12 @@ window.undoExport = async (id, count) => {
 
 window.exportExcel = async (onlyNew) => {
   const p = new URLSearchParams();
-  const useOnlyNew = onlyNew === true || $("expOnlyNew")?.checked;
-  if(!useOnlyNew){
+  // The banner button takes every order still waiting for SAP, whatever its
+  // date.  The checkbox only narrows the chosen range to those not yet sent —
+  // dropping the range there exported orders from outside the dates picked.
+  const allPending = onlyNew === true;
+  const useOnlyNew = allPending || $("expOnlyNew")?.checked;
+  if(!allPending){
     if($("expFrom").value) p.set("from_date", $("expFrom").value);
     if($("expTo").value) p.set("to_date", $("expTo").value);
   }

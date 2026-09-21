@@ -276,7 +276,20 @@ def _review_reasons(data):
               and b["exp_date"] <= b["mfg_date"])
     if bad:
         reasons.append(f"วันหมดอายุมาก่อนวันผลิต {bad} batch — ตรวจสอบ MFG/EXP")
+    # A requisition is filled in on the day it is used, so a date weeks ahead is
+    # almost always DD/MM read as MM/DD (10/09 filed as 9 October).
+    doc_date = (data.get("document_date") or "")[:10]
+    if doc_date and doc_date > _days_from_today(_FUTURE_DATE_GRACE_DAYS):
+        reasons.append(f"วันที่บนเอกสาร {doc_date} อยู่ในอนาคต — วัน/เดือนอาจสลับกัน")
     return reasons
+
+
+_FUTURE_DATE_GRACE_DAYS = 7
+
+
+def _days_from_today(days):
+    bkk = datetime.timezone(datetime.timedelta(hours=7))
+    return (datetime.datetime.now(bkk).date() + datetime.timedelta(days=days)).isoformat()
 
 
 # Header fields a later sheet may supply: page 1 of a two-page form carries no
