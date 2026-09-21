@@ -25,7 +25,7 @@ with patch.dict(os.environ, {"STORAGE_BUCKET": "test-bucket"}):
 
 
 def _mock_user(role="admin"):
-    return {"uid": "test-uid", "email": "test@test.com", "role": role}
+    return {"uid": "test-uid", "email": "test@test.com", "role": role, "factory_id": "f1"}
 
 
 async def _fake_verify_token(authorization: str = ""):
@@ -119,7 +119,7 @@ class TestOrders:
     def test_get_order_found(self, client):
         with patch("main.store") as mock_store:
             mock_store.get_permissions.return_value = {"admin": ["edit_order", "confirm_review"]}
-            mock_store.get_order.return_value = {
+            mock_store.get_order.return_value = {"factory_id": "f1", 
                 "id": "abc", "order_no": "OD001", "source_image": "scans/img.jpg"
             }
             resp = client.get("/api/orders/abc", headers={"Authorization": "Bearer test"})
@@ -132,7 +132,7 @@ class TestOrders:
         with patch("auth.verify_token", new=fake_verify), \
              patch("main.store") as mock_store:
             mock_store.get_permissions.return_value = {"admin": ["delete"]}
-            mock_store.get_order.return_value = {"id": "abc", "order_no": "OD001"}
+            mock_store.get_order.return_value = {"factory_id": "f1", "id": "abc", "order_no": "OD001"}
             mock_store.delete_order = MagicMock()
             mock_store.log_activity = MagicMock()
             resp = client.delete("/api/orders/abc", headers={"Authorization": "Bearer test"})
@@ -145,7 +145,7 @@ class TestOrders:
         with patch("auth.verify_token", new=fake_verify), \
              patch("main.store") as mock_store:
             mock_store.get_permissions.return_value = {"admin": ["edit_order", "confirm_review"]}
-            mock_store.get_order.return_value = {"id": "abc", "order_no": "OD001",
+            mock_store.get_order.return_value = {"factory_id": "f1", "id": "abc", "order_no": "OD001",
                                                  "status": "pending_review"}
             mock_store.update_order.return_value = {"id": "abc", "order_no": "OD002"}
             mock_store.log_activity = MagicMock()
@@ -160,7 +160,7 @@ class TestOrders:
         with patch("auth.verify_token", new=fake_verify), \
              patch("main.store") as mock_store:
             mock_store.get_permissions.return_value = {"admin": ["edit_order"]}
-            mock_store.get_order.return_value = {"id": "abc", "order_no": "OD001",
+            mock_store.get_order.return_value = {"factory_id": "f1", "id": "abc", "order_no": "OD001",
                                                  "status": "approved"}
             mock_store.log_activity = MagicMock()
             resp = client.put("/api/orders/abc",
@@ -174,7 +174,7 @@ class TestOrders:
         with patch("auth.verify_token", new=fake_verify), \
              patch("main.store") as mock_store:
             mock_store.get_permissions.return_value = {"admin": ["approve"]}
-            mock_store.get_order.return_value = {"id": "abc", "order_no": "OD001",
+            mock_store.get_order.return_value = {"factory_id": "f1", "id": "abc", "order_no": "OD001",
                                                  "status": "pending_approval"}
             mock_store.approve_order.return_value = {"id": "abc", "status": "approved"}
             mock_store.log_activity = MagicMock()
@@ -188,7 +188,7 @@ class TestOrders:
         with patch("auth.verify_token", new=fake_verify), \
              patch("main.store") as mock_store:
             mock_store.get_permissions.return_value = {"admin": ["approve"]}
-            mock_store.get_order.return_value = {"id": "abc", "order_no": "OD001",
+            mock_store.get_order.return_value = {"factory_id": "f1", "id": "abc", "order_no": "OD001",
                                                  "status": "pending_review"}
             mock_store.log_activity = MagicMock()
             resp = client.post("/api/orders/abc/approve",
@@ -201,7 +201,7 @@ class TestOrders:
         with patch("auth.verify_token", new=fake_verify), \
              patch("main.store") as mock_store:
             mock_store.get_permissions.return_value = {"reviewer": ["confirm_review"]}
-            mock_store.get_order.return_value = {"id": "abc", "order_no": "OD001",
+            mock_store.get_order.return_value = {"factory_id": "f1", "id": "abc", "order_no": "OD001",
                                                  "status": "pending_review"}
             mock_store.confirm_review.return_value = {"id": "abc", "status": "pending_approval"}
             mock_store.log_activity = MagicMock()
@@ -215,7 +215,7 @@ class TestOrders:
         with patch("auth.verify_token", new=fake_verify), \
              patch("main.store") as mock_store:
             mock_store.get_permissions.return_value = {"reviewer": ["confirm_review"]}
-            mock_store.get_order.return_value = {"id": "abc", "order_no": "OD001",
+            mock_store.get_order.return_value = {"factory_id": "f1", "id": "abc", "order_no": "OD001",
                                                  "status": "returned_to_review"}
             mock_store.confirm_review.return_value = {"id": "abc", "status": "pending_approval"}
             mock_store.log_activity = MagicMock()
@@ -229,7 +229,7 @@ class TestOrders:
         with patch("auth.verify_token", new=fake_verify), \
              patch("main.store") as mock_store:
             mock_store.get_permissions.return_value = {"reviewer": ["confirm_review"]}
-            mock_store.get_order.return_value = {"id": "abc", "order_no": "OD001",
+            mock_store.get_order.return_value = {"factory_id": "f1", "id": "abc", "order_no": "OD001",
                                                  "status": "draft"}
             mock_store.confirm_review.return_value = {"id": "abc", "status": "pending_approval"}
             resp = client.post("/api/orders/abc/confirm-review",
@@ -244,7 +244,7 @@ class TestOrders:
         with patch("auth.verify_token", new=fake_verify), \
              patch("main.store") as mock_store:
             mock_store.get_permissions.return_value = {"reviewer": ["confirm_review"]}
-            mock_store.get_order.return_value = {"id": "abc", "order_no": "OD001",
+            mock_store.get_order.return_value = {"factory_id": "f1", "id": "abc", "order_no": "OD001",
                                                  "status": "approved"}
             mock_store.log_activity = MagicMock()
             resp = client.post("/api/orders/abc/confirm-review",
@@ -267,7 +267,7 @@ class TestOrders:
         with patch("auth.verify_token", new=fake_verify), \
              patch("main.store") as mock_store:
             mock_store.get_permissions.return_value = {"approver": ["return_to_review"]}
-            mock_store.get_order.return_value = {"id": "abc", "order_no": "OD001",
+            mock_store.get_order.return_value = {"factory_id": "f1", "id": "abc", "order_no": "OD001",
                                                  "status": "pending_approval"}
             mock_store.return_order_to_review.return_value = {"id": "abc",
                                                               "status": "returned_to_review"}
@@ -294,14 +294,14 @@ class TestOrders:
         with patch("auth.verify_token", new=fake_verify), \
              patch("main.store") as mock_store:
             mock_store.get_permissions.return_value = {"approver": ["return_to_review"]}
-            mock_store.get_order.return_value = {"id": "abc", "order_no": "OD001",
+            mock_store.get_order.return_value = {"factory_id": "f1", "id": "abc", "order_no": "OD001",
                                                  "status": "pending_review"}
             resp = client.post("/api/orders/abc/return-to-review",
                                json={"reason": "ยอดไม่ตรง"},
                                headers={"Authorization": "Bearer test"})
         assert resp.status_code == 400
 
-    def _as(self, role, factory_id=None):
+    def _as(self, role, factory_id="f1"):
         async def fake_verify(authorization: str = ""):
             return {"uid": "u", "email": f"{role}@test.com", "role": role,
                     "factory_id": factory_id}
@@ -318,7 +318,7 @@ class TestOrders:
         self._as("staff")
         with patch("main.store") as mock_store:
             mock_store.get_permissions.return_value = {"staff": ["edit_order"]}
-            mock_store.get_order.return_value = {"id": "abc", "order_no": "OD001",
+            mock_store.get_order.return_value = {"factory_id": "f1", "id": "abc", "order_no": "OD001",
                                                  "status": "draft"}
             mock_store.submit_for_review.return_value = {"id": "abc", "status": "pending_review"}
             resp = client.post("/api/orders/abc/submit-review",
@@ -330,7 +330,7 @@ class TestOrders:
         self._as("staff")
         with patch("main.store") as mock_store:
             mock_store.get_permissions.return_value = {"staff": ["edit_order"]}
-            mock_store.get_order.return_value = {"id": "abc", "status": "returned_to_review"}
+            mock_store.get_order.return_value = {"factory_id": "f1", "id": "abc", "status": "returned_to_review"}
             resp = client.post("/api/orders/abc/submit-review",
                                headers={"Authorization": "Bearer test"})
         assert resp.status_code == 400
@@ -340,7 +340,7 @@ class TestOrders:
         self._as("staff")
         with patch("main.store") as mock_store:
             mock_store.get_permissions.return_value = {"staff": ["edit_order"]}
-            mock_store.get_order.return_value = {"id": "abc", "status": "draft"}
+            mock_store.get_order.return_value = {"factory_id": "f1", "id": "abc", "status": "draft"}
             resp = client.put("/api/orders/abc", json={"order_no": "X"},
                               headers={"Authorization": "Bearer test"})
         assert resp.status_code == 200
@@ -349,7 +349,7 @@ class TestOrders:
         self._as("staff")
         with patch("main.store") as mock_store:
             mock_store.get_permissions.return_value = {"staff": ["edit_order"]}
-            mock_store.get_order.return_value = {"id": "abc", "status": "pending_review"}
+            mock_store.get_order.return_value = {"factory_id": "f1", "id": "abc", "status": "pending_review"}
             resp = client.put("/api/orders/abc", json={"order_no": "X"},
                               headers={"Authorization": "Bearer test"})
         assert resp.status_code == 403
@@ -359,7 +359,7 @@ class TestOrders:
         self._as("reviewer")
         with patch("main.store") as mock_store:
             mock_store.get_permissions.return_value = {"reviewer": ["edit_order", "confirm_review"]}
-            mock_store.get_order.return_value = {"id": "abc", "status": "pending_approval"}
+            mock_store.get_order.return_value = {"factory_id": "f1", "id": "abc", "status": "pending_approval"}
             resp = client.put("/api/orders/abc", json={"order_no": "X"},
                               headers={"Authorization": "Bearer test"})
         assert resp.status_code == 400
@@ -368,7 +368,7 @@ class TestOrders:
         self._as("approver", factory_id="f1")
         with patch("main.store") as mock_store:
             mock_store.get_permissions.return_value = {"approver": ["approve"]}
-            mock_store.get_order.return_value = {"id": "abc", "status": "pending_approval",
+            mock_store.get_order.return_value = {"factory_id": "f1", "id": "abc", "status": "pending_approval",
                                                  "factory_id": "f2"}
             resp = client.post("/api/orders/abc/approve",
                                headers={"Authorization": "Bearer test"})
@@ -585,8 +585,54 @@ class TestPagination:
             resp = client.get("/api/orders?cursor=abc123",
                               headers={"Authorization": "Bearer test"})
         assert resp.status_code == 200
-        mock_store.list_orders.assert_called_once_with(limit=100, cursor="abc123", factory_id=None,
+        mock_store.list_orders.assert_called_once_with(limit=100, cursor="abc123", factory_id="f1",
                                                        statuses=None)
+
+    def _client_as(self, role, factory_id):
+        async def user(authorization: str = ""):
+            return {"uid": "u", "email": "u@test.com", "role": role, "factory_id": factory_id}
+        app.dependency_overrides[main.auth.verify_token] = user
+        return TestClient(app)
+
+    @pytest.mark.parametrize("role", ["admin", "approver", "reviewer", "staff"])
+    @pytest.mark.parametrize("path", ["/api/orders", "/api/report", "/api/export/status"])
+    def test_user_without_factory_sees_no_factory_data(self, role, path):
+        # A first login is auto-created as staff with no factory; None must not
+        # fall through to the store as "every factory".
+        c = self._client_as(role, None)
+        try:
+            with patch("main.store") as mock_store:
+                mock_store.get_permissions.return_value = {role: ["edit_order"]}
+                resp = c.get(path)
+            assert resp.status_code == 403
+            mock_store.list_orders.assert_not_called()
+            mock_store.export_status.assert_not_called()
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_super_admin_reads_every_factory(self):
+        c = self._client_as("super_admin", None)
+        try:
+            with patch("main.store") as mock_store:
+                mock_store.get_permissions.return_value = {"super_admin": ["edit_order"]}
+                mock_store.list_orders.return_value = ([], None)
+                assert c.get("/api/orders").status_code == 200
+            assert mock_store.list_orders.call_args.kwargs["factory_id"] is None
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_factory_user_reads_only_their_factory(self):
+        c = self._client_as("reviewer", "f2")
+        try:
+            with patch("main.store") as mock_store:
+                mock_store.get_permissions.return_value = {"reviewer": ["edit_order"]}
+                mock_store.list_orders.return_value = ([], None)
+                c.get("/api/orders")
+                c.get("/api/export/status")
+            assert mock_store.list_orders.call_args.kwargs["factory_id"] == "f2"
+            mock_store.export_status.assert_called_once_with(factory_id="f2")
+        finally:
+            app.dependency_overrides.clear()
 
     def _approver_client(self):
         async def approver(authorization: str = ""):
@@ -612,9 +658,9 @@ class TestPagination:
         try:
             with patch("main.store") as mock_store:
                 mock_store.get_permissions.return_value = {"approver": ["approve"]}
-                mock_store.get_order.return_value = {"id": "abc", "status": "draft"}
+                mock_store.get_order.return_value = {"factory_id": "f1", "id": "abc", "status": "draft"}
                 assert c.get("/api/orders/abc").status_code == 404
-                mock_store.get_order.return_value = {"id": "abc", "status": "pending_approval"}
+                mock_store.get_order.return_value = {"factory_id": "f1", "id": "abc", "status": "pending_approval"}
                 assert c.get("/api/orders/abc").status_code == 200
         finally:
             app.dependency_overrides.clear()

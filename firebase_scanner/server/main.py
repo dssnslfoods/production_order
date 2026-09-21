@@ -56,9 +56,14 @@ super_only = require_role("super_admin")
 
 
 def _fid(user):
-    """Effective factory_id for data queries. super_admin sees all (None)."""
+    """Effective factory_id for data queries. super_admin sees all (None).
+
+    Everyone else is confined to their factory.  None means "no filter" to the
+    store, so a user not yet assigned one (a first login is auto-created as
+    staff without a factory) would otherwise read every factory's orders."""
     if user["role"] == "super_admin":
         return None
+    _require_factory(user)
     return user.get("factory_id")
 
 
