@@ -423,10 +423,16 @@
     .modal-card.has-img .edit-main,.modal-card.has-img .edit-actions{grid-column:1;min-width:0}
     .modal-card.has-img .edit-side .zoom-only{display:inline-flex}
     .modal-card.has-img .edit-side .stack-only{display:none}
-    .modal-card.has-img #editImages{flex-direction:column;flex-wrap:nowrap;gap:10px;height:calc(100vh - 120px);overflow:auto;
+    /* the panel fills the screen height left under the modal padding (22px each
+       side) and its toolbar, so it never runs off the bottom while pinned */
+    .modal-card.has-img #editImages{flex-direction:column;flex-wrap:nowrap;gap:10px;height:calc(100vh - 96px);overflow:auto;
       padding:8px;border:1px solid var(--line);border-radius:12px;background:var(--bg2,var(--bg))}
-    .modal-card.has-img #editImages > div{flex:0 0 auto}
-    .modal-card.has-img #editImages .src-img{width:calc(var(--zoom,1) * 100%);max-width:none;max-height:none;border-radius:6px}
+    .modal-card.has-img #editImages > div{flex:0 0 auto;align-items:center}
+    /* "พอดี" shows each whole page with nothing to scroll, so the photo stays put
+       while the form scrolls; only a zoomed photo scrolls inside the panel */
+    .modal-card.has-img #editImages .src-img{display:block;width:auto;max-width:100%;max-height:calc(100vh - 140px);border-radius:6px}
+    .modal-card.has-img #editImages.zoomed > div{align-items:flex-start}
+    .modal-card.has-img #editImages.zoomed .src-img{width:calc(var(--zoom,1) * 100%);max-width:none;max-height:none}
   }
   .etable{display:flex;flex-direction:column;gap:7px;overflow-x:auto;padding-bottom:4px}
   .ehead,.erow{display:grid;grid-template-columns:52px 108px minmax(150px,1fr) 96px 78px 34px;gap:7px;align-items:center;min-width:520px}
@@ -4724,6 +4730,7 @@ function setSrcZoom(z, anchor){
   const old = srcZoom;
   srcZoom = Math.min(4, Math.max(1, Math.round(z * 4) / 4));
   box.style.setProperty("--zoom", srcZoom);
+  box.classList.toggle("zoomed", srcZoom > 1);
   $("srcZoomLvl").textContent = Math.round(srcZoom * 100) + "%";
   // keep the point under the cursor (or the centre) in place while zooming
   if(anchor && old !== srcZoom){
