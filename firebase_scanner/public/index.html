@@ -2924,15 +2924,20 @@ function applyRole(role, perms){
   currentRole = role;
   if(perms) currentPerms = perms;
   const approverView = isApproverView();
-  ["statusFilter","expStatus"].forEach(id => $(id).querySelectorAll('option[value="draft"],option[value="pending_review"]')
-    .forEach(o => { o.hidden = approverView; o.disabled = approverView; }));
   // A reviewer may export approved orders only (enforced by main.export too).
   const approvedOnly = role === "reviewer";
-  $("expStatus").querySelectorAll('option:not([value="approved"])').forEach(o => {
-    const hide = approvedOnly || (approverView && ["draft","pending_review"].includes(o.value));
-    o.hidden = hide; o.disabled = hide;
+  // Options are removed, not hidden: Safari ignores `hidden` on <option>.
+  // The full list is rebuilt per login, since logout does not reload the page.
+  ["statusFilter","expStatus"].forEach(id => {
+    const sel = $(id);
+    sel._allOptions = sel._allOptions || [...sel.options].map(o => o.cloneNode(true));
+    const prev = sel.value;
+    sel.replaceChildren(...sel._allOptions.filter(o =>
+      !(approverView && ["draft","pending_review"].includes(o.value))
+      && !(id === "expStatus" && approvedOnly && o.value !== "approved")
+    ).map(o => o.cloneNode(true)));
+    sel.value = [...sel.options].some(o => o.value === prev) ? prev : sel.options[0].value;
   });
-  if(approvedOnly) $("expStatus").value = "approved";
   if(approverView && !approverFilterSet){ $("statusFilter").value = "pending_approval"; approverFilterSet = true; }
   // Logout does not reload the page, so on a shared device the next user would
   // inherit the approver's default filter and not see their own stage's orders.
