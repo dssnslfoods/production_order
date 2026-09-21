@@ -907,6 +907,10 @@ def export(from_date: Optional[str] = None, to_date: Optional[str] = None,
           export_factory: Optional[str] = None,
           user=Depends(auth.verify_token)):
     from urllib.parse import quote
+    # A reviewer's export must not carry orders nobody has approved yet.
+    if user["role"] == "reviewer" and status != "approved":
+        raise HTTPException(status_code=403,
+                            detail="Reviewer Export ได้เฉพาะรายการที่อนุมัติแล้วเท่านั้น")
     if export_factory and user["role"] in ("super_admin", "admin"):
         fid = export_factory
     else:

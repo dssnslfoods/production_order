@@ -810,6 +810,37 @@ class TestExportTracking:
             r = client.get("/api/export/batches")
             assert [b["id"] for b in r.json()["batches"]] == ["b1"]
 
+    @pytest.mark.parametrize("status", ["all", "draft", "pending_review",
+                                        "returned_to_review", "pending_approval"])
+    def test_reviewer_cannot_export_unapproved(self, status):
+        async def reviewer(authorization: str = ""):
+            return _mock_user(role="reviewer")
+        app.dependency_overrides[main.auth.verify_token] = reviewer
+        try:
+            with patch("main.store") as st, patch("main.excel_export") as xl:
+                r = TestClient(app).get(f"/api/export?status={status}")
+                assert r.status_code == 403
+                xl.build_workbook.assert_not_called()
+                st.mark_exported.assert_not_called()
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_reviewer_exports_approved_without_marking(self):
+        async def reviewer(authorization: str = ""):
+            return _mock_user(role="reviewer")
+        app.dependency_overrides[main.auth.verify_token] = reviewer
+        try:
+            with patch("main.store") as st, patch("main.excel_export") as xl, \
+                 patch("main.analytics"):
+                st.list_orders.return_value = ([_order_row("a"), _order_row("b", status="draft")], None)
+                xl.build_workbook.return_value = b"xlsx"
+                r = TestClient(app).get("/api/export?status=approved")
+                assert r.status_code == 200
+                assert [o["id"] for o in xl.build_workbook.call_args[0][0]] == ["a"]
+                st.mark_exported.assert_not_called()
+        finally:
+            app.dependency_overrides.clear()
+
     def test_only_new_skips_already_exported(self, client):
         rows = [_order_row("a", exported=True), _order_row("b")]
         with patch("main.store") as st, patch("main.excel_export") as xl, \

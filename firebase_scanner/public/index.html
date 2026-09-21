@@ -2225,7 +2225,8 @@
               <b>"ยกเลิกการทำเครื่องหมาย"</b> ที่แถวนั้นในประวัติ ใบเหล่านั้นจะกลับมานับรวมใน "ยังไม่ได้ส่งเข้า SAP" อีกครั้ง<br>
               เฉพาะใบที่ <b>อนุมัติแล้ว</b> เท่านั้นที่ถูกทำเครื่องหมาย — ใบที่ยังไม่อนุมัติที่หลุดเข้าไฟล์จะไม่ถูกนับว่าส่งแล้ว<br>
               <b>นับว่าส่งเข้า SAP เฉพาะเมื่อ Approver เป็นผู้ Export</b> — Approver คนใดในโรงงานก็ Export ใบที่อนุมัติแล้วได้ทุกใบ ไม่จำกัดเฉพาะใบที่ตัวเองอนุมัติ ·
-              Export โดย Admin หรือ Role อื่นใช้ดูข้อมูลได้ แต่ไม่ถูกนับว่าส่งแล้ว
+              Export โดย Admin หรือ Role อื่นใช้ดูข้อมูลได้ แต่ไม่ถูกนับว่าส่งแล้ว<br>
+              <b>Reviewer Export ได้เฉพาะรายการที่อนุมัติแล้วเท่านั้น</b> — ตัวเลือกสถานะอื่นจะถูกซ่อน
             </div>
           </div>
 
@@ -2925,6 +2926,13 @@ function applyRole(role, perms){
   const approverView = isApproverView();
   ["statusFilter","expStatus"].forEach(id => $(id).querySelectorAll('option[value="draft"],option[value="pending_review"]')
     .forEach(o => { o.hidden = approverView; o.disabled = approverView; }));
+  // A reviewer may export approved orders only (enforced by main.export too).
+  const approvedOnly = role === "reviewer";
+  $("expStatus").querySelectorAll('option:not([value="approved"])').forEach(o => {
+    const hide = approvedOnly || (approverView && ["draft","pending_review"].includes(o.value));
+    o.hidden = hide; o.disabled = hide;
+  });
+  if(approvedOnly) $("expStatus").value = "approved";
   if(approverView && !approverFilterSet){ $("statusFilter").value = "pending_approval"; approverFilterSet = true; }
   // Logout does not reload the page, so on a shared device the next user would
   // inherit the approver's default filter and not see their own stage's orders.
