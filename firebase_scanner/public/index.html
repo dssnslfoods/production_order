@@ -460,6 +460,41 @@
     font-size:15px;background:var(--surface);border:1px solid var(--line2);border-radius:8px;cursor:pointer;transition:.15s}
   .q-table .act-btns button:hover{border-color:var(--indigo);color:var(--indigo);background:rgba(99,102,241,.06)}
 
+  /* ---- orders workflow bar: one gate per status, clickable per role ---- */
+  .wf-bar{position:relative;display:flex;align-items:stretch;gap:0;margin:-9px 0 16px;overflow-x:auto;padding:9px 0 2px;
+    scrollbar-width:thin}
+  .wf-gate{position:relative;flex:1 1 0;min-width:132px;display:flex;flex-direction:column;gap:6px}
+  .wf-gate + .wf-gate{margin-left:22px}
+  .wf-gate + .wf-gate::before{content:"";position:absolute;left:-17px;top:24px;width:12px;height:12px;
+    border-top:2px solid var(--line2);border-right:2px solid var(--line2);transform:rotate(45deg)}
+  .wf-gate.all{flex:0 0 auto;min-width:96px}
+  .wf-step{width:100%;display:flex;align-items:center;gap:10px;text-align:left;padding:10px 12px;border-radius:12px;
+    background:var(--surface);border:1px solid var(--line2);color:var(--text);cursor:pointer;box-shadow:none;
+    font:inherit;transition:border-color .15s var(--ease),background .15s var(--ease)}
+  .wf-step:hover:not(:disabled){border-color:var(--wf,var(--indigo))}
+  .wf-step.on{border-color:var(--wf,var(--indigo));background:color-mix(in srgb,var(--wf,var(--indigo)) 11%,var(--surface));
+    box-shadow:inset 0 -3px 0 var(--wf,var(--indigo))}
+  .wf-step:disabled{cursor:not-allowed;opacity:.5;background:transparent;border-style:dashed}
+  .wf-num{flex:0 0 26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;
+    color:#fff;background:var(--wf,var(--indigo))}
+  .wf-step:disabled .wf-num{background:var(--faint)}
+  .wf-txt{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25}
+  .wf-txt b,.wf-txt small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .wf-txt b{font-size:13px}
+  .wf-txt small{font-size:11px;color:var(--muted)}
+  .wf-cnt{font-size:17px;font-weight:700;color:var(--wf,var(--indigo));font-variant-numeric:tabular-nums}
+  .wf-you{position:absolute;top:-8px;right:8px;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700;
+    color:#fff;background:var(--wf,var(--indigo))}
+  .wf-sub{align-self:flex-start;width:auto;padding:3px 10px;font-size:11.5px;font-weight:600;border-radius:999px;
+    background:transparent;border:1px solid color-mix(in srgb,var(--wf-sub) 45%,transparent);color:var(--wf-sub);
+    box-shadow:none;cursor:pointer;font-family:inherit}
+  .wf-sub:hover{background:color-mix(in srgb,var(--wf-sub) 10%,transparent)}
+  .wf-sub.on{background:var(--wf-sub);color:#fff}
+  .wf-sub.hot{animation:wfPulse 1.8s ease-in-out infinite}
+  @keyframes wfPulse{50%{box-shadow:0 0 0 4px color-mix(in srgb,var(--wf-sub) 22%,transparent)}}
+  @media(prefers-reduced-motion:reduce){.wf-sub.hot{animation:none}}
+  @media(max-width:700px){.wf-txt small{display:none}.wf-gate{min-width:150px}.wf-gate.all{min-width:108px}}
+
   /* ---- orders filter bar ---- */
   .ord-filters{display:grid;grid-template-columns:1.6fr .9fr .9fr .9fr;gap:10px;margin-bottom:12px}
   .ord-filters label{display:block;font-size:11px;font-weight:600;color:var(--muted);
@@ -1179,13 +1214,15 @@
         <div class="card panel">
           <div class="between" style="margin-bottom:16px">
             <div class="phead" style="margin:0"><span class="pico" style="background:rgba(52,211,153,.16);color:var(--emerald)"><svg viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></span><h2>รายการที่สแกนแล้ว</h2></div>
-            <button class="ghost sm" onclick="loadOrders()">รีเฟรช</button>
+            <button class="ghost sm" onclick="loadOrders();refreshWorkflowCounts()">รีเฟรช</button>
           </div>
 
           <div id="returnedBanner" class="returned-banner hidden">
             <span>↩ มี <b id="returnedBannerCount">0</b> ใบที่ Approver ตีกลับ — รอแก้ไขแล้วส่งต่อไปอนุมัติใหม่</span>
             <button class="btn sm" onclick="showOrdersWithStatus('returned_to_review')">ดูรายการที่ถูกตีกลับ</button>
           </div>
+
+          <div id="wfBar" class="wf-bar" role="toolbar" aria-label="ขั้นตอนการทำงาน — กดเพื่อกรองตามสถานะ"></div>
 
           <div class="ord-filters">
             <div>
@@ -2037,6 +2074,7 @@
               <tbody>
                 <tr><td style="width:150px"><b>ค้นหา</b></td><td>พิมพ์เลขที่ ชื่อสินค้า หรืออีเมลผู้อนุมัติ</td></tr>
                 <tr><td><b>สถานะ</b></td><td>ทั้งหมด / ร่าง — รอส่งตรวจ / รอตรวจสอบ / ตีกลับ — รอแก้ไข / รออนุมัติ / อนุมัติแล้ว / อนุมัติแล้ว · ยังไม่ส่ง SAP / ต้องตรวจสอบ (ดูความหมายในข้อ 7)</td></tr>
+                <tr><td><b>แถบขั้นตอน</b></td><td>ร่าง → รอตรวจสอบ → รออนุมัติ → อนุมัติแล้ว กดแต่ละขั้นเพื่อกรองทันที ตัวเลขคือจำนวนใบในขั้นนั้น ป้าย “งานของคุณ” บอกว่าขั้นไหนรอคุณ ขั้นที่มี 🔒 คือสิทธิ์ของคุณไม่ครอบคลุม ส่วน “↩ ตีกลับ” และ “รอส่ง SAP” จะโผล่ใต้ขั้นเมื่อมีรายการค้าง</td></tr>
                 <tr><td><b>ช่วงวันที่</b></td><td>ตั้งแต่วันที่ – ถึงวันที่ (อ้างอิงวันที่บนเอกสาร)</td></tr>
                 <tr><td><b>ปุ่มลัด</b></td><td>7 วัน · 30 วัน · เดือนนี้ · เดือนที่แล้ว · ทั้งหมด</td></tr>
               </tbody>
@@ -2849,7 +2887,7 @@ window.showPage = (page) => {
   document.querySelector(`.tab-item[data-page="${page}"]`)?.classList.add('active');
   if(page==='dashboard') loadReport();
   if(page==='scan'){ loadPending(); loadSchedule(); loadDeadLetter(); }
-  if(page==='orders') loadOrders();
+  if(page==='orders'){ loadOrders(); refreshWorkflowCounts(); }
   if(page==='factories') loadFactories();
   if(page==='users'){ loadUsers(); renderPermMatrix(); }
   if(page==='activity') loadActivity();
@@ -2942,6 +2980,7 @@ function applyRole(role, perms){
   // Logout does not reload the page, so on a shared device the next user would
   // inherit the approver's default filter and not see their own stage's orders.
   else if(!approverView && approverFilterSet){ $("statusFilter").value = "all"; approverFilterSet = false; }
+  renderWorkflowBar();
   const labels = {super_admin:"Super Admin",admin:"Admin",approver:"Approver",reviewer:"Reviewer",staff:"Staff"};
   const colors = {super_admin:"#a78bfa",admin:"#fb7185",approver:"#fbbf24",reviewer:"#34d399",staff:"#38bdf8"};
   $("roleChip").textContent = labels[role]||role;
@@ -3479,6 +3518,7 @@ window.applyOrderFilters = () => {
     filtered.sort((a,b) => (b.status === "returned_to_review") - (a.status === "returned_to_review"));
   }
   updateReturnedAlerts();
+  renderWorkflowBar();
 
   const note = $("filterNote");
   if(note){
@@ -3537,6 +3577,81 @@ window.ensureAllOrders = async () => {
     applyOrderFilters();
   }
 };
+
+// ---- Workflow bar ----------------------------------------------------------
+// The order's path through the system, one gate per stage, each a shortcut to
+// the status filter.  A gate is clickable only if the user's role may see that
+// stage: applyRole already strips the filter options the server would not
+// return, so the bar follows the select instead of repeating the rules.
+// Counts come from /report (statuses) and /export/status (not yet in SAP).
+let wfCounts = null, wfSapPending = null;
+const WF_GATES = [
+  {s:"draft", label:"ร่าง", who:"Staff ตรวจแล้วส่งตรวจ", tone:"var(--indigo)",
+   mine:() => hasPerm("edit_order"), n:c => c.draft},
+  {s:"pending_review", label:"รอตรวจสอบ", who:"Reviewer ยืนยันข้อมูล", tone:"var(--sky)",
+   mine:() => hasPerm("confirm_review"), n:c => c.pending_review,
+   sub:{s:"returned_to_review", label:"↩ ตีกลับ", tone:"var(--red)", n:c => c.returned_to_review}},
+  {s:"pending_approval", label:"รออนุมัติ", who:"Approver อนุมัติ", tone:"var(--amber)",
+   mine:() => hasPerm("approve"), n:c => c.pending_approval},
+  {s:"approved", label:"อนุมัติแล้ว", who:"พร้อมส่งเข้า SAP", tone:"var(--emerald)",
+   mine:() => false, n:c => (c.approved||0) + (c.exported||0),
+   sub:{s:"not_exported", label:"รอส่ง SAP", tone:"var(--amber)", n:() => wfSapPending,
+        mine:() => hasPerm("approve") && hasPerm("export")}},
+];
+function renderWorkflowBar(){
+  const bar = $("wfBar");
+  if(!bar) return;
+  const sel = $("statusFilter");
+  const cur = sel.value;
+  const allowed = new Set([...sel.options].map(o => o.value));
+  const c = wfCounts || {};
+  const num = v => v == null ? "" : Number(v||0).toLocaleString("th-TH");
+  const allN = wfCounts ? WF_GATES.filter(g => allowed.has(g.s)).reduce((t,g) => t + (g.n(c)||0), 0)
+                          + (allowed.has("returned_to_review") ? c.returned_to_review||0 : 0) : null;
+  let html = `<div class="wf-gate all"><button class="wf-step${cur==="all"?" on":""}" onclick="wfGo('all')"
+      aria-pressed="${cur==="all"}" title="แสดงทุกสถานะที่คุณมีสิทธิ์เห็น">
+      <span class="wf-txt"><b>ทั้งหมด</b><small>ทุกขั้นตอน</small></span>
+      <span class="wf-cnt">${num(allN)}</span></button></div>`;
+  WF_GATES.forEach((g, i) => {
+    const ok = allowed.has(g.s);
+    const on = cur === g.s;
+    const n = ok && wfCounts ? g.n(c) : null;
+    const mine = ok && g.mine() && n > 0;
+    const tip = ok ? `${g.label} — ${g.who}${mine ? " (รอคุณดำเนินการ)" : ""}` : "สิทธิ์ของคุณไม่ครอบคลุมขั้นตอนนี้";
+    let sub = "";
+    if(g.sub && allowed.has(g.sub.s)){
+      const sn = wfCounts ? g.sub.n(c) : null;
+      // "ตีกลับ" / "รอส่ง SAP" only earn space when there is something in them.
+      if(sn > 0 || cur === g.sub.s){
+        const hot = sn > 0 && (g.sub.mine ? g.sub.mine() : g.mine());
+        sub = `<button class="wf-sub${cur===g.sub.s?" on":""}${hot?" hot":""}" style="--wf-sub:${g.sub.tone}"
+          onclick="wfGo('${g.sub.s}')" aria-pressed="${cur===g.sub.s}">${g.sub.label} ${num(sn)}</button>`;
+      }
+    }
+    html += `<div class="wf-gate" style="--wf:${g.tone}">
+      <button class="wf-step${on?" on":""}" ${ok ? `onclick="wfGo('${g.s}')"` : "disabled"}
+        aria-pressed="${on}" title="${esc(tip)}">
+        <span class="wf-num">${ok ? i+1 : "🔒"}</span>
+        <span class="wf-txt"><b>${g.label}</b><small>${g.who}</small></span>
+        <span class="wf-cnt">${ok ? num(n) : ""}</span>
+      </button>${mine ? '<span class="wf-you">งานของคุณ</span>' : ""}${sub}</div>`;
+  });
+  bar.innerHTML = html;
+  // On a phone the bar scrolls sideways; keep the chosen gate in view.
+  const on = bar.querySelector(".wf-step.on, .wf-sub.on")?.closest(".wf-gate");
+  if(on && bar.scrollWidth > bar.clientWidth) bar.scrollLeft = on.offsetLeft - 12;
+}
+window.wfGo = (s) => {
+  const sel = $("statusFilter");
+  if(![...sel.options].some(o => o.value === s)) return;
+  sel.value = s;
+  applyOrderFilters();
+};
+let wfFetching = null;
+window.refreshWorkflowCounts = () => wfFetching ||= Promise.all([
+  api("/report").then(r => r.json()).then(r => { wfCounts = r.status_counts || {}; }).catch(() => {}),
+  api("/export/status").then(r => r.json()).then(j => { wfSapPending = j.pending ?? null; }).catch(() => {}),
+]).then(renderWorkflowBar).finally(() => { wfFetching = null; });
 
 let ordersCursor = null;
 window.loadOrders = async (append) => {
@@ -4175,7 +4290,7 @@ window.doFlush = async () => {
     $("flushConfirm").value = "";
     await loadFlushPreview();
     // Everything downstream reads from the collections that were just emptied.
-    ordersCursor = null; allOrders = []; fcData = null; hlData = null;
+    ordersCursor = null; allOrders = []; fcData = null; hlData = null; wfCounts = null; wfSapPending = null;
     loadOrders(); loadPending(); loadReport();
   }catch(e){ toast("ลบไม่สำเร็จ"); }
   finally{ btn.textContent = "ล้างข้อมูลถาวร"; flushGate(); }
@@ -5428,6 +5543,7 @@ window.loadReport = async () => {
     $("returnedCount").textContent = sc.returned_to_review||0;
     returnedTotal = sc.returned_to_review||0;
     updateReturnedAlerts();
+    wfCounts = sc; renderWorkflowBar();
     $("pendingApprovalCount").textContent = sc.pending_approval||0;
     $("approvedCount").textContent = (sc.approved||0) + (sc.exported||0);
     const dc = (dj.items||[]).length;
