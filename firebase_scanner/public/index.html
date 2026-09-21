@@ -404,6 +404,30 @@
   .modal-card{width:100%;max-width:900px;margin:auto;padding:26px 28px;
     background:var(--surface);border:1px solid var(--line);
     border-radius:16px;box-shadow:0 25px 60px -15px rgba(15,23,42,.25)}
+  /* edit modal with a source image: form left, image pinned right, so the
+     checker compares line by line without scrolling down to the photo */
+  .edit-side .img-tools{display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+  .edit-side .img-tools label{margin:0 auto 0 0}
+  .edit-side .img-tools button{width:auto;padding:4px 10px;font-size:12.5px}
+  .edit-side .img-tools .zlvl{font-size:12px;color:var(--faint);min-width:40px;text-align:center;font-variant-numeric:tabular-nums}
+  .edit-side .zoom-only{display:none}
+  #editImages{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}
+  #editImages .src-img{max-width:100%;max-height:300px;border-radius:10px;border:1px solid var(--line);cursor:zoom-in;object-fit:contain}
+  #editImages .src-img.big{max-height:none}
+  @media(min-width:1200px){
+    .modal-card.has-img{max-width:1600px}
+    .modal-card.has-img .edit-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(380px,40%);gap:24px;align-items:start}
+    .modal-card.has-img .eline .lhead,.modal-card.has-img .eline .lrow{
+      grid-template-columns:44px 96px minmax(100px,1fr) 64px 88px 84px 78px 50px 40px;min-width:0}
+    .modal-card.has-img .edit-side{grid-column:2;grid-row:1 / span 2;position:sticky;top:0;margin:0 !important}
+    .modal-card.has-img .edit-main,.modal-card.has-img .edit-actions{grid-column:1;min-width:0}
+    .modal-card.has-img .edit-side .zoom-only{display:inline-flex}
+    .modal-card.has-img .edit-side .stack-only{display:none}
+    .modal-card.has-img #editImages{flex-direction:column;flex-wrap:nowrap;gap:10px;height:calc(100vh - 120px);overflow:auto;
+      padding:8px;border:1px solid var(--line);border-radius:12px;background:var(--bg2,var(--bg))}
+    .modal-card.has-img #editImages > div{flex:0 0 auto}
+    .modal-card.has-img #editImages .src-img{width:calc(var(--zoom,1) * 100%);max-width:none;max-height:none;border-radius:6px}
+  }
   .etable{display:flex;flex-direction:column;gap:7px;overflow-x:auto;padding-bottom:4px}
   .ehead,.erow{display:grid;grid-template-columns:52px 108px minmax(150px,1fr) 96px 78px 34px;gap:7px;align-items:center;min-width:520px}
   .epack .ehead,.epack .erow{grid-template-columns:52px 128px 128px 96px 70px 34px}
@@ -2687,6 +2711,8 @@
           <button class="del" onclick="closeEdit()">✕</button>
         </div>
       </div>
+      <div class="edit-grid">
+      <div class="edit-main">
       <div class="two">
         <div><label>Production Order</label><input id="e_order"></div>
         <div><label for="e_date_disp">วันที่</label>
@@ -2729,12 +2755,21 @@
         </div>
       </div>
 
+      </div><!-- /edit-main -->
+      <!-- source image: below the form on narrow screens, pinned beside it on wide ones -->
+      <aside id="editImageWrap" class="edit-side hidden" style="margin-top:6px">
+        <div class="divider stack-only"></div>
+        <div class="img-tools">
+          <label>ภาพต้นฉบับ <span class="muted" style="font-weight:400;font-size:12px">(คลิกเพื่อขยาย)</span></label>
+          <button type="button" class="ghost sm zoom-only" onclick="zoomSrc(-1)" title="ย่อ">−</button>
+          <span class="zlvl zoom-only" id="srcZoomLvl">100%</span>
+          <button type="button" class="ghost sm zoom-only" onclick="zoomSrc(1)" title="ขยาย (หรือ Ctrl + เลื่อนล้อเมาส์)">+</button>
+          <button type="button" class="ghost sm zoom-only" onclick="zoomSrc(0)" title="พอดีความกว้าง">พอดี</button>
+        </div>
+        <div id="editImages"></div>
+      </aside>
+      <div class="edit-actions">
       <div class="divider"></div>
-      <!-- source image -->
-      <div id="editImageWrap" class="hidden" style="margin-bottom:14px">
-        <label style="margin-bottom:8px">ภาพต้นฉบับ (คลิกเพื่อขยาย)</label>
-        <div id="editImages" style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start"></div>
-      </div>
       <!-- approval status -->
       <div id="editApproval" style="margin-bottom:14px;padding:12px 16px;border-radius:12px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2)">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
@@ -2752,6 +2787,8 @@
         <button class="btn" id="saveEditBtn" onclick="saveEdit()" >บันทึกฉบับร่าง (Draft)</button>
         <button class="ghost" onclick="closeEdit()">ยกเลิก</button>
       </div>
+      </div><!-- /edit-actions -->
+      </div><!-- /edit-grid -->
     </div>
   </div>
 </div>
@@ -4676,6 +4713,48 @@ window.updatePlanCompare = () => {
   }
 };
 window.addLine = () => $("e_lines").insertAdjacentHTML("beforeend", lineRow());
+// ---- source image beside the edit form ------------------------------------
+// Side by side (wide screens) the photo fits the panel width and zooms in place;
+// stacked below the form (narrow screens) a click just toggles full height.
+const splitView = () => $("editModal").querySelector(".modal-card").classList.contains("has-img")
+  && matchMedia("(min-width:1200px)").matches;
+let srcZoom = 1;
+function setSrcZoom(z, anchor){
+  const box = $("editImages");
+  const old = srcZoom;
+  srcZoom = Math.min(4, Math.max(1, Math.round(z * 4) / 4));
+  box.style.setProperty("--zoom", srcZoom);
+  $("srcZoomLvl").textContent = Math.round(srcZoom * 100) + "%";
+  // keep the point under the cursor (or the centre) in place while zooming
+  if(anchor && old !== srcZoom){
+    const r = srcZoom / old;
+    box.scrollLeft = (box.scrollLeft + anchor.x) * r - anchor.x;
+    box.scrollTop = (box.scrollTop + anchor.y) * r - anchor.y;
+  }
+}
+window.zoomSrc = (dir) => {
+  const box = $("editImages");
+  setSrcZoom(dir === 0 ? 1 : srcZoom + dir * 0.5, {x: box.clientWidth / 2, y: box.clientHeight / 2});
+};
+function srcImgClick(img, e){
+  if(!splitView()){ img.classList.toggle("big"); return; }
+  const box = $("editImages"), r = box.getBoundingClientRect();
+  setSrcZoom(srcZoom > 1 ? 1 : 2.5, {x: e.clientX - r.left, y: e.clientY - r.top});
+}
+function dropSrcCell(cell){
+  cell.remove();
+  if(!$("editImages").children.length){
+    $("editImageWrap").classList.add("hidden");
+    $("editModal").querySelector(".modal-card").classList.remove("has-img");
+  }
+}
+$("editImages").addEventListener("wheel", e => {
+  if(!e.ctrlKey || !splitView()) return;
+  e.preventDefault();   // ctrl+wheel (and trackpad pinch) zooms the photo, not the page
+  const r = $("editImages").getBoundingClientRect();
+  setSrcZoom(srcZoom * (e.deltaY < 0 ? 1.15 : 1 / 1.15), {x: e.clientX - r.left, y: e.clientY - r.top});
+}, {passive: false});
+
 window.closeEdit = () => {
   $("editImages").querySelectorAll("img[src^='blob:']").forEach(img => URL.revokeObjectURL(img.src));
   $("editModal").classList.add("hidden");
@@ -4710,6 +4789,9 @@ function loadEditForm(o){
   gallery.querySelectorAll("img[src^='blob:']").forEach(img => URL.revokeObjectURL(img.src));
   gallery.innerHTML = "";
   const pages = (o.image_pages && o.image_pages.length) ? o.image_pages : (o.has_image ? [0] : []);
+  const card = $("editModal").querySelector(".modal-card");
+  card.classList.toggle("has-img", pages.length > 0);
+  setSrcZoom(1);
   if(pages.length){
     wrap.classList.remove("hidden");
     pages.forEach(pg => {
@@ -4719,16 +4801,16 @@ function loadEditForm(o){
         cell.innerHTML = `<span style="font-size:11px;color:var(--faint);font-weight:600">หน้า ${pg}</span>`;
       const img = document.createElement("img");
       img.alt = "source page " + pg;
-      img.style.cssText = "max-width:100%;max-height:300px;border-radius:10px;border:1px solid var(--line);cursor:pointer;object-fit:contain";
-      img.onclick = () => { img.style.maxHeight = img.style.maxHeight==="300px" ? "none" : "300px"; };
+      img.className = "src-img";
+      img.onclick = e => srcImgClick(img, e);
       cell.appendChild(img);
       gallery.appendChild(cell);
       (async()=>{
         try{
           const r = await api(`/orders/${o.id}/image${pg?`?page=${pg}`:""}`);
           if(r.ok){ img.src = URL.createObjectURL(await r.blob()); }
-          else { cell.remove(); if(!gallery.children.length) wrap.classList.add("hidden"); }
-        }catch(e){ cell.remove(); if(!gallery.children.length) wrap.classList.add("hidden"); }
+          else dropSrcCell(cell);
+        }catch(e){ dropSrcCell(cell); }
       })();
     });
   } else { wrap.classList.add("hidden"); }
