@@ -3417,7 +3417,9 @@ function renderPage(){
   const pageItems = list.slice(start, start + PAGE_SIZE);
   orderIds = list.map(o => o.id);
   $("ordersList").innerHTML = pageItems.length ? pageItems.map(renderOrderRow).join("")
-    : emptyState("ไม่มีรายการที่ตรงกับตัวกรอง", "ลองล้างคำค้นหรือขยายช่วงวันที่ดูนะคะ");
+    : (loadingAll || ordersCursor) && (filtersActive() || $("statusFilter").value !== "all")
+      ? emptyState("กำลังโหลดรายการทั้งหมดเพื่อกรอง…", "รายการที่โหลดมาแล้วยังไม่มีใบที่ตรงเงื่อนไข")
+      : emptyState("ไม่มีรายการที่ตรงกับตัวกรอง", "ลองล้างคำค้นหรือขยายช่วงวันที่ดูนะคะ");
   // pagination bar
   let pg = '';
   if(list.length > PAGE_SIZE){
@@ -3529,8 +3531,10 @@ window.applyOrderFilters = () => {
   }
   renderOrders(filtered);
 
-  // A date or text filter is meaningless over a partial list, so pull the rest in.
-  if(filtersActive() && ordersCursor && !loadingAll) ensureAllOrders();
+  // Any filter is meaningless over a partial list (only the newest page is
+  // loaded), so pull the rest in — a status gate would otherwise show 0 rows
+  // while the workflow bar counts every order in the factory.
+  if((filtersActive() || status !== "all") && ordersCursor && !loadingAll) ensureAllOrders();
 };
 window.applyStatusFilter = () => applyOrderFilters();   // kept for older call sites
 
@@ -3569,7 +3573,7 @@ window.ensureAllOrders = async () => {
   if(lb) lb.innerHTML = '<span class="muted">กำลังโหลดรายการทั้งหมดเพื่อกรอง…</span>';
   let guard = 0;
   try{
-    while(ordersCursor && guard++ < 80) await loadOrders(true);
+    while(ordersCursor && guard++ < 40) await loadOrders(true, 500);   // server caps a page at 500
   } finally {
     loadingAll = false;
     if(lb) lb.innerHTML = ordersCursor
@@ -3654,9 +3658,9 @@ window.refreshWorkflowCounts = () => wfFetching ||= Promise.all([
 ]).then(renderWorkflowBar).finally(() => { wfFetching = null; });
 
 let ordersCursor = null;
-window.loadOrders = async (append) => {
+window.loadOrders = async (append, limit = 50) => {
   try{
-    let url = "/orders?limit=50";
+    let url = "/orders?limit=" + limit;
     if(append && ordersCursor) url += "&cursor=" + encodeURIComponent(ordersCursor);
     const j = await (await api(url)).json();
     const items = j.orders||[];
