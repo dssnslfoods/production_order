@@ -1661,7 +1661,7 @@
         </div>
 
         <div class="card panel">
-          <div class="phead"><span class="pico" style="background:rgba(99,102,241,.16);color:var(--indigo)"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span><h2>ผู้ที่นับว่า "ส่งเข้า SAP แล้ว"</h2></div>
+          <div class="phead"><span class="pico" style="background:rgba(99,102,241,.16);color:var(--indigo)"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span><h2>Role ที่ Export Excel ส่งเข้า SAP</h2></div>
           <label>role ที่กด Export แล้วระบบจะทำเครื่องหมายว่าส่งเข้า SAP</label>
           <select id="sapExportRole" onchange="saveSapExportRole()">
             <option value="super_admin">Super Admin</option>
@@ -2329,7 +2329,7 @@
               <b>"ยกเลิกการทำเครื่องหมาย"</b> ที่แถวนั้นในประวัติ ใบเหล่านั้นจะกลับมานับรวมใน "ยังไม่ได้ส่งเข้า SAP" อีกครั้ง<br>
               เฉพาะใบที่ <b>อนุมัติแล้ว</b> เท่านั้นที่ถูกทำเครื่องหมาย — ใบที่ยังไม่อนุมัติที่หลุดเข้าไฟล์จะไม่ถูกนับว่าส่งแล้ว<br>
               <b>นับว่าส่งเข้า SAP เฉพาะเมื่อ role ที่ Admin กำหนดไว้เป็นผู้ Export</b> — ตั้งค่าได้ที่หน้า
-              <b>ตั้งค่าระบบ → "ผู้ที่นับว่าส่งเข้า SAP แล้ว"</b> (ค่าเริ่มต้นคือ Approver)
+              <b>ตั้งค่าระบบ → "Role ที่ Export Excel ส่งเข้า SAP"</b> (ค่าเริ่มต้นคือ Approver)
               role นั้นคนไหนในโรงงานก็ Export ใบที่อนุมัติแล้วได้ทุกใบ ไม่จำกัดเฉพาะใบที่ตัวเองอนุมัติ ·
               Export โดย role อื่นใช้ดูข้อมูลได้ แต่ไม่ถูกนับว่าส่งแล้ว<br>
               <b>Reviewer Export ได้เฉพาะรายการที่อนุมัติแล้วเท่านั้น</b> — ตัวเลือกสถานะอื่นจะถูกซ่อน
