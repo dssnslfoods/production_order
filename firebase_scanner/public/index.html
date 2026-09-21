@@ -1426,12 +1426,24 @@
 
             <div class="two" style="gap:20px">
               <div>
-                <label>วันที่เริ่มต้น</label>
-                <input id="expFrom" type="date">
+                <label for="expFrom_disp">วันที่เริ่มต้น</label>
+                <div class="date-wrap">
+                  <input type="hidden" id="expFrom">
+                  <input type="text" id="expFrom_disp" class="dmy-input" placeholder="dd/mm/yyyy" inputmode="numeric" maxlength="10" autocomplete="off"
+                    oninput="dmyAutoSlash(this)" onblur="commitDmyText('expFrom')" onkeydown="if(event.key==='Enter'){commitDmyText('expFrom');this.blur()}">
+                  <button type="button" class="dmy-cal-btn" onclick="openDmyPicker('expFrom')" aria-label="เลือกวันที่" tabindex="-1">📅</button>
+                  <input type="date" id="expFrom_pick" class="dmy-native-picker" tabindex="-1" onchange="pickDmyDate('expFrom')">
+                </div>
               </div>
               <div>
-                <label>วันที่สิ้นสุด</label>
-                <input id="expTo" type="date">
+                <label for="expTo_disp">วันที่สิ้นสุด</label>
+                <div class="date-wrap">
+                  <input type="hidden" id="expTo">
+                  <input type="text" id="expTo_disp" class="dmy-input" placeholder="dd/mm/yyyy" inputmode="numeric" maxlength="10" autocomplete="off"
+                    oninput="dmyAutoSlash(this)" onblur="commitDmyText('expTo')" onkeydown="if(event.key==='Enter'){commitDmyText('expTo');this.blur()}">
+                  <button type="button" class="dmy-cal-btn" onclick="openDmyPicker('expTo')" aria-label="เลือกวันที่" tabindex="-1">📅</button>
+                  <input type="date" id="expTo_pick" class="dmy-native-picker" tabindex="-1" onchange="pickDmyDate('expTo')">
+                </div>
               </div>
             </div>
 
