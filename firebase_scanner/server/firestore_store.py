@@ -364,14 +364,16 @@ def merge_order_page(order_id, data, storage_path=None):
     if not snap.exists:
         return "missing"
     current = snap.to_dict() or {}
+    patch = merge_pages(current, data)
+    # A page the order already holds is a re-upload, whatever the order's state:
+    # there is nothing to add, so it must not land in the failure queue.
+    if patch is None:
+        return "duplicate"
     # An approved or exported order has been signed off and its source image
     # dropped; quietly rewriting its lines would change a record someone already
     # checked.  Refuse, and let the caller surface the page rather than bin it.
     if current.get("status") in ("approved", "exported"):
         return "locked"
-    patch = merge_pages(current, data)
-    if patch is None:
-        return "duplicate"
     # Keep the incoming sheet's photo too: every page of the requisition has to
     # stay checkable against the order it was folded into.
     if storage_path:
@@ -667,6 +669,32 @@ def add_pending(raw: bytes, content_type: str, filename: str, user_email=None,
     return db().collection(PENDING).add(doc)[1].id
 
 
+def find_seen_filenames(filenames, factory_id=None):
+    """Which of these names were uploaded before. -> {filename: where it is}
+
+    Photos shared through LINE keep their name (S__28327966_0.jpg), so a name
+    already on an order or in the queue almost always means the same sheet is
+    being sent again.  Only the sheet an order was filed from is on record, so
+    this catches most re-uploads rather than all of them.
+    """
+    names = sorted({n for n in filenames or [] if n})
+    seen = {}
+    for i in range(0, len(names), 30):  # Firestore caps an "in" filter at 30
+        chunk = names[i:i + 30]
+        for d in db().collection(ORDERS).where("source_filename", "in", chunk).stream():
+            r = d.to_dict() or {}
+            if factory_id and r.get("factory_id") != factory_id:
+                continue
+            seen.setdefault(r.get("source_filename"), f"Order {r.get('order_no') or '-'}")
+        for col, label in ((PENDING, "อยู่ในคิวแล้ว"), (DEAD_LETTER, "อยู่ในรายการสแกนล้มเหลว")):
+            for d in db().collection(col).where("filename", "in", chunk).stream():
+                r = d.to_dict() or {}
+                if factory_id and r.get("factory_id") != factory_id:
+                    continue
+                seen.setdefault(r.get("filename"), label)
+    return seen
+
+
 def get_pending(pid):
     d = db().collection(PENDING).document(pid).get()
     if not d.exists:
@@ -698,12 +726,13 @@ def delete_pending(pid):
     db().collection(PENDING).document(pid).delete()
 
 
-def fail_pending(pid, err):
+def fail_pending(pid, err, permanent=False):
+    """Count a failed read; `permanent` skips the retries a re-read cannot fix."""
     ref = db().collection(PENDING).document(pid)
     doc = ref.get()
     data = doc.to_dict() if doc.exists else {}
     retries = data.get("retry_count", 0) + 1
-    if retries >= MAX_RETRY:
+    if permanent or retries >= MAX_RETRY:
         data.update({
             "status": "dead",
             "error": str(err)[:500],

@@ -250,6 +250,46 @@ class TestFailPending:
             result = store.fail_pending("p1", Exception("still failing"))
         assert result == "dead"
 
+    def test_permanent_failure_skips_the_retries(self):
+        mock_doc = MagicMock()
+        mock_doc.exists = True
+        mock_doc.to_dict.return_value = {"status": "pending", "retry_count": 0}
+        with patch.object(store, "db") as mock_db:
+            mock_db().collection().document().get.return_value = mock_doc
+            result = store.fail_pending("p1", Exception("locked"), permanent=True)
+        assert result == "dead"
+
+
+# ---------------------------------------------------------------------------
+# merge_order_page: a re-upload of a signed-off order is a duplicate, not an error
+# ---------------------------------------------------------------------------
+class TestMergeOrderPageLocked:
+    def _run(self, current, data):
+        snap = MagicMock()
+        snap.exists = True
+        snap.to_dict.return_value = current
+        with patch.object(store, "db") as mock_db:
+            ref = mock_db().collection().document()
+            ref.get.return_value = snap
+            outcome = store.merge_order_page("o1", data)
+        return outcome, ref
+
+    def test_same_page_of_approved_order_is_duplicate(self):
+        outcome, ref = self._run({"status": "approved", "pages": [1, 2], "page_total": 2},
+                                 {"order_no": "1", "page_no": 2, "page_total": 2})
+        assert outcome == "duplicate"
+        ref.update.assert_not_called()
+
+    def test_single_page_approved_order_rescan_is_duplicate(self):
+        outcome, _ = self._run({"status": "exported"}, {"order_no": "1", "page_no": 1})
+        assert outcome == "duplicate"
+
+    def test_new_page_of_approved_order_is_still_locked(self):
+        outcome, ref = self._run({"status": "approved", "pages": [1], "page_total": 2},
+                                 {"order_no": "1", "page_no": 2, "page_total": 2})
+        assert outcome == "locked"
+        ref.update.assert_not_called()
+
 
 # ---------------------------------------------------------------------------
 # Permission migration: a release that adds pages must not remove access

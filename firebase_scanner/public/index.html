@@ -3108,8 +3108,34 @@ window.saveKey = async (p) => {
   else { toast("บันทึกไม่สำเร็จ"); }
 };
 
+/** Ask before re-sending sheets already on record. -> the files to upload */
+async function skipSeenFiles(files){
+  let seen = {};
+  try{
+    const r = await api("/queue/check", {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({filenames: files.map(f => f.name)})});
+    if(r.ok) seen = (await r.json()).seen || {};
+  }catch(e){ return files; }   // the check is a courtesy; never block an upload on it
+  const dup = files.filter(f => seen[f.name]);
+  if(!dup.length) return files;
+  const shown = dup.slice(0, 10).map(f => "• "+f.name+" — "+seen[f.name]).join("\n");
+  const more = dup.length > 10 ? `\n…และอีก ${dup.length-10} ไฟล์` : "";
+  const fresh = files.length - dup.length;
+  if(confirm(`พบ ${dup.length} ไฟล์ที่เคยอัปโหลดแล้ว:\n${shown}${more}\n\n`
+      + `กด OK = ข้ามไฟล์ที่ซ้ำ (อัปโหลดเฉพาะไฟล์ใหม่ ${fresh} ไฟล์)\nกด Cancel = เลือกอย่างอื่น`)){
+    return files.filter(f => !seen[f.name]);
+  }
+  return confirm(`อัปโหลดทั้งหมด ${files.length} ไฟล์ รวมไฟล์ที่ซ้ำด้วย?\n\nกด Cancel = ยกเลิกการอัปโหลด`) ? files : [];
+}
+
 async function uploadToQueue(files){
   if(!files.length) return;
+  const picked = files.length;
+  files = await skipSeenFiles(files);
+  if(!files.length){
+    $("uploadStatus").textContent = picked ? "ไม่ได้อัปโหลด — ไฟล์ที่เลือกเคยอัปโหลดแล้วทั้งหมด" : "";
+    return;
+  }
   let done = 0, fail = 0;
   const total = files.length;
   $("uploadStatus").innerHTML = '<span class="spin"></span> อัปโหลด 0/'+total+' ไฟล์…';

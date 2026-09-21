@@ -213,6 +213,10 @@ def set_config(body: ConfigIn, user=Depends(admin_only)):
     return _masked_config(user["email"])
 
 
+class PageLockedError(RuntimeError):
+    """A new page for a signed-off order: re-reading the file cannot change that."""
+
+
 def _page_label(data):
     return f"หน้า {data.get('page_no') or 1}/{data.get('page_total') or 1}"
 
@@ -230,7 +234,7 @@ def _absorb_page(dup, data, storage_path=None):
     if outcome == "merged":
         return "success", f"Order {order_no} · รวม{_page_label(data)} ({len(data.get('lines') or [])} รายการ)"
     if outcome == "locked":
-        raise RuntimeError(
+        raise PageLockedError(
             f"Order {order_no} อนุมัติ/ส่งออกไปแล้ว จึงเพิ่ม{_page_label(data)} ไม่ได้ "
             f"— กรุณาตรวจสอบว่าเป็นเอกสารหน้าใหม่จริงหรือไม่")
     if outcome == "missing":
@@ -379,7 +383,8 @@ def _process_queue(trigger="manual", factory_id=None):
             else:
                 result["skipped"] = result.get("skipped", 0) + 1
         except Exception as e:  # noqa: BLE001
-            outcome = store.fail_pending(p["id"], _friendly_error(e))
+            outcome = store.fail_pending(p["id"], _friendly_error(e),
+                                         permanent=isinstance(e, PageLockedError))
             item["status"] = outcome
             item["detail"] = _friendly_error(e)
             if outcome == "dead":
@@ -429,6 +434,16 @@ async def queue(files: List[UploadFile] = File(...), user=Depends(auth.verify_to
     store.log_activity("upload_queue", user["email"], user["role"],
                        f"อัปโหลด {len(saved)} ไฟล์เข้าคิว", factory_id=fid)
     return {"queued": saved, "count": len(saved)}
+
+
+class QueueCheckIn(BaseModel):
+    filenames: List[str]
+
+
+@app.post("/api/queue/check")
+def queue_check(body: QueueCheckIn, user=Depends(auth.verify_token)):
+    """Names among `filenames` that were uploaded before, so the page can warn."""
+    return {"seen": store.find_seen_filenames(body.filenames[:500], factory_id=_fid(user))}
 
 
 @app.get("/api/pending")
@@ -537,7 +552,7 @@ def process_one(pid: str, user=Depends(auth.verify_token)):
                                f"สแกน {p.get('filename')} → {detail}", factory_id=pfid)
         return {"status": status, "detail": detail}
     except Exception as e:  # noqa: BLE001
-        store.fail_pending(pid, _friendly_error(e))
+        store.fail_pending(pid, _friendly_error(e), permanent=isinstance(e, PageLockedError))
         return {"status": "failed", "detail": _friendly_error(e)}
 
 
@@ -558,7 +573,8 @@ def _process_one_pending(p, provider, key, model):
         item["detail"] = detail
         return item, status
     except Exception as e:  # noqa: BLE001
-        outcome = store.fail_pending(p["id"], _friendly_error(e))
+        outcome = store.fail_pending(p["id"], _friendly_error(e),
+                                     permanent=isinstance(e, PageLockedError))
         item["status"] = outcome
         item["detail"] = _friendly_error(e)
         return item, outcome
