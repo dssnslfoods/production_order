@@ -358,11 +358,13 @@
   input:focus,select:focus{outline:none;border-color:var(--indigo);box-shadow:0 0 0 3px rgba(99,102,241,.12)}
   input[type=date]{color-scheme:light}
   .date-wrap{position:relative}
-  .date-wrap input[type=date].fmt-dmy{color:transparent}
-  .date-wrap input[type=date].fmt-dmy:focus{color:transparent}
-  .date-dmy-label{position:absolute;left:14px;top:50%;transform:translateY(-50%);pointer-events:none;
-    font-size:14px;font-family:inherit;color:var(--text)}
-  .date-dmy-label.placeholder{color:var(--muted)}
+  .date-wrap .dmy-input{padding-right:40px}
+  .date-wrap .dmy-cal-btn{position:absolute;right:5px;top:50%;transform:translateY(-50%);width:30px;height:30px;
+    padding:0;border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:15px;line-height:1;
+    display:flex;align-items:center;justify-content:center;border-radius:7px;transition:.2s}
+  .date-wrap .dmy-cal-btn:hover{background:rgba(255,255,255,.06);color:var(--text)}
+  .dmy-native-picker{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+    opacity:0;border:0;left:0;top:0}
   .row{display:flex;gap:10px;flex-wrap:wrap}
   .row>*{flex:1;min-width:0}
   button{cursor:pointer;font-family:inherit;font-weight:600;border:none;border-radius:10px;
@@ -1243,17 +1245,23 @@
               </select>
             </div>
             <div>
-              <label for="ordFrom">ตั้งแต่วันที่</label>
+              <label for="ordFrom_disp">ตั้งแต่วันที่</label>
               <div class="date-wrap">
-                <input type="date" id="ordFrom" class="fmt-dmy" onchange="applyOrderFilters();syncDateLabel('ordFrom')">
-                <span class="date-dmy-label placeholder" data-for="ordFrom">dd/mm/yyyy</span>
+                <input type="hidden" id="ordFrom" onchange="applyOrderFilters()">
+                <input type="text" id="ordFrom_disp" class="dmy-input" placeholder="dd/mm/yyyy" inputmode="numeric" maxlength="10" autocomplete="off"
+                  oninput="dmyAutoSlash(this)" onblur="commitDmyText('ordFrom')" onkeydown="if(event.key==='Enter'){commitDmyText('ordFrom');this.blur()}">
+                <button type="button" class="dmy-cal-btn" onclick="openDmyPicker('ordFrom')" aria-label="เลือกวันที่" tabindex="-1">📅</button>
+                <input type="date" id="ordFrom_pick" class="dmy-native-picker" tabindex="-1" onchange="pickDmyDate('ordFrom')">
               </div>
             </div>
             <div>
-              <label for="ordTo">ถึงวันที่</label>
+              <label for="ordTo_disp">ถึงวันที่</label>
               <div class="date-wrap">
-                <input type="date" id="ordTo" class="fmt-dmy" onchange="applyOrderFilters();syncDateLabel('ordTo')">
-                <span class="date-dmy-label placeholder" data-for="ordTo">dd/mm/yyyy</span>
+                <input type="hidden" id="ordTo" onchange="applyOrderFilters()">
+                <input type="text" id="ordTo_disp" class="dmy-input" placeholder="dd/mm/yyyy" inputmode="numeric" maxlength="10" autocomplete="off"
+                  oninput="dmyAutoSlash(this)" onblur="commitDmyText('ordTo')" onkeydown="if(event.key==='Enter'){commitDmyText('ordTo');this.blur()}">
+                <button type="button" class="dmy-cal-btn" onclick="openDmyPicker('ordTo')" aria-label="เลือกวันที่" tabindex="-1">📅</button>
+                <input type="date" id="ordTo_pick" class="dmy-native-picker" tabindex="-1" onchange="pickDmyDate('ordTo')">
               </div>
             </div>
           </div>
@@ -2669,10 +2677,13 @@
       </div>
       <div class="two">
         <div><label>Production Order</label><input id="e_order"></div>
-        <div><label>วันที่</label>
+        <div><label for="e_date_disp">วันที่</label>
           <div class="date-wrap">
-            <input id="e_date" type="date" class="fmt-dmy" onchange="syncDateLabel('e_date')">
-            <span class="date-dmy-label placeholder" data-for="e_date">dd/mm/yyyy</span>
+            <input type="hidden" id="e_date">
+            <input type="text" id="e_date_disp" class="dmy-input" placeholder="dd/mm/yyyy" inputmode="numeric" maxlength="10" autocomplete="off"
+              oninput="dmyAutoSlash(this)" onblur="commitDmyText('e_date')" onkeydown="if(event.key==='Enter'){commitDmyText('e_date');this.blur()}">
+            <button type="button" class="dmy-cal-btn" onclick="openDmyPicker('e_date')" aria-label="เลือกวันที่" tabindex="-1">📅</button>
+            <input type="date" id="e_date_pick" class="dmy-native-picker" tabindex="-1" onchange="pickDmyDate('e_date')">
           </div>
         </div>
         <div><label>Item No.</label><input id="e_series"></div>
@@ -3470,19 +3481,71 @@ window.deleteSelected = async () => {
   toast(`ลบสำเร็จ ${ok} รายการ` + (fail ? ` · ล้มเหลว ${fail}` : ''));
   loadOrders(); loadReport();
 };
-window.syncDateLabel = function(id){
-  const inp = document.getElementById(id);
-  const label = document.querySelector(`.date-dmy-label[data-for="${id}"]`);
-  if(!inp || !label) return;
-  if(inp.value){
-    const [y,m,d] = inp.value.split("-");
-    label.textContent = `${d}/${m}/${y}`;
-    label.classList.remove("placeholder");
-  } else {
-    label.textContent = "dd/mm/yyyy";
-    label.classList.add("placeholder");
+// dd/mm/yyyy date fields: a hidden #<id> holds the real ISO (yyyy-mm-dd) value that the
+// rest of the app reads/writes, #<id>_disp is the typed dd/mm/yyyy text, #<id>_pick is an
+// invisible native <input type=date> used only to drive the calendar popup. Rendering our
+// own text instead of the native widget's text is what makes the display format consistent
+// across browsers — a native date input's shown format follows the browser/OS locale, which
+// we cannot control from the page.
+window.isoToDmy = function(iso){
+  if(!iso) return "";
+  const [y,m,d] = iso.split("-");
+  if(!y || !m || !d) return "";
+  return `${d}/${m}/${y}`;
+};
+window.dmyToIso = function(s){
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec((s||"").trim());
+  if(!m) return "";
+  const day = +m[1], mon = +m[2], yr = +m[3];
+  const dt = new Date(yr, mon-1, day);
+  if(dt.getFullYear() !== yr || dt.getMonth() !== mon-1 || dt.getDate() !== day) return "";
+  return `${yr}-${String(mon).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+};
+window.dmyAutoSlash = function(inp){
+  const digits = inp.value.replace(/\D/g,"").slice(0,8);
+  let out = digits;
+  if(digits.length > 4) out = `${digits.slice(0,2)}/${digits.slice(2,4)}/${digits.slice(4)}`;
+  else if(digits.length > 2) out = `${digits.slice(0,2)}/${digits.slice(2)}`;
+  inp.value = out;
+};
+window.setDmyValue = function(id, iso){
+  const hidden = document.getElementById(id);
+  const disp = document.getElementById(id+"_disp");
+  const pick = document.getElementById(id+"_pick");
+  if(hidden) hidden.value = iso || "";
+  if(disp) disp.value = isoToDmy(iso);
+  if(pick) pick.value = iso || "";
+};
+window.commitDmyText = function(id){
+  const disp = document.getElementById(id+"_disp");
+  const hidden = document.getElementById(id);
+  if(!disp) return;
+  const text = disp.value.trim();
+  if(!text){
+    if(hidden && hidden.value){ hidden.value = ""; hidden.dispatchEvent(new Event("change")); }
+    setDmyValue(id, "");
+    return;
   }
-}
+  const iso = dmyToIso(text);
+  if(!iso){ disp.value = isoToDmy(hidden?.value || ""); return; }
+  const changed = hidden && hidden.value !== iso;
+  setDmyValue(id, iso);
+  if(changed) hidden.dispatchEvent(new Event("change"));
+};
+window.pickDmyDate = function(id){
+  const pick = document.getElementById(id+"_pick");
+  const hidden = document.getElementById(id);
+  const iso = pick?.value || "";
+  const changed = hidden && hidden.value !== iso;
+  setDmyValue(id, iso);
+  if(changed) hidden.dispatchEvent(new Event("change"));
+};
+window.openDmyPicker = function(id){
+  const pick = document.getElementById(id+"_pick");
+  if(!pick) return;
+  if(pick.showPicker){ try{ pick.showPicker(); return; }catch(e){} }
+  pick.focus();
+};
 function orderDate(o){ return (o.document_date || o.scanned_at || "").slice(0,10); }
 function filtersActive(){
   return !!($("ordSearch")?.value.trim() || $("ordFrom")?.value || $("ordTo")?.value);
@@ -3558,10 +3621,8 @@ window.quickRange = (kind, btn) => {
     const start = new Date(today); start.setDate(start.getDate() - Number(kind) + 1);
     from = iso(start); to = iso(today);
   }
-  $("ordFrom").value = from;
-  $("ordTo").value = to;
-  syncDateLabel('ordFrom');
-  syncDateLabel('ordTo');
+  setDmyValue('ordFrom', from);
+  setDmyValue('ordTo', to);
   applyOrderFilters();
 };
 
@@ -4611,8 +4672,7 @@ window.closeEdit = () => {
 function loadEditForm(o){
   editId = o.id;
   $("e_order").value = o.order_no||"";
-  $("e_date").value = o.document_date||"";
-  syncDateLabel('e_date');
+  setDmyValue('e_date', o.document_date||"");
   $("e_series").value = o.series_no||"";
   $("e_product").value = o.product_name||"";
   $("e_whse").value = o.product_whse||"";
